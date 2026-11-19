@@ -1,5 +1,6 @@
 import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
+import { freezeAnimation, resumeAnimation } from './animation-clock';
 import { flyTo, resetView } from './api';
 
 /**
@@ -13,6 +14,9 @@ export interface RepoInPeaceDevApi {
   getSelection: typeof getSelection;
   select: typeof select;
   clearSelection: typeof clearSelection;
+  /** Holds every animation (candle flicker, the selected stone's pulse) still, and lets them run again: for comparing two pictures exactly. */
+  freezeAnimation: () => void;
+  resumeAnimation: () => void;
   /** Where the camera is and what it looks at, right now. */
   getPose: () => CameraPose;
   /** The page position (in pixels) of the middle of the stone or ghost with this path, or `null` when it is behind the camera or unknown. */
@@ -37,7 +41,7 @@ export function installDevApi(
     const centre = centreOf(path);
     return centre === null ? null : projectPoint(centre.x, centre.y, centre.z);
   };
-  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint };
+  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, resumeAnimation };
   window.repoInPeace = api;
   return () => {
     if (window.repoInPeace === api) delete window.repoInPeace;

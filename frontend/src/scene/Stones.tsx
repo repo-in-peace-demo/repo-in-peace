@@ -7,6 +7,7 @@ import { GHOST_D, GHOST_HEIGHT, GHOST_OPACITY, GHOST_W } from '../model/visual-c
 import { leanQuaternion, stoneAttributes } from '../model/stone-attributes';
 import { GHOST_COLOR } from './colors';
 import { useHighlight, useRimHighlight } from './highlight';
+import { animationTime } from './animation-clock';
 import { makeStoneMaterial } from './stone-material';
 import { makeTombstoneGeometry } from './tombstone-geometry';
 import { noRaycast, placement } from './instances';
@@ -57,7 +58,7 @@ export function Stones({ model }: { model: SceneModel }) {
 
   useRimHighlight(assets.highlight, model, 'file');
   useFrame(({ clock }) => {
-    assets.uniforms.uTime.value = clock.elapsedTime;
+    assets.uniforms.uTime.value = animationTime(clock.elapsedTime);
   });
 
   if (stones.length === 0) return null;

@@ -2,7 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
+import { candleSpots } from '../src/model/candle-placement';
 import { buildSceneModel } from '../src/model/scene-model';
+import { CANDLE_HEIGHT } from '../src/model/visual-constants';
 
 /**
  * Smoke test of the stone material in the real app, on the oikos_ledger file: the shaders compile, a stone shows what
@@ -20,7 +22,7 @@ const freshUsed = stoneWhere((s) => s.file.decayState === 'fresh' && !s.file.unu
 const mossy = [...model.stones].filter((s) => s.file.decayState === 'ancient' && !s.file.unused).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0]!;
 const ancientUnused = stoneWhere((s) => s.file.decayState === 'ancient' && s.file.unused);
 
-type Kind = 'green' | 'red' | 'magenta';
+type Kind = 'green' | 'red' | 'magenta' | 'yellow';
 
 /** How many pixels of a kind are in the window of `half` pixels around (x, y) of the page. */
 async function countPixels(page: Page, kind: Kind, centre: { x: number; y: number }, half = 90): Promise<number> {
@@ -42,6 +44,7 @@ async function countPixels(page: Page, kind: Kind, centre: { x: number; y: numbe
         const [r, g, b] = [rgba[i]!, rgba[i + 1]!, rgba[i + 2]!];
         if (what === 'green' && g > r + 12 && g > b + 12 && g > 50) count++;
         if (what === 'red' && r > g + 45 && r > b + 45 && r > 90) count++;
+        if (what === 'yellow' && r > 55 && g > 50 && r >= 1.7 * b && Math.abs(r - g) <= 15) count++; // the candle's yellow, lit: red and green about equal, blue far lower
         if (what === 'magenta' && r > 170 && b > 120 && g < r - 60 && g < b - 30) count++;
       }
       return count;
@@ -110,5 +113,19 @@ test.describe('stone material, in the real app', () => {
     await page.evaluate(() => window.repoInPeace!.clearSelection());
     await page.waitForTimeout(600);
     expect(await countPixels(page, 'magenta', top, 25), 'pink at the top after the selection is cleared').toBe(0);
+  });
+
+  test('a hot stone has a lit candle that glows yellow beside it, and a stone that is not hot has none', async ({ page }) => {
+    const spots = candleSpots(model.stones);
+    expect(spots.length, 'oikos_ledger has 7 hot files').toBe(7);
+    const spot = spots[1]!;
+    await flyTo(page, spot.path);
+    const flame = (await page.evaluate(([x, y, z]) => window.repoInPeace!.projectPoint(x!, y!, z!), [spot.x, CANDLE_HEIGHT + 0.1, spot.z]))!;
+    const lit = await countPixels(page, 'yellow', flame, 45);
+    expect(lit, 'yellow pixels around the candle of a hot stone').toBeGreaterThan(20);
+
+    const cold = await flyTo(page, freshUsed.file.path);
+    expect(await countPixels(page, 'yellow', cold, 90), 'yellow pixels around a stone that is not hot').toBeLessThan(5);
+    expect(problems, problems.join('\n')).toEqual([]);
   });
 });

@@ -53,3 +53,22 @@ export const FLOOR_SHADE_MIN = 0.7;
 
 /** From this nesting depth on, the floor does not get any darker. */
 export const FLOOR_SHADE_DEPTH_LIMIT = 6;
+
+// ---- Candles (scene/Candles.tsx, model/candle-placement.ts) ----
+
+/** The wax: a short thick candle, lower than the shortest stone (MIN_STONE_H) so it never reaches the mist and never hides a stone. */
+export const CANDLE_RADIUS = 0.09;
+export const CANDLE_HEIGHT = 0.3;
+
+/** The flame on top of the wax, and the size of the soft glow around it (a camera-facing quad), in world units. */
+export const FLAME_HEIGHT = 0.24;
+export const CANDLE_GLOW_SIZE = 2.0;
+
+/** The gap between the front of the stone's base and the candle's edge: the candle stands just in front of the stone. */
+export const CANDLE_GAP = 0.25;
+
+/**
+ * How far to the right of the stone's middle the candle stands, still inside the stone's cell. A stone that is alone in its
+ * plot stands right behind the plot's sign board, which would hide a candle placed straight in front of it from the front.
+ */
+export const CANDLE_SIDE_OFFSET = 0.9;

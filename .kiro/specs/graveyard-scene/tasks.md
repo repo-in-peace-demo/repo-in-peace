@@ -195,8 +195,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test && npm run e2e`, then `npm run dev` with both files: fresh stones are clean and upright, stale ones have moss creeping from the base, ancient ones are heavily overgrown and lean (in different directions), unused ones have thin cracks with a faint red glow whatever their age, hover shows a pale rim and a selected stone a pink rim and the ring.
   - _Requirements: 5.1 to 5.4, 8.1, 8.2_
 
-- [ ] 22. Candles (`scene/Candles.tsx`)
-  - [ ] 22.1 Instanced wax and flame for each stone with `candle`, in front of the stone's base inside its cell; the flame flickers by time and the stone's phase; a glow quad in the flame's shader; no real lights.
+- [x] 22. Candles (`scene/Candles.tsx`)
+  - [x] 22.1 `model/candle-placement.ts` (`candleCentre`, `candleSpots`; `candle-placement.test.ts`): one candle for each hot stone, in front of its base and to the right of its middle, always inside its own cell and clear of the stone, lower than the shortest stone; flipping `hot` changes only the candle list.
+  - [x] 22.2 `scene/Candles.tsx`: two instanced meshes, two draw calls. Cream wax; the flame is a lathe teardrop with a camera-facing glow quad in the same additive shader, flickering by time and the stone's phase; no real lights. The candle stands beside the middle because a stone alone in its plot stands right behind the plot's sign board, which hid a candle placed straight in front when seen from the front.
+  - [x] 22.3 `e2e/stones.spec.ts`: a hot stone has yellow-lit pixels at its candle (and the file has exactly 7 candles), a stone that is not hot has none, no console errors.
+  - **Run:** `cd frontend && npm run typecheck && npm test && npm run e2e`, then `npm run dev` with oikos_ledger: seven stones have a small flickering lit candle at their base, to the front right; no other stone has one. From the overview the candles are only small yellow dots, which task 25.02 addresses.
   - _Requirements: 5.4, 11.4_
 
 - [ ] 23. Ghosts (`scene/ghost-material.ts`, `Ghosts.tsx`)

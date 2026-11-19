@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
 import { CameraRig } from './CameraRig';
+import { Candles } from './Candles';
 import { BACKGROUND_COLOR } from './colors';
 import { Fences } from './Fences';
 import { Ground, PlotFloors } from './Ground';
@@ -40,6 +41,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Fences model={model} />
         <Plaques model={model} />
         <Stones model={model} />
+        <Candles model={model} />
         <Ghosts model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />

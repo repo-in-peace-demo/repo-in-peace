@@ -259,6 +259,8 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
     await page.waitForTimeout(300);
     const clip = { x: Math.round(at.x) - 50, y: Math.round(at.y) - 50, width: 100, height: 100 };
 
+    await page.evaluate(() => window.repoInPeace!.freezeAnimation()); // the candle flames flicker: hold them still to compare
+    await page.waitForTimeout(300);
     const plain = await page.screenshot({ clip });
     await select(page, 'file', frontStone);
     await page.waitForTimeout(600);
