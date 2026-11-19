@@ -184,8 +184,8 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 7. THE scene SHALL show these four things:
    1. **Clouds across the moon:** a few soft clouds drifting slowly across the sky, now and then dimming the moonlight a little. They are part of the sky, not 3D objects over the graveyard.
    2. **Ground mist:** low mist rolling slowly between the rows, below the height of the shortest stone, on top of the fog of Req 6.1. It SHALL NOT hide cracks, the red glow, candles or ghosts.
-   3. **Bats:** a small group (3 to 6) that crosses the sky every so often, high above the graveyard and never near the point the camera looks at.
-   4. **Dead trees outside the fence:** a ring of bare, crooked trees around the outside of the root plot, with a clear gap from the fence. Their number and spacing grow with the size of the root plot. They SHALL stay inside the camera's sideways bounds (Req 7.3), so they can be seen but never block the overview. A graveyard too small to fit them in that band gets none.
+   3. **Bats:** a small group (3 to 6) that crosses the sky every so often, above the graveyard and never near the point the camera looks at (at least 16 units above the tallest stone, which is the highest that point can be). The first crossing SHALL start within 15 seconds of the page loading and end within 30, and each crossing SHALL pass across the graveyard in the opening view of any data file, so a viewer sees bats within 30 seconds.
+   4. **Dead trees outside the fence:** a band of bare, crooked trees on the back and the sides of the root plot, from 2.5 to about 8 units outside its fence, with jitter, for a graveyard of any size (every graveyard gets some), and none along the front fence or beside the front rows, so they never block the opening view or the front rows. Their number and spacing grow with the size of the root plot. They are near enough to the graveyard to fade into the fog with it and not end abruptly. The camera's sideways bounds (Req 7.3) limit only where the camera looks, not what it can see, so they do not limit the trees.
 
 ### 12. Structure and testability
 
@@ -221,7 +221,7 @@ Supporting properties, added because they follow from the rules:
 - **P16** Camera interpolation reaches both end poses, stays finite, and keeps the camera above the ground between two poses above it (Req 7.4).
 - **P17** The floor tint never gets lighter as the nesting depth grows, stays within a stated subtle range, and is the lightest at the root (Req 5.9).
 - **P18** `clampPose`: the result is inside every limit; clamping twice equals clamping once; a pose inside the limits comes back unchanged; and when only the look-at point is stopped sideways, the camera moves with it and the view direction does not change (Req 7.3).
-- **P19** No tree lies inside, or touches, the root plot's fence band, and every tree lies inside the camera's sideways bounds (Req 13.1, 13.7.4).
+- **P19** No tree lies inside, or touches, the root plot's fence band; every tree is 2.5 to 8 units (plus its crown) outside the root plot, on its back or sides and never in front of the front fence line; and every graveyard has at least 6 trees (Req 13.1, 13.7.4).
 - **P20** Tree placement (and the bats' flock) is the same for the same snapshot SHA, and does not depend on anything else in the file (Req 13.4).
 - **P21** Picking never returns a decoration: every pick target is a file or a ghost of the data, and a ray through a tree, a bat's path or the mist hits nothing (Req 13.2).
 
