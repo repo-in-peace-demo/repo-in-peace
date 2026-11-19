@@ -62,10 +62,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 3.6, 5_
 
-- [ ] 7. Signs (`model/signs.ts`)
-  - [ ] 7.1 `buildSignSources`, `visibleSigns` as in the design.
-  - [ ] 7.2 **P14**: one sign spot per plot on the front edge overlapping no cell, ghost or child plot; at most 30 shown; opacity in `[0, 1]` and never rising as the camera moves away; none beyond `far`; independent of the order of sources; at the start pose the root's opacity is above 0.
-  - [ ] 7.3 Examples: labels (the repository name for the root, the last segment otherwise); a sign behind the camera is dropped; the nearest 30 of 200 are kept, ties by path.
+- [x] 7. Signs (`model/signs.ts`)
+  - [x] 7.1 `model/vec3.ts` (points and directions as plain `{x, y, z}` objects, with tests; the camera and picking code use it too) and `model/signs.ts`: `buildSignSources`, `signOpacity` (1 up to near, 0 from far, a smooth fall between), `visibleSigns`. The camera's `fovY` is in degrees, as three.js takes it.
+  - [x] 7.2 `signs.property.test.ts` (**P14**): one source per plot, anchored at the plaque on the middle of the front edge, overlapping no stone, ghost or child plot; labels (repository name for the root, last segment otherwise); near distance grows with the plot and far is a fixed multiple of it; at most 30 shown (or the limit given); opacity from the minimum to 1; none beyond `far` or out of view; nearest first; every sign that clearly qualifies is shown unless 30 nearer ones fill the screen; independent of the order of the sources; opacity never rises as the camera moves away. The last part of P14, that the root's opacity is above 0 at the start pose, is tested in task 9, where the start pose is defined.
+  - [x] 7.3 `signs.test.ts`: the fade (0.5 halfway), a sign in front, behind, at the side, just outside the screen but inside the margin, and past it; a camera looking in any direction and with a forward vector that is not of length 1; the nearest first with ties by path; the nearest 30 of 50, not the first 30 in the list; the real files' labels.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 10_
 
 - [ ] 8. Legend and statistics (`model/legend.ts`, `stats.ts`)
