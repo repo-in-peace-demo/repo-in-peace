@@ -171,6 +171,22 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 5. THE signs' page elements SHALL be a fixed pool of 30, reused, not created or removed per frame.
 6. THE layout of a 2,000-file graveyard SHALL take well under a second.
 
+### 13. Ambient decoration
+
+**User story:** As a viewer, the opening flyover feels alive, and I never mistake decoration for data.
+
+1. Decoration SHALL live only in the sky, in the ground mist, or outside the root plot's fence. NOTHING decorative SHALL be inside any plot or on any grave.
+2. Decoration SHALL NOT be in the legend (the legend lists only effects that carry meaning), SHALL carry no data, and SHALL be ignored by picking and hover.
+3. Decoration SHALL be procedural or CC0, with no third-party models, textures or sounds (Req 6.2, 6.3).
+4. Where decoration is placed SHALL be deterministic and seeded from the snapshot SHA (`meta.snapshotSha`), so the same data file always looks the same.
+5. Decoration SHALL stay within the performance limits of Req 11: under 40 draw calls in total, and 50 frames a second at the 95th percentile with `?synthetic=2000`.
+6. WHEN the user's system asks for reduced motion (`prefers-reduced-motion: reduce`), clouds and mist SHALL stand still and bats SHALL be hidden.
+7. THE scene SHALL show these four things:
+   1. **Clouds across the moon:** a few soft clouds drifting slowly across the sky, now and then dimming the moonlight a little. They are part of the sky, not 3D objects over the graveyard.
+   2. **Ground mist:** low mist rolling slowly between the rows, below the height of the shortest stone, on top of the fog of Req 6.1. It SHALL NOT hide cracks, the red glow, candles or ghosts.
+   3. **Bats:** a small group (3 to 6) that crosses the sky every so often, high above the graveyard and never near the point the camera looks at.
+   4. **Dead trees outside the fence:** a ring of bare, crooked trees around the outside of the root plot, with a clear gap from the fence. Their number and spacing grow with the size of the root plot. They SHALL stay inside the camera's sideways bounds (Req 7.3), so they can be seen but never block the overview. A graveyard too small to fit them in that band gets none.
+
 ### 12. Structure and testability
 
 1. Pure logic SHALL be in files named for what they compute, with tests beside them: `layout.ts`, `tombstone-height.ts`, `visual-params.ts`, `legend.ts`, `stats.ts`, `signs.ts`, `camera-pose.ts`, `graveyard-load.ts`, `hash.ts`. None of them SHALL import React, three.js or the DOM.
@@ -205,6 +221,9 @@ Supporting properties, added because they follow from the rules:
 - **P16** Camera interpolation reaches both end poses, stays finite, and keeps the camera above the ground between two poses above it (Req 7.4).
 - **P17** The floor tint never gets lighter as the nesting depth grows, stays within a stated subtle range, and is the lightest at the root (Req 5.9).
 - **P18** `clampPose`: the result is inside every limit; clamping twice equals clamping once; a pose inside the limits comes back unchanged; and when only the look-at point is stopped sideways, the camera moves with it and the view direction does not change (Req 7.3).
+- **P19** No tree lies inside, or touches, the root plot's fence band, and every tree lies inside the camera's sideways bounds (Req 13.1, 13.7.4).
+- **P20** Tree placement (and the bats' flock) is the same for the same snapshot SHA, and does not depend on anything else in the file (Req 13.4).
+- **P21** Picking never returns a decoration: every pick target is a file or a ghost of the data, and a ray through a tree, a bat's path or the mist hits nothing (Req 13.2).
 
 Property P5 is worded differently from the original request, as agreed: moss and lean read the file's age and the thresholds, never the `unused` flag (Req 5.1.4), and P8 checks that each effect depends only on its own fact.
 

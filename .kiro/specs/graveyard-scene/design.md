@@ -298,8 +298,9 @@ The scene registers itself with this module when it has a model and a camera; be
 | 9 | `Ground` |
 | 10, 11, 12 | sky dome, stars, moon |
 | 13 | `SelectionRing`, only when something is selected |
+| 14, 15, 16 | ambient decoration (task 24b): trees, ground mist, bats; the clouds are in the sky shader |
 
-Thirteen draw calls, whatever the number of files (Req 11.1, below 40). Nothing is created per frame.
+Sixteen draw calls, whatever the number of files (Req 11.1, below 40). Nothing is created per frame.
 
 ### Stones
 
@@ -333,6 +334,26 @@ The attribute values are written once when the model loads, and a single element
 ### Atmosphere
 
 A dark blue-black sky dome with a vertical gradient that follows the camera position, about 900 stars at positions taken from `hash01`, a moon disc with a soft glow at a fixed direction, a directional light (cool white, intensity about 1.1) from the moon's direction, and a dim hemisphere light. `FogExp2` with `density = 0.35 / max(boundsRadius, 40)` fades the far edge of the graveyard. There are no shadow maps. The ground is a very dark plane with faint noise in its shader, large enough to reach the fog. Colours and intensities are constants in one file. None of them depends on any file's data (Req 6.5).
+
+### Ambient decoration (Req 13, task 24b)
+
+Pure part, `model/ambient.ts`, seeded by `hash01(meta.snapshotSha, …)`:
+
+```ts
+treePlacements(bounds: Rect, sha: string): TreePlacement[]      // { x, z, height, lean, seed }; [] when the band is too thin
+batFlock(sha: string): BatFlock                                  // 3 to 6 bats, a start time, a heading and a period, all from the SHA
+batPosition(flock, bat, seconds): Vec3                           // high above the graveyard; hidden (null) between crossings
+moonDimming(seconds): number                                     // 0.7 to 1, slow; multiplies the moonlight's intensity
+motionScale(reducedMotion: boolean): 0 | 1                       // 0 freezes clouds and mist and hides the bats
+```
+
+- **Trees.** The ring runs along a rectangle that is the root plot outset by `TREE_GAP` (2.5) plus a per-tree jitter of at most half of what is left of the sideways margin (`WANDER_MARGIN_SHARE × radius`, a quarter radius) after `TREE_GAP` and the crown's reach. The count is the ring's length over `TREE_SPACING` (12), at least 8 and at most 60; if the margin is smaller than `TREE_GAP` + the crown's reach + 1, there are none. Every tree is therefore outside the fence band, with a clear gap, and inside the look-at limits, so it can be seen and never blocks the overview. One instanced mesh of a merged trunk-and-crooked-branches geometry, no data, not raycast.
+- **Clouds** are part of the sky shader (a few soft noise blobs scrolled by time), so they add no draw call. `moonDimming` changes the moonlight's intensity per frame by up to 30%, slowly.
+- **Ground mist** is one large translucent layer below `MIN_STONE_H` (0.6), scrolled noise, alpha at most 0.18. It is drawn before the stones, candles and ghosts and does not write depth, and the candle flames, glow quads and crack glow are emissive and drawn after it, so mist can only thin the light on a stone's foot; it cannot cover a crack, a glow, a flame or a ghost. A browser check compares a cracked stone with and without mist.
+- **Bats** are one instanced mesh of 3 to 6 small flapping shapes (flap in the vertex shader). They fly at least `BAT_MIN_ALTITUDE` (40, and never below `MAX_STONE_H` + 36) above the ground, so they are never near the look-at point (whose height is at most `MAX_STONE_H`), crossing every `period` seconds (40 to 90) and hidden in between.
+- **Reduced motion.** `window.matchMedia('(prefers-reduced-motion: reduce)')`, listened to for changes. When it matches, `motionScale` is 0: time is frozen for clouds and mist, and the bats are not drawn. A dev-only `window.repoInPeace.getAmbient()` reports `{ reducedMotion, batsVisible, time }` for the browser test.
+- **Picking and legend.** Decoration is not in `pickTargets`, its meshes use `noRaycast`, and the legend entries stay the seven of Req 9.1 (a test checks the ids).
+- **Budget.** Three more draw calls (trees, mist, bats), so sixteen in all; clouds are in the sky shader.
 
 ### Camera
 
@@ -414,6 +435,9 @@ Pure logic is tested in Node with Vitest and fast-check. Rendering code is not u
 | P16 | Camera interpolation | `interpolatePose` at 0 and 1 gives the end poses, stays finite, and the camera height stays above the ground between two poses above it |
 | P17 | Floor tint | `plotFloorShade` is 1 at depth 0, never increases with depth, stays within `[0.70, 1]`, and is constant from depth 6 on |
 | P18 | Camera limits | `clampPose`: the result is inside every limit; clamping twice equals clamping once; a pose inside the limits is returned unchanged; when only the look-at point is stopped sideways, the camera moves with it and the view direction is unchanged |
+| P19 | Trees outside the fence | No tree touches the root plot's fence band, and every tree is inside the camera's sideways bounds, for graveyards of any size (those too small get none) |
+| P20 | Deterministic decoration | The same SHA gives the same trees and the same flock; a different SHA gives different ones (for a ring that has trees) |
+| P21 | Decoration is not pickable | Every pick target is a file or a ghost of the data; a ray through a tree hits nothing |
 
 ### Example tests
 
@@ -447,6 +471,7 @@ Because rendering is not unit-tested, the tasks end with a short checklist for y
 | 10 Folder signs | `signs.ts`, `layout.ts` (sign spots), `Plaques.tsx`, `SignLayer.tsx` |
 | 11 Performance | instancing, `scene-model.ts`, `PerfStats.tsx`, `synthetic.ts` |
 | 12 Structure | `model/` is pure; `scene/`, `ui/` as in the steering docs |
+| 13 Ambient decoration | `ambient.ts`, `Ambient.tsx` (trees, mist, bats), the sky shader (clouds), `Atmosphere.tsx` (moon dimming) |
 
 ## Assumptions to confirm
 

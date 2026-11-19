@@ -207,6 +207,18 @@ Status key: `[x]` done, `[ ]` not started.
   - [ ] 24.1 Sky dome with a gradient that follows the camera, about 900 stars from `hash01`, a moon, the moonlight directional light and a dim hemisphere light, `FogExp2` with `density = 0.35 / max(boundsRadius, 40)`, and a dark ground with faint noise. No shadow maps. All colours and intensities in one constants file. Nothing here depends on file data.
   - _Requirements: 6_
 
+- [ ] 24b. Ambient decoration (`model/ambient.ts`, `scene/Ambient.tsx`; after task 24, before task 25)
+  - Rules, from the request: nothing decorative inside any plot or on any grave (only in the sky, in the ground mist, or outside the root fence); not in the legend; procedural or CC0 only; placement seeded from the snapshot SHA; within the budget (under 40 draw calls, 50 fps at p95 with `?synthetic=2000`); ignored by picking and hover; `prefers-reduced-motion` respected.
+  - [ ] 24b.1 Pure model with tests: `treePlacements`, `batFlock`, `batPosition`, `moonDimming`, `motionScale`. Properties **P19** (no tree touches the fence band, all inside the camera's sideways bounds, none for a graveyard too small), **P20** (same SHA, same placement; different SHA, different), **P21** (every pick target is a file or a ghost; a ray through a tree hits nothing), plus: bats never lower than `BAT_MIN_ALTITUDE`, at least 36 above the highest look-at point; moon dimming stays between 0.7 and 1; the legend still has exactly its seven ids.
+  - [ ] 24b.2 Trees: one instanced mesh of a bare, crooked tree; count and spacing scale with the root plot's size.
+  - [ ] 24b.3 Clouds in the sky shader, and the moonlight's intensity multiplied by `moonDimming` each frame.
+  - [ ] 24b.4 Ground mist below `MIN_STONE_H`, drawn before the stones and under the emissive parts, alpha at most 0.18.
+  - [ ] 24b.5 Bats: one instanced mesh of 3 to 6, flapping in the vertex shader, crossing high every 40 to 90 seconds.
+  - [ ] 24b.6 Reduced motion: clouds and mist stand still, bats hidden, reacting to a change of the setting; `window.repoInPeace.getAmbient()` (dev only) for the browser test.
+  - [ ] 24b.7 `e2e/ambient.spec.ts`: with `emulateMedia({ reducedMotion: 'reduce' })` nothing advances and the bats are hidden; without it time advances; hovering a tree shows no label and clicking it selects nothing; the number of draw calls stays under 40 (read from the dev perf overlay once task 26 exists).
+  - **Run:** `cd frontend && npm run typecheck && npm test && npm run e2e`, then `npm run dev` with both files: clouds, mist, bats and trees in the opening view; mist never hides a cracked stone, a candle or a ghost; with Reduce motion on in macOS settings nothing drifts or flies.
+  - _Requirements: 13, 6.5, 11_
+
 - [ ] 25. Density review and tuning
   - [ ] 25.0 Known empty strips found at checkpoint B, left as they are on purpose: oikos_ledger has a strip about 10 units wide and 80 tall beside the `app/app`, `app/components` and `app/lib` plots (below the 7-stone block and `app/types`), and spatialql's root has a strip about 9 by 43 beside `src` (the 2-stone root block sits beside `src` because that gives the shorter longer side, 46.6 against about 51). Both come from the discrete packing choice plus `ITEM_GAP` and `FENCE_BAND`. Look at them again after tuning the constants, and only change the packer if they still look bare.
   - [ ] 25.1 With both test files, look at the density in the browser. A graveyard should feel crowded rather than sparse: if it looks empty, tighten `MAX_STONE_H`, `MAX_LEAN_DEG` (and so `LEAN_REACH`), `CELL_GAP`, `ITEM_GAP` and `FENCE_BAND` in `layout-constants.ts`, in one pass. The reservation for the largest lean stays constant.
@@ -259,5 +271,8 @@ Status key: `[x]` done, `[ ]` not started.
     10. **Errors.** `?graveyard=nope` shows "not found"; `?graveyard=../x` shows the bad-name message and makes no request (see the network panel); an old version-1 data file shows the version message.
     11. **Performance** (dev server): `?synthetic=2000`, fly around for a minute: the overlay shows under 40 draw calls and a 95th-percentile frame time of 20 ms or less on your laptop.
     12. **Production build** (`npm run preview`): no performance overlay, no `window.repoInPeace`, `?synthetic=2000` does nothing special.
+    13. **Ambient decoration.** The opening view on both files shows clouds, mist, bats (wait up to 90 seconds for a crossing) and trees outside the fence. Nothing decorative is inside a plot or on a grave, and none of it is in the legend. Hovering or clicking a tree selects nothing.
+    14. **Mist.** It never hides a cracked stone, a candle or a ghost.
+    15. **Reduced motion.** With Reduce motion turned on in macOS settings (System Settings, Accessibility, Display) and the page reloaded, nothing drifts or flies: clouds and mist are still and there are no bats.
   - Send me anything that fails. When all items pass, the spec is done.
   - _Requirements: all_
