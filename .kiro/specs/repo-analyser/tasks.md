@@ -21,10 +21,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd shared && npm install && npm run typecheck && npm test`
   - _Requirements: 2, 9.4_
 
-- [ ] 3. Decay scoring (`core/decay.ts`)
-  - [ ] 3.1 Implement constants, `ageDays`, `decayState`, `decayScore`, `isHot`.
-  - [ ] 3.2 Unit tests: state boundaries (89, 90, 360, 361), hot boundary (4, 5), future-dated commit gives age 0.
-  - [ ] 3.3 **P1 property test** (`decay.property.test.ts`): for fixed `unused`, `a ≤ b` implies `score(a) ≤ score(b)`. Also: score in `[0, 1]`; strictly increasing per day below the cap; `unused = true` never lowers the score; unused at age 0 beats used at age 360; state matches Req 7.1 for any age.
+- [x] 3. Decay scoring (`core/decay.ts`)
+  - [x] 3.1 Implement constants, `ageDays`, `decayState`, `decayScore`, `isHot`.
+  - [x] 3.2 Unit tests: state boundaries (89, 90, 360, 361), hot boundary (4, 5), future-dated commit gives age 0.
+  - [x] 3.3 **P1 property test** (`decay.property.test.ts`): for fixed `unused`, `a ≤ b` implies `score(a) ≤ score(b)`. Also: score in `[0, 1]`; strictly increasing per day below the cap; `unused = true` never lowers the score; unused at age 0 beats used at age 360; state matches Req 7.1 for any age.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 7_
 
 - [ ] 4. File rules (`core/files.ts`)
