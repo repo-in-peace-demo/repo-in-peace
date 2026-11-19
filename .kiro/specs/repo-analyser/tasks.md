@@ -35,9 +35,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 3_
 
-- [ ] 5. Folders (`core/folders.ts`)
-  - [ ] 5.1 `folderOf`, `deriveFolders` (root plus every ancestor, sorted by code point).
-  - [ ] 5.2 **P4 property test**: for generated path lists, every file's folder is in the list; every non-root folder's parent is in the list; each parent chain reaches the root without repeats; exactly one root; no folder without files beneath it.
+- [x] 5. Folders (`core/folders.ts`)
+  - [x] 5.1 `folderOf`, `deriveFolders` (root plus every ancestor, sorted by code point).
+  - [x] 5.2 **P4 property test**: for generated path lists, every file's folder is in the list; every non-root folder's parent is in the list; each parent chain reaches the root without repeats; exactly one root; no folder without files beneath it.
+  - Also added `core/sort.ts` (`compareCodePoint`, with its own tests): the single sort order used for every list in the output (design: assemble).
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 4_
 
 - [ ] 6. History analysis (`core/history.ts`)
