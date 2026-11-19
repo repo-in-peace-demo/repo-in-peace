@@ -83,10 +83,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 7_
 
-- [ ] 10. Picking (`model/pick.ts`)
-  - [ ] 10.1 `buildPickTargets`, `pickNearest` (ray against boxes, nearest wins, ties by path).
-  - [ ] 10.2 **P15**: a ray through the middle of a target's box hits that target or something nearer; a ray that misses everything hits nothing; the answer does not depend on the order of the targets.
-  - [ ] 10.3 Examples: two stones in line, the nearer wins; a leaning stone's box is wider than an upright one; a ray pointing away from a box misses it.
+- [x] 10. Picking (`model/pick.ts`)
+  - [x] 10.1 `buildPickTargets(stones, ghosts)` (takes plain numbers, so it does not depend on the scene model that is built in task 12; `GHOST_W` and `GHOST_D` added to `visual-constants.ts`), `rayBoxDistance`, `pickNearest` (slab test against every box, nearest wins, ties by smaller path, a ray with no direction hits nothing).
+  - [x] 10.2 `pick.property.test.ts` (**P15**): a ray from in front and above through the middle of a target's box hits that target or something nearer; rays pointing up or away hit nothing; the answer does not depend on the order of the targets; the picked box is nearest, and the reported hit lies on or in it; an independent check that walks along the ray in small steps and asks whether the point is inside a box (what the walk finds, the exact test finds at least as near). On both real files, a ray from the starting camera to the middle of each stone and ghost hits it or something in front of it; a ray straight down onto any spatialql stone finds that stone.
+  - [x] 10.3 `pick.test.ts`: the boxes of an upright and a leaning stone and of a ghost; two stones in line, the nearer wins whatever the list order; passing above or beside a stone misses; a leaning stone is easier to hit; a ray pointing away or at something behind the origin misses; an origin inside a box hits it at distance 0; rays along an axis; a ghost is hit only within the range it floats through; ties; a direction vector of any length.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 8_
 
 - [ ] 11. Selection store (`store/selection-store.ts`)

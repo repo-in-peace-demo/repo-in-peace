@@ -222,7 +222,8 @@ The flight lasts 1,000 ms (Req 7.4.1). `scene/flight.ts` holds the little state 
 
 ```ts
 interface PickTarget { kind: 'file' | 'ghost'; path: string; min: Vec3; max: Vec3 }
-buildPickTargets(model: SceneModel): PickTarget[]
+buildPickTargets(stones: PickStone[], ghosts: PickGhost[]): PickTarget[]   // PickStone: { path, x, z, height, leanDegrees }; the scene model supplies them
+rayBoxDistance(target, origin, direction): number | undefined             // exported, for tests
 pickNearest(targets: PickTarget[], origin: Vec3, direction: Vec3): PickTarget | undefined
 ```
 
