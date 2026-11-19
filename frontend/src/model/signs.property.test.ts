@@ -114,16 +114,16 @@ describe('P14: one sign for every plot, on the front fence, in the way of nothin
     );
   });
 
-  it('labels the root with the repository name, and every other plot with the names of its folders joined by a slash', () => {
+  it('labels the plot that holds the root with the repository name (and the folders after it), and every other plot with the names of its folders joined by a slash', () => {
     fc.assert(
       fc.property(graveyardArb, (g) => {
         const l = layout(g);
         const sources = buildSignSources(l, g.meta.name);
         return sources.every((s, i) => {
           const plot = l.plots[i]!;
-          return plot.path === ''
-            ? s.label === g.meta.name
-            : s.label === plot.folders.map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/') && s.label.length > 0;
+          const names = plot.folders.filter((f) => f !== '').map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/');
+          // A plot that holds the root says the repository name, then " / " and the folders after it if there are any.
+          return plot.folders[0] === '' ? s.label === (names === '' ? g.meta.name : `${g.meta.name} / ${names}`) : s.label === names && s.label.length > 0;
         });
       }),
     );

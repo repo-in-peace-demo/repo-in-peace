@@ -196,28 +196,29 @@ describe('the root sign from the starting view (the last part of P14)', () => {
     const l = layout(g);
     const pose = startPose(l.bounds, FOV);
     const forward = normalize(sub(pose.target, pose.position));
-    return { sources: buildSignSources(l, g.meta.name), camera: { position: pose.position, forward, fovY: FOV, aspect } };
+    const rootPath = l.plots.find((p) => p.parent === null)!.path; // the plot that holds the root folder
+    return { sources: buildSignSources(l, g.meta.name), rootPath, camera: { position: pose.position, forward, fovY: FOV, aspect } };
   };
 
   it.each(REAL_GRAVEYARDS)('shows the name of the repository in %s', (name) => {
     const g = loadRealGraveyard(name);
-    const { sources, camera } = view(g);
-    const root = visibleSigns(sources, camera).find((s) => s.path === '');
+    const { sources, camera, rootPath } = view(g);
+    const root = visibleSigns(sources, camera).find((s) => s.path === rootPath);
     expect(root).toBeDefined();
-    expect(root!.label).toBe(g.meta.name);
+    expect(root!.label.startsWith(g.meta.name)).toBe(true); // the name, and for oikos_ledger also the folder that the root only holds
     expect(root!.opacity).toBeGreaterThan(0.3);
   });
 
   it.each(['tree', 'flat', 'deep', 'wide', 'mixed'] as const)('shows it for a graveyard of 2,000 files, shape %s', (shape) => {
     const g = makeSyntheticGraveyard({ files: 2000, seed: 3, shape });
-    const { sources, camera } = view(g);
-    expect(visibleSigns(sources, camera).find((s) => s.path === '')?.opacity ?? 0).toBeGreaterThan(0);
+    const { sources, camera, rootPath } = view(g);
+    expect(visibleSigns(sources, camera).find((s) => s.path === rootPath)?.opacity ?? 0).toBeGreaterThan(0);
   });
 
   it('shows it for a graveyard of one file, and for an empty one', () => {
     for (const g of [graveyardFrom({ files: ['a.ts'] }), graveyardFrom({})]) {
-      const { sources, camera } = view(g);
-      expect(visibleSigns(sources, camera).find((s) => s.path === '')?.opacity ?? 0).toBeGreaterThan(0);
+      const { sources, camera, rootPath } = view(g);
+      expect(visibleSigns(sources, camera).find((s) => s.path === rootPath)?.opacity ?? 0).toBeGreaterThan(0);
     }
   });
 

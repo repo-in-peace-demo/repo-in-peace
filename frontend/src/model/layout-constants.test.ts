@@ -14,6 +14,7 @@ import {
   MIN_STONE_H,
   PACK_WIDTH_CANDIDATES,
   SIGN_D,
+  SIGN_MIN_SEPARATION,
   SIGN_W,
   STONE_D,
   STONE_W,
@@ -28,7 +29,7 @@ describe('the layout constants', () => {
   it('are all positive, finite numbers', () => {
     const all = [
       MIN_STONE_H, MAX_STONE_H, LOC_AT_MAX_HEIGHT, STONE_W, STONE_D, MAX_LEAN_DEG, LEAN_REACH,
-      CELL_W, CELL_D, CELL_GAP, CELL_PITCH_X, CELL_PITCH_Z, FENCE_BAND, ITEM_GAP, PACK_WIDTH_CANDIDATES, SIGN_W, SIGN_D,
+      CELL_W, CELL_D, CELL_GAP, CELL_PITCH_X, CELL_PITCH_Z, FENCE_BAND, ITEM_GAP, PACK_WIDTH_CANDIDATES, SIGN_W, SIGN_D, SIGN_MIN_SEPARATION,
     ];
     for (const value of all) {
       expect(Number.isFinite(value)).toBe(true);

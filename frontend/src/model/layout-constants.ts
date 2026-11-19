@@ -69,3 +69,17 @@ export const PACK_WIDTH_CANDIDATES = 25;
 /** The plaque at the front of a plot: its footprint along x and along z. It lies inside the fence band. */
 export const SIGN_W = 1.6;
 export const SIGN_D = 0.5;
+
+/**
+ * The least distance between the centres of any two plaques on the ground. A board is 1.4 wide, so plaques this far apart
+ * (about twice that) never overlap on the screen: a plot and the one inside it must not have their front fences so near that
+ * the two signs cross. A property of the layout checks it for every tree.
+ */
+export const SIGN_MIN_SEPARATION = 3;
+
+/**
+ * Extra depth added to the front band of a plot that holds child plots, so a child in the front row has its own plaque at
+ * least SIGN_MIN_SEPARATION behind the plaque of the plot around it (the two stand on the same middle line when the child
+ * is as wide as what is beside it). A plot with no child plots does not need it. With FENCE_BAND this is exactly enough.
+ */
+export const FRONT_BAND_EXTRA = SIGN_MIN_SEPARATION - FENCE_BAND;

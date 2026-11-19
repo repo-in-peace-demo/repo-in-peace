@@ -1,5 +1,5 @@
 import type { Graveyard } from '@shared/graveyard-schema';
-import { FENCE_BAND, ITEM_GAP } from '../src/model/layout-constants';
+import { FENCE_BAND, ITEM_GAP, SIGN_MIN_SEPARATION } from '../src/model/layout-constants';
 import type { Layout, PlotLayout } from '../src/model/layout';
 import { EPS, contains, overlaps, type Rect } from '../src/model/rect';
 
@@ -137,7 +137,7 @@ export function containment(layout: Layout): string | undefined {
     if (!plot) return `ghost ${g.path} is in folder "${g.folder}", which has no plot`;
     if (!contains(contentArea(plot), g.cell)) return `ghost ${g.path} is not inside the content area of "${g.folder}"`;
   }
-  if (!contains(layout.bounds, layout.plots.find((p) => p.path === '')?.rect ?? layout.bounds)) return 'the root plot is not inside the bounds';
+  if (!contains(layout.bounds, layout.plots.find((p) => p.parent === null)?.rect ?? layout.bounds)) return 'the root plot is not inside the bounds';
   return undefined;
 }
 
@@ -197,9 +197,25 @@ export function signOverlap(layout: Layout): string | undefined {
 }
 
 /**
+ * No two plaques are close enough to overlap on the screen: the centres of any two signs are at least SIGN_MIN_SEPARATION
+ * apart on the ground. (Their footprints never overlap, but a plot and the one inside it could have front fences so near
+ * that the two boards stood one in front of the other.)
+ */
+export function signSeparation(layout: Layout): string | undefined {
+  const signs = layout.plots.map((p) => ({ path: p.path, x: p.sign.x, z: p.sign.z })).sort((a, b) => a.x - b.x);
+  for (let i = 0; i < signs.length; i++) {
+    for (let j = i + 1; j < signs.length && signs[j]!.x - signs[i]!.x < SIGN_MIN_SEPARATION; j++) {
+      const d = Math.hypot(signs[i]!.x - signs[j]!.x, signs[i]!.z - signs[j]!.z);
+      if (d < SIGN_MIN_SEPARATION - 1e-9) return `the signs of \"${signs[i]!.path}\" and \"${signs[j]!.path}\" are only ${d.toFixed(2)} apart (least ${SIGN_MIN_SEPARATION})`;
+    }
+  }
+  return undefined;
+}
+
+/**
  * The rules for showing folders together, worked out here from the data file alone and compared with the layout: a folder
- * with no files, no ghosts and exactly one subfolder is shown with that subfolder, and nothing else is merged. The root is
- * never merged. Chains are as long as they can be, each plot is named for its last folder, and its label joins the names.
+ * with no files, no ghosts and exactly one subfolder is shown with that subfolder, and nothing else is merged. This includes the root: a root with
+ * only one subfolder is shown with it. Chains are as long as they can be, each plot is named for its last folder, and its label joins the names.
  */
 export function mergeProblems(graveyard: Graveyard, layout: Layout): string | undefined {
   const folderSet = new Set(graveyard.folders.map((f) => f.path));
@@ -223,7 +239,7 @@ export function mergeProblems(graveyard: Graveyard, layout: Layout): string | un
   for (const ghost of graveyard.ghosts) ghostCount.set(owner(ghost.path), (ghostCount.get(owner(ghost.path)) ?? 0) + 1);
 
   const mergeable = (path: string): boolean =>
-    path !== '' && (fileCount.get(path) ?? 0) === 0 && (ghostCount.get(path) ?? 0) === 0 && (childCount.get(path) ?? 0) === 1;
+    (fileCount.get(path) ?? 0) === 0 && (ghostCount.get(path) ?? 0) === 0 && (childCount.get(path) ?? 0) === 1;
 
   const depthOf = (path: string): number => {
     let depth = 0;
@@ -240,7 +256,6 @@ export function mergeProblems(graveyard: Graveyard, layout: Layout): string | un
     const chain = plot.folders;
     if (chain.length === 0) return `plot "${plot.path}" stands for no folder`;
     if (chain[chain.length - 1] !== plot.path) return `plot "${plot.path}" is not named for its last folder`;
-    if (plot.path === '' && (chain.length !== 1 || plot.label !== '')) return 'the root was merged or labelled';
 
     for (let i = 0; i < chain.length - 1; i++) {
       const folder = chain[i]!;
@@ -254,7 +269,8 @@ export function mergeProblems(graveyard: Graveyard, layout: Layout): string | un
     if (above !== plot.parent) return `plot "${plot.path}" has parent ${JSON.stringify(plot.parent)}, expected ${JSON.stringify(above)}`;
     if (above !== null && mergeable(above)) return `plot "${plot.path}" could have been shown together with "${above}" above it`;
 
-    const label = plot.path === '' ? '' : chain.map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/');
+    // The root has no name of its own: the sign says the repository name, and then the names of the folders after it.
+    const label = chain.filter((f) => f !== '').map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/');
     if (plot.label !== label) return `plot "${plot.path}" is labelled "${plot.label}", expected "${label}"`;
     if (plot.depth !== depthOf(plot.path)) return `plot "${plot.path}" has depth ${plot.depth}, expected ${depthOf(plot.path)}`;
   }
@@ -303,6 +319,7 @@ export function firstLayoutProblem(graveyard: Graveyard, layout: Layout): string
     cellsVersusChildPlots(layout) ??
     containment(layout) ??
     signOverlap(layout) ??
+    signSeparation(layout) ??
     mergeProblems(graveyard, layout) ??
     areaProblems(layout)
   );

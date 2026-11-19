@@ -160,7 +160,8 @@ describe('P14, last part: the root\'s sign from the starting view', () => {
         const pose = startPose(l.bounds, fovY);
         const forward = normalize(sub(pose.target, pose.position));
         const shown = visibleSigns(buildSignSources(l, g.meta.name), { position: pose.position, forward, fovY, aspect });
-        const root = shown.find((s) => s.path === '');
+        const rootPath = l.plots.find((p) => p.parent === null)!.path; // the plot that holds the root folder
+        const root = shown.find((s) => s.path === rootPath);
         return root !== undefined && root.opacity > 0;
       }),
       { numRuns: 80 },

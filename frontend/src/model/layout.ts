@@ -5,6 +5,7 @@ import {
   CELL_PITCH_Z,
   CELL_W,
   FENCE_BAND,
+  FRONT_BAND_EXTRA,
   ITEM_GAP,
   PACK_WIDTH_CANDIDATES,
   SIGN_D,
@@ -21,8 +22,10 @@ import { stoneHeight } from './tombstone-height';
  *   cells in rows, and its child plots. The block and the child plots are packed together as equal items, largest first,
  *   so the plot comes out close to a square with little empty ground (FSN-style nesting).
  * - A folder that holds no files and no ghosts and has exactly one subfolder is not given a plot of its own: it is
- *   shown together with that subfolder as one plot, like the compact folders of a code editor. The root is never
- *   merged, and neither is a folder that holds a ghost.
+ *   shown together with that subfolder as one plot, like the compact folders of a code editor. This includes the
+ *   root: a root with only one subfolder is shown together with it (its sign reads `repo / folder`), so there is no thin
+ *   outer plot whose fence and plaque nearly coincide with those of the folder inside. A folder that holds a ghost
+ *   is never merged.
  * - Plots are sized from the leaves up and positioned from the root down. There is no recursion, so a chain of
  *   hundreds of folders is safe.
  * - Everything is placed in order of path (code-point order), so the order of the arrays in the data file
@@ -42,16 +45,17 @@ export interface PlotLayout {
   path: string;
   /**
    * The real folders this plot stands for, outermost first. One folder, unless a chain of empty single-child folders
-   * is shown as one plot: then the folders of the chain, ending with `path`. Every folder of the data file is in
-   * exactly one plot.
+   * is shown as one plot: then the folders of the chain, ending with `path`. The chain may begin with the root `""`.
+   * Every folder of the data file is in exactly one plot.
    */
   folders: string[];
   /**
-   * What the sign says: the folder's own name, or the names of the merged folders joined by "/" (for example
-   * `accounts/compare`). Empty for the root, whose sign shows the repository name.
+   * The names of the plot's folders joined by "/" (for example `accounts/compare`), leaving out the root. Empty for a
+   * plot that is only the root, whose sign shows the repository name. When the plot begins with the root, the sign
+   * says the repository name and then this (`repo / app`).
    */
   label: string;
-  /** The folder that holds the outermost folder of the plot, which is the `path` of the plot around this one. null for the root. */
+  /** The folder that holds the outermost folder of the plot, which is the `path` of the plot around this one. null for the plot that holds the root. */
   parent: string | null;
   /** The nesting depth of `path` among the real folders. 0 for the root. */
   depth: number;
@@ -338,8 +342,7 @@ export function layout(graveyard: Graveyard): Layout {
   // ---- Which folders share a plot ----
   // A folder with nothing in it but one subfolder is shown together with that subfolder. Not the root, and not a folder
   // that holds a ghost. A chain of such folders is one plot, which stands for all of them and is named for the last.
-  const isMerged = (path: string): boolean =>
-    path !== '' && occupantsOf.get(path)!.length === 0 && childrenOf.get(path)!.length === 1;
+  const isMerged = (path: string): boolean => occupantsOf.get(path)!.length === 0 && childrenOf.get(path)!.length === 1;
 
   const plotPaths = folderOrder.filter((path) => !isMerged(path)); // the last folder of each plot
   const foldersOfPlot = new Map<string, string[]>();
@@ -360,8 +363,9 @@ export function layout(graveyard: Graveyard): Layout {
   }
   for (const list of childPlotsOf.values()) list.sort(compareCodePoint);
 
-  // Breadth first over the plots, from the root.
-  const plotOrder: string[] = plotPaths.includes('') ? [''] : [];
+  // Breadth first over the plots, from the one that holds the root folder (its path is `""`, or the last folder of the chain the root begins).
+  const rootPlot = plotPaths.find((tail) => foldersOfPlot.get(tail)![0] === '');
+  const plotOrder: string[] = rootPlot === undefined ? [] : [rootPlot];
   for (let i = 0; i < plotOrder.length; i++) {
     for (const child of childPlotsOf.get(plotOrder[i]!) ?? []) plotOrder.push(child);
   }
@@ -383,7 +387,10 @@ export function layout(graveyard: Graveyard): Layout {
 
     const packed = packItems(items);
     packedOf.set(path, packed);
-    size.set(path, { w: packed.w + 2 * FENCE_BAND, d: packed.d + 2 * FENCE_BAND });
+    // A plot that holds child plots gets a deeper front band, so the plaque of a child in the front row is far enough
+    // behind the plaque of this plot (the plaques stand on the middle of the front edges).
+    const frontExtra = (childPlotsOf.get(path)?.length ?? 0) > 0 ? FRONT_BAND_EXTRA : 0;
+    size.set(path, { w: packed.w + 2 * FENCE_BAND, d: packed.d + 2 * FENCE_BAND + frontExtra });
   }
 
   // ---- Positions, from the root down ----
@@ -392,9 +399,9 @@ export function layout(graveyard: Graveyard): Layout {
   const stones: StoneLayout[] = [];
   const ghosts: GhostLayout[] = [];
   const rectOf = new Map<string, Rect>();
-  if (plotOrder.length > 0) {
-    const rootSize = size.get('')!;
-    rectOf.set('', { x: 0, z: 0, w: rootSize.w, d: rootSize.d });
+  if (rootPlot !== undefined) {
+    const rootSize = size.get(rootPlot)!;
+    rectOf.set(rootPlot, { x: 0, z: 0, w: rootSize.w, d: rootSize.d });
   }
 
   for (const path of plotOrder) {
@@ -439,7 +446,7 @@ export function layout(graveyard: Graveyard): Layout {
     plots.push({
       path,
       folders,
-      label: path === '' ? '' : folders.map(lastName).join('/'),
+      label: folders.filter((folder) => folder !== '').map(lastName).join('/'),
       parent: plotParentOf.get(path) ?? null,
       depth: depthOf.get(path)!,
       rect,
@@ -452,6 +459,6 @@ export function layout(graveyard: Graveyard): Layout {
   stones.sort(byPath);
   ghosts.sort(byPath);
 
-  const bounds = rectOf.get('') ?? { x: 0, z: 0, w: 0, d: 0 };
+  const bounds = (rootPlot !== undefined ? rectOf.get(rootPlot) : undefined) ?? { x: 0, z: 0, w: 0, d: 0 };
   return { plots, blocks, stones, ghosts, bounds };
 }

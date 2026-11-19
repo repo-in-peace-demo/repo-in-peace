@@ -96,18 +96,27 @@ describe('buildSignSources', () => {
 
   it('names a plot that shows several folders for all of them', () => {
     const merged = buildSignSources(layout(graveyardFrom({ files: ['app/api/accounts/compare/route.ts', 'app/api/other.ts'] })), 'demo');
-    expect(merged.map((s) => s.label)).toEqual(['demo', 'app/api', 'accounts/compare']);
-    expect(merged.map((s) => s.path)).toEqual(['', 'app/api', 'app/api/accounts/compare']);
+    // The root and app hold nothing but the next folder, so they are shown with app/api, and the sign says so.
+    expect(merged.map((s) => s.label)).toEqual(['demo / app/api', 'accounts/compare']);
+    expect(merged.map((s) => s.path)).toEqual(['app/api', 'app/api/accounts/compare']);
+  });
+
+  it('says the repository name alone when the root holds a file, and the name, a slash and the folder when it holds only one folder', () => {
+    expect(buildSignSources(layout(graveyardFrom({ files: ['root.ts', 'app/a.ts'] })), 'oikos_ledger').map((s) => s.label)).toEqual(['oikos_ledger', 'app']);
+    expect(buildSignSources(layout(graveyardFrom({ files: ['app/a.ts', 'app/b/c.ts'] })), 'oikos_ledger').map((s) => s.label)).toEqual(['oikos_ledger / app', 'b']);
   });
 
   it.each(REAL_GRAVEYARDS)('labels every plot of %s with a non-empty name', (name) => {
     const real = loadRealGraveyard(name);
     const realSources = buildSignSources(layout(real), real.meta.name);
     expect(realSources.every((s) => s.label.length > 0)).toBe(true);
-    expect(realSources.find((s) => s.path === '')!.label).toBe(real.meta.name);
+    const rootPath = layout(real).plots.find((p) => p.parent === null)!.path;
+    const rootLabel = realSources.find((s) => s.path === rootPath)!.label;
+    // spatialql's root holds files, so its sign is the name; oikos_ledger's root holds only app, so its sign is "name / app".
+    expect(rootLabel).toBe(name === 'demo.oikosledger' ? `${real.meta.name} / app` : real.meta.name);
     // A plot that shows several folders is named for all of them, so its label can contain slashes; a plot for one folder does not.
     const plots = layout(real).plots;
-    expect(realSources.every((s, i) => s.path === '' || plots[i]!.folders.length > 1 || !s.label.includes('/'))).toBe(true);
+    expect(realSources.every((s, i) => plots[i]!.folders.length > 1 || !s.label.includes('/'))).toBe(true);
   });
 });
 

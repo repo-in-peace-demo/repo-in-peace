@@ -65,15 +65,16 @@ export interface VisibleSign {
 }
 
 /**
- * One sign source for every plot of the layout. The root's sign says `repoName`; every other plot's sign says its label:
- * the folder's own name, or the names of the folders shown together joined by "/" (`accounts/compare`).
+ * One sign source for every plot of the layout. A plot that is only the root says `repoName`; a plot that begins with the
+ * root and goes on into a folder says `repoName / app`; every other plot says its label: the folder's own name, or the
+ * names of the folders shown together joined by "/" (`accounts/compare`).
  */
 export function buildSignSources(layout: Layout, repoName: string): SignSource[] {
   return layout.plots.map((plot) => {
     const near = SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE * Math.max(plot.rect.w, plot.rect.d);
     return {
       path: plot.path,
-      label: plot.path === '' ? repoName : plot.label,
+      label: plot.folders[0] === '' ? (plot.label === '' ? repoName : `${repoName} / ${plot.label}`) : plot.label,
       x: plot.sign.x,
       y: SIGN_HEIGHT,
       z: plot.sign.z,

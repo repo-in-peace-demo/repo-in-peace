@@ -248,7 +248,7 @@ describe('speed guards: these catch a slowdown that grows with the square of the
     for (let i = 0; i < 1000; i++) chain.push(i === 0 ? 'l0' : `${chain[i - 1]}/l${i}`);
     const g = graveyardFrom({ files: chain.map((folder) => `${folder}/f.ts`) });
     const { result, ms } = timed(() => buildSceneModel(g));
-    expect(result.layout.plots).toHaveLength(1001); // a file in every folder, so none is shown with the one inside it
+    expect(result.layout.plots).toHaveLength(1000); // a file in every folder, so none is shown with the one inside it; the root holds nothing, so it is in the first plot
     expect(ms).toBeLessThan(2000);
     expect(Number.isFinite(result.layout.bounds.w)).toBe(true);
   });

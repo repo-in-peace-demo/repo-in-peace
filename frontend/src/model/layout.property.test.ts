@@ -19,6 +19,7 @@ import {
   nonFinite,
   plotOverlap,
   signOverlap,
+  signSeparation,
 } from '../../test/layout-checks';
 import { makeSyntheticGraveyard } from './synthetic';
 import { validateGraveyard } from '@shared/graveyard-schema';
@@ -62,6 +63,12 @@ describe('P1: nothing overlaps', () => {
 
   it('a plot\'s sign overlaps none of its stones, ghosts or child plots', () => {
     fc.assert(fc.property(graveyardArb, (g) => signOverlap(layout(g)) === undefined));
+  });
+
+  it('P14: no two plaques are close enough to overlap on the screen, for graveyards of every shape (a plot and the one inside it have their signs far enough apart)', () => {
+    fc.assert(fc.property(graveyardArb, (g) => signSeparation(layout(g)) === undefined), { numRuns: 150 });
+    fc.assert(fc.property(deepGraveyardArb, (g) => signSeparation(layout(g)) === undefined), { numRuns: 20 });
+    fc.assert(fc.property(crowdedGraveyardArb, (g) => signSeparation(layout(g)) === undefined), { numRuns: 10 });
   });
 
   it('holds for chains of folders 100 to 300 deep', () => {
@@ -228,7 +235,7 @@ describe('P10: finite numbers, and a crowded folder is not a long strip', () => 
 });
 
 describe('folders shown together', () => {
-  it('follows the rules, for graveyards of every shape: only empty single-child folders are merged, chains are as long as they can be, the root and folders with ghosts never are, and every plot is named for its folders', () => {
+  it('follows the rules, for graveyards of every shape: only empty single-child folders are merged, chains are as long as they can be (the root\'s too), folders with ghosts never are, and every plot is named for its folders', () => {
     fc.assert(fc.property(graveyardArb, (g) => mergeProblems(g, layout(g)) === undefined), { numRuns: 150 });
   });
 
@@ -249,11 +256,21 @@ describe('folders shown together', () => {
     );
   });
 
-  it('never gives a plot more than one folder at the root, and never merges away the root', () => {
+  it('has exactly one plot that holds the root, with no plot around it and the bounds for its rectangle; it is the root alone when the root holds a file or a ghost or has other than one folder, and is shown with the folder inside it otherwise', () => {
     fc.assert(
       fc.property(graveyardArb, (g) => {
-        const root = layout(g).plots.find((p) => p.path === '');
-        return root !== undefined && root.folders.length === 1 && root.folders[0] === '' && root.parent === null;
+        const l = layout(g);
+        const outermost = l.plots.filter((p) => p.parent === null);
+        if (outermost.length !== 1) return false;
+        const root = outermost[0]!;
+        const holdsSomething = g.files.some((f) => f.folder === '') || l.ghosts.some((q) => q.folder === '');
+        const rootChildren = g.folders.filter((f) => f.parent === '').length;
+        const alone = holdsSomething || rootChildren !== 1;
+        return (
+          root.folders[0] === '' &&
+          JSON.stringify(l.bounds) === JSON.stringify(root.rect) &&
+          (alone ? root.folders.length === 1 && root.path === '' : root.folders.length >= 2)
+        );
       }),
     );
   });
@@ -269,7 +286,7 @@ describe('folders shown together', () => {
         // every level gets some when there are at least as many files as levels, and otherwise only the deepest level gets them.
         const g = makeSyntheticGraveyard({ files, seed: 3, shape: 'deep', depth });
         const l = layout(g);
-        const expectedPlots = files >= depth ? depth + 1 : 2; // the root, and one plot for every level, or one for the whole chain
+        const expectedPlots = files >= depth ? depth : 1; // one plot for every level (the root, which holds nothing, is in the first), or one for the whole chain
         return l.plots.length === expectedPlots && mergeProblems(g, l) === undefined;
       }),
       { numRuns: 80 },

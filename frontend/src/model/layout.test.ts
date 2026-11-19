@@ -371,21 +371,22 @@ describe('extreme shapes', () => {
     const chain = Array.from({ length: 300 }, (_, i) => `l${i}`).reduce<string[]>((paths, name, i) => [...paths, i === 0 ? name : `${paths[i - 1]}/${name}`], []);
     const g = graveyardFrom({ folders: [chain[299]!] });
     const l = layout(g);
-    expect(l.plots.map((p) => p.path)).toEqual(['', chain[299]]);
+    // Even the root is part of the chain: it holds nothing but the first folder.
+    expect(l.plots.map((p) => p.path)).toEqual([chain[299]]);
     const merged = plotOf(l, chain[299]!);
-    expect(merged.folders).toEqual(chain);
+    expect(merged.folders).toEqual(['', ...chain]);
     expect(merged.label).toBe(Array.from({ length: 300 }, (_, i) => `l${i}`).join('/'));
     expect(merged.depth).toBe(300);
-    expect(merged.parent).toBe('');
+    expect(merged.parent).toBeNull();
     expect(firstLayoutProblem(g, l)).toBeUndefined();
-    expect(l.bounds.w).toBeCloseTo(4 * FENCE_BAND, 9); // the root's fence around one small plot
+    expect(l.bounds.w).toBeCloseTo(2 * FENCE_BAND, 9); // one fence around nothing
   });
 
   it('lays out a chain of 300 folders that each hold a file, one plot for each, nested 300 deep', () => {
     const chain = Array.from({ length: 300 }, (_, i) => `l${i}`).reduce<string[]>((paths, name, i) => [...paths, i === 0 ? name : `${paths[i - 1]}/${name}`], []);
     const g = graveyardFrom({ files: chain.map((folder) => `${folder}/f.ts`) });
     const l = layout(g);
-    expect(l.plots).toHaveLength(301);
+    expect(l.plots).toHaveLength(300); // the root holds only l0, so it is part of l0's plot
     expect(plotOf(l, chain[299]!).depth).toBe(300);
     expect(firstLayoutProblem(g, l)).toBeUndefined();
     expect(Number.isFinite(l.bounds.w) && Number.isFinite(l.bounds.d)).toBe(true);
@@ -445,7 +446,9 @@ describe('the real test files', () => {
     const l = layout(g);
     const shown = l.plots.filter((p) => p.folders.length > 1).map((p) => [p.folders.join(' > '), p.label]);
     // Every merged plot is named by joining its folders' own names.
-    for (const [chain, label] of shown) expect(label).toBe(chain!.split(' > ').map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/'));
+    for (const [chain, label] of shown) {
+      expect(label).toBe(chain!.split(' > ').filter((f) => f !== '').map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/'));
+    }
   });
 
   it('oikos_ledger: the root is close to a square, with little empty ground', () => {
@@ -525,27 +528,42 @@ describe('folders shown together', () => {
   it('shows a whole chain as one plot: app, app/api and app/api/accounts hold only the next folder', () => {
     const g = graveyardFrom({ files: ['app/api/accounts/x.ts'] });
     const l = layout(g);
-    expect(l.plots.map((p) => p.path)).toEqual(['', 'app/api/accounts']);
-    expect(plotWith(l, 'app').folders).toEqual(['app', 'app/api', 'app/api/accounts']);
+    expect(l.plots.map((p) => p.path)).toEqual(['app/api/accounts']);
+    expect(plotWith(l, 'app').folders).toEqual(['', 'app', 'app/api', 'app/api/accounts']); // the root too: it holds only app
     expect(plotWith(l, 'app').label).toBe('app/api/accounts');
   });
 
-  it('never shows the root together with the folder inside it, even when it holds nothing else', () => {
+  it('shows the root together with the folder inside it when the root holds nothing else, so there is no thin outer plot', () => {
     const l = layout(graveyardFrom({ files: ['only/f.ts'] }));
-    expect(l.plots.map((p) => p.folders)).toEqual([[''], ['only']]);
-    expect(l.plots[0]!.label).toBe('');
+    expect(l.plots.map((p) => p.folders)).toEqual([['', 'only']]);
+    expect(l.plots[0]!.label).toBe('only');
+    expect(l.plots[0]!.parent).toBeNull();
+    expect(l.plots[0]!.depth).toBe(1);
+    expect(l.bounds).toEqual(l.plots[0]!.rect);
+  });
+
+  it('keeps the root as a plot of its own when it holds a file, a ghost, or more than one folder', () => {
+    expect(layout(graveyardFrom({ files: ['root.ts', 'only/f.ts'] })).plots.map((p) => p.folders)).toEqual([[''], ['only']]);
+    expect(layout(graveyardFrom({ files: ['only/f.ts'], ghosts: ['gone.ts'] })).plots.map((p) => p.folders)).toEqual([[''], ['only']]);
+    expect(layout(graveyardFrom({ files: ['a/f.ts', 'b/f.ts'] })).plots.map((p) => p.folders)).toEqual([[''], ['a'], ['b']]);
+  });
+
+  it('an empty graveyard is a root plot and nothing else', () => {
+    const l = layout(graveyardFrom({}));
+    expect(l.plots.map((p) => p.folders)).toEqual([['']]);
   });
 
   it('does not show a folder together with the one inside it when it holds a file', () => {
     const l = layout(graveyardFrom({ files: ['a/own.ts', 'a/b/c.ts'] }));
-    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/b']);
+    expect(l.plots.map((p) => p.path)).toEqual(['a', 'a/b']); // the root holds only a, so it joins a
+    expect(l.plots[0]!.folders).toEqual(['', 'a']);
   });
 
   it('does not show a folder together with the one inside it when it holds a ghost, and stops the chain there', () => {
     // a holds only b, but a ghost of a/gone.ts stood in a: so a keeps its plot.
     const g = graveyardFrom({ files: ['a/b/c.ts'], ghosts: ['a/gone.ts'] });
     const l = layout(g);
-    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/b']);
+    expect(l.plots.map((p) => p.path)).toEqual(['a', 'a/b']); // a keeps its plot (it holds the ghost); the root joins it
     expect(l.ghosts[0]!.folder).toBe('a');
     expect(firstLayoutProblem(g, l)).toBeUndefined();
   });
@@ -554,14 +572,14 @@ describe('folders shown together', () => {
     // top > mid has a ghost > low1 > low2 holds the file. top is empty with one child, so it joins mid (which holds the ghost).
     const g = graveyardFrom({ files: ['top/mid/low1/low2/f.ts'], ghosts: ['top/mid/gone.ts'] });
     const l = layout(g);
-    expect(l.plots.map((p) => p.folders)).toEqual([[''], ['top', 'top/mid'], ['top/mid/low1', 'top/mid/low1/low2']]);
-    expect(l.plots.map((p) => p.label)).toEqual(['', 'top/mid', 'low1/low2']);
+    expect(l.plots.map((p) => p.folders)).toEqual([['', 'top', 'top/mid'], ['top/mid/low1', 'top/mid/low1/low2']]);
+    expect(l.plots.map((p) => p.label)).toEqual(['top/mid', 'low1/low2']);
     expect(firstLayoutProblem(g, l)).toBeUndefined();
   });
 
   it('does not show a folder together with its child when it has two children', () => {
     const l = layout(graveyardFrom({ files: ['a/x/f.ts', 'a/y/f.ts'] }));
-    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/x', 'a/y']);
+    expect(l.plots.map((p) => p.path)).toEqual(['a', 'a/x', 'a/y']); // the root holds only a, so it joins a
   });
 
   it('puts a ghost whose folder is gone in the nearest folder, even when that folder is shown with another', () => {
@@ -569,7 +587,7 @@ describe('folders shown together', () => {
     const g = graveyardFrom({ files: ['p/r/f.ts'], ghosts: ['p/q/gone.ts'] });
     const l = layout(g);
     expect(l.ghosts[0]!.folder).toBe('p');
-    expect(l.plots.map((p) => p.path)).toEqual(['', 'p', 'p/r']);
+    expect(l.plots.map((p) => p.path)).toEqual(['p', 'p/r']);
   });
 
   it('gives the plot the depth of its last folder, for the tint of its floor', () => {
@@ -580,8 +598,8 @@ describe('folders shown together', () => {
   it('saves a fence for every folder that is shown with the one inside it', () => {
     const together = layout(graveyardFrom({ files: ['a/b/c/f.ts'] }));
     const apart = layout(graveyardFrom({ files: ['a/f.ts', 'a/b/f.ts', 'a/b/c/f.ts'] }));
-    expect(together.plots).toHaveLength(2);
-    expect(apart.plots).toHaveLength(4);
+    expect(together.plots).toHaveLength(1);
+    expect(apart.plots).toHaveLength(3); // a, a/b and a/b/c, with the root in a's
     expect(together.bounds.w * together.bounds.d).toBeLessThan(apart.bounds.w * apart.bounds.d);
   });
 
