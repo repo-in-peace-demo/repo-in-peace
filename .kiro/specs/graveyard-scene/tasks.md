@@ -111,9 +111,14 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 2: Plain render with boxes
 
-- [ ] 14. App shell and loading
-  - [ ] 14.1 `ui/useGraveyardLoad.ts` (the only fetch; states `loading`, `error`, `ready`), `ui/StatusMessage.tsx`, a WebGL check before the canvas is created, `App.tsx`, `main.tsx`, and a small `index.css` (full-window canvas, dark background, overlay positions).
-  - [ ] 14.2 Messages for: bad name, file not found, not JSON, wrong version (naming both versions), invalid file (first errors), no WebGL, loading. All text, never HTML from the data.
+- [x] 14. App shell and loading. Tests pass; the browser check is done together with checkpoint B (task 20)
+  - [x] 14.1 `ui/fetch-graveyard.ts` (the only fetch, with the fetch passed in so the failure cases are tested without a browser; a development server's HTML answer for a missing file counts as not found), `ui/useGraveyardLoad.ts` (states `loading`, `error`, `ready`; cancels the request when it starts again), `ui/webgl.ts` (`hasWebGL`), `ui/StatusMessage.tsx`, `App.tsx`, `main.tsx` and `index.css` (full-window dark page, browser font stacks only). Until the scene is added, a loaded graveyard shows its name and counts (built through `buildSceneModel`), so loading and the model can be seen working on real files.
+  - [x] 14.2 Messages, all plain text, for: name not allowed, file not found, server error, network error, not JSON, not a graveyard file, wrong schema version (naming both versions), invalid file (first five problems), no WebGL, loading. Tests: `fetch-graveyard.test.ts` (every case above plus a cancelled request, exactly one request, the real files) and `webgl.test.ts`.
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then see it in the browser:
+    ```
+    npm run dev
+    ```
+    and open `http://localhost:5173/` (the default, spatialql) and `http://localhost:5173/?graveyard=demo.oikosledger`. Each shows its name, counts and states. Try `?graveyard=nope` (expect "Graveyard not found"), `?graveyard=../x` (expect "Name not allowed", and no request in the browser's network panel) and `?graveyard=` (expect "Name not allowed").
   - _Requirements: 1_
 
 - [ ] 15. Plain scene
