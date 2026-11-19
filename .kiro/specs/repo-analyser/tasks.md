@@ -42,11 +42,13 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 4_
 
-- [ ] 6. History analysis (`core/history.ts`)
-  - [ ] 6.1 `analyseHistory`: per-file last commit and 30-day count with rename following; ghosts decided against `currentPaths` from the tree; deleting commit is the first removal event in log order; `lastExistingSha` is the first parent.
-  - [ ] 6.2 Unit tests: rename then delete gives a ghost for the new name only; delete and re-add is current only; deleted twice gives the newer deletion; out-of-order dates; a file renamed inside the 30-day window keeps its earlier commits in the count; commit outside the window is not counted; excluded paths never become ghosts.
-  - [ ] 6.3 Shared generators in `test/arbitraries.ts`: random operation sequences over a small path pool, with a replay oracle that computes the expected current set.
-  - [ ] 6.4 **P3 property test**: ghosts and current files are disjoint; ghost paths are unique; every ghost passes the filter.
+- [x] 6. History analysis (`core/history.ts`)
+  - [x] 6.1 `analyseHistory`: per-file last commit and 30-day count with rename following; ghosts decided against `currentPaths` from the tree; deleting commit is the first removal event in log order; `lastExistingSha` is the first parent.
+  - [x] 6.2 Unit tests: rename then delete gives a ghost for the new name only; delete and re-add is current only; deleted twice gives the newer deletion; out-of-order dates; a file renamed inside the 30-day window keeps its earlier commits in the count; commit outside the window is not counted; excluded paths never become ghosts.
+  - [x] 6.3 Shared generators in `test/arbitraries.ts`: random operation sequences over a small path pool, with a replay oracle that computes the expected current set.
+  - [x] 6.4 **P3 property test**: ghosts and current files are disjoint; ghost paths are unique; every ghost passes the filter.
+  - Beyond P3: the property tests compare ghosts and per-file history against an independent forward replay (`test/arbitraries.ts`), including rename following and out-of-order dates. Design change: a file's last commit is the touching commit with the latest date (ties go to the first in log order), not the first in log order.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 5, 8_
 
 - [ ] 7. Knip parsing and config detection

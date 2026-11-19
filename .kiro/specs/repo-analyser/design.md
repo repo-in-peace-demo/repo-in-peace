@@ -179,7 +179,8 @@ analyseHistory(input: {
 The function walks commits newest to oldest in one pass.
 
 **Per-file history with rename following.** It keeps `tracked: Map<pathAtThisPoint, currentPath>`, seeded so each current path maps to itself.
-- For `add`, `modify`, `delete`, or the new side of a `rename`: if the path is in `tracked`, the commit touched that current file. The first such commit seen is its last commit (date, author). If the commit date is `> snapshot − 30 days` and `<= snapshot`, the file's recent count goes up by one. An `add` also removes the entry from `tracked`, because older history belongs to a different incarnation of the path.
+- For `add`, `modify`, or the new side of a `rename`: if the path is in `tracked`, the commit touched that current file. A file's last commit is the touching commit with the latest commit date. On equal dates the one listed first in the log wins. (Log order is topological, so a merged branch's older-dated commit can be listed before a newer-dated one. Date decides, because decay is about time.) If the commit date is `> snapshot − 30 days` and `<= snapshot`, the file's recent count goes up by one. An `add` also removes the entry from `tracked`, because older history belongs to a different incarnation of the path. A `delete` never touches a tracked file, since a tracked path exists after the commit.
+- Changes inside one commit are read against the state after that commit, then applied together: first every lookup, then every tracker removal (`add`, and the new side of a `rename`), then every tracker insertion (the old side of a `rename`). This keeps a commit that renames `a.ts` to `b.ts` and also creates a new `a.ts` correct.
 - For a `rename`: after counting, `tracked` re-keys from `path` to `oldPath`, so earlier history continues under the old name.
 - A commit counts once per file even if it lists the file twice.
 
@@ -191,7 +192,7 @@ Because rename-away of a path makes it "not a ghost", a file renamed `a.ts → b
 
 `lastExistingSha` is the first parent of the deleting commit. Merge commits show no changes, so a deleting commit is never a merge and has exactly one parent, which holds the file.
 
-**Lines changed on the same path in multiple commits are fine**; only the newest matters for last commit, and all within the window count toward the recent total.
+**Lines changed on the same path in multiple commits are fine**; the latest-dated touching commit gives the last commit, and every touching commit within the window counts toward the recent total, once per commit.
 
 A current file with no commit record is impossible in a full clone. If it happens, `analyseHistory` throws an error naming the path, and the run fails. (This could occur if the log was filtered wrongly.)
 
