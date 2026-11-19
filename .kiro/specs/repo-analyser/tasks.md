@@ -58,9 +58,10 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 6_
 
-- [ ] 8. Assembly and serialisation
-  - [ ] 8.1 `core/assemble.ts` (`assembleGraveyard`) and `core/serialise.ts` (`toJson`): sorting by code point, fixed key order, UTC ISO dates, two-space indent, trailing newline.
-  - [ ] 8.2 **P2 property test, pure tier**: shuffled inputs give identical JSON strings; the result passes `validateGraveyard`; eulogies are all empty.
+- [x] 8. Assembly and serialisation
+  - [x] 8.1 `core/assemble.ts` (`assembleGraveyard`) and `core/serialise.ts` (`toJson`): sorting by code point, fixed key order, UTC ISO dates, two-space indent, trailing newline.
+  - [x] 8.2 **P2 property test, pure tier**: shuffled inputs give identical JSON strings; the result passes `validateGraveyard`; eulogies are all empty.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 9, 10.1_
 
 - [ ] 9. I/O modules
