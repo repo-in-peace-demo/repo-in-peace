@@ -66,3 +66,9 @@ body,
   font-size: 0.85rem;
   line-height: 1.6;
 }
+
+/* The 3D scene fills the window. Overlays are added on top of it. */
+.scene {
+  position: fixed;
+  inset: 0;
+}
