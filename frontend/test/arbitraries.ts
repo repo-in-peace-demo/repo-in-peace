@@ -1,5 +1,12 @@
 import fc from 'fast-check';
-import type { Graveyard, Thresholds } from '@shared/graveyard-schema';
+import {
+  SCHEMA_VERSION,
+  type DecayState,
+  type FileEntry,
+  type Graveyard,
+  type RepoMeta,
+  type Thresholds,
+} from '@shared/graveyard-schema';
 import { mulberry32 } from '../src/model/prng';
 import {
   SYNTHETIC_SHAPES,
@@ -105,3 +112,82 @@ export function shuffledGraveyard(graveyard: Graveyard, seed: number): Graveyard
     ghosts: shuffled(graveyard.ghosts, seed + 2),
   };
 }
+
+// ---- Single files with a consistent state, score and age, for the visual properties ----
+
+const SNAPSHOT_DATE = '2026-08-18T00:38:17.000Z';
+const MS_PER_DAY = 86_400_000;
+
+/** The analyser's rule for the decay state, written out here as the oracle: fresh below stale-after, stale up to and including ancient-after. */
+export function decayStateFor(age: number, t: Thresholds): DecayState {
+  return age < t.staleAfterDays ? 'fresh' : age <= t.ancientAfterDays ? 'stale' : 'ancient';
+}
+
+/** The analyser's rule for the decay score, written out here as the oracle (0.4 for age up to the cap, 0.6 when unused). */
+export function decayScoreFor(age: number, unused: boolean, t: Thresholds): number {
+  const capped = Math.min(age, t.decayCapDays);
+  return Math.round((0.4 * (capped / t.decayCapDays) + (unused ? 0.6 : 0)) * 10_000) / 10_000;
+}
+
+/** A file, the metadata it belongs to, and the age it was built from. */
+export interface FileCase {
+  file: FileEntry;
+  meta: RepoMeta;
+  age: number;
+}
+
+export interface FileCaseOptions {
+  path?: string;
+  /** Whole days between the last commit and the snapshot. */
+  age: number;
+  unused: boolean;
+  hot: boolean;
+  linesOfCode?: number;
+  thresholds: Thresholds;
+}
+
+/** A file whose state, score and `hot` flag agree with its age and the thresholds, as the analyser would write it. */
+export function makeFileCase(options: FileCaseOptions): FileCase {
+  const { age, unused, hot, thresholds } = options;
+  const meta: RepoMeta = {
+    name: 'case',
+    snapshotSha: 'a'.repeat(40),
+    snapshotDate: SNAPSHOT_DATE,
+    analysedAt: '2026-11-19T12:00:00.000Z',
+    schemaVersion: SCHEMA_VERSION,
+    thresholds,
+  };
+  const file: FileEntry = {
+    path: options.path ?? 'src/example.ts',
+    folder: 'src',
+    linesOfCode: options.linesOfCode ?? 50,
+    lastCommitDate: new Date(Date.parse(SNAPSHOT_DATE) - age * MS_PER_DAY).toISOString(),
+    lastCommitAuthor: 'Ann',
+    recentCommits: hot ? thresholds.hotCommits : 0,
+    unused,
+    decayScore: decayScoreFor(age, unused, thresholds),
+    decayState: decayStateFor(age, thresholds),
+    hot,
+    eulogy: '',
+  };
+  return { file, meta, age };
+}
+
+/** An age from just now to one and a half times the decay cap, so every state turns up. `thousandths` is 0 to 1500. */
+export function ageFromThousandths(thousandths: number, t: Thresholds): number {
+  return Math.floor((t.decayCapDays * thousandths) / 1000);
+}
+
+export const filePathArb: fc.Arbitrary<string> = fc.stringMatching(/^[a-z]{1,6}(\/[a-z]{1,6}){0,2}\.ts$/);
+
+/** A consistent file of any age, under any valid thresholds. */
+export const fileCaseArb: fc.Arbitrary<FileCase> = fc
+  .record({
+    thresholds: thresholdsArb,
+    thousandths: fc.integer({ min: 0, max: 1500 }),
+    unused: fc.boolean(),
+    hot: fc.boolean(),
+    path: filePathArb,
+    linesOfCode: fc.integer({ min: 0, max: 10_000 }),
+  })
+  .map(({ thresholds, thousandths, ...rest }) => makeFileCase({ ...rest, thresholds, age: ageFromThousandths(thousandths, thresholds) }));

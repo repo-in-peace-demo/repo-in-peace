@@ -54,11 +54,12 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 2, 3, 4_
 
-- [ ] 6. Visual parameters (`model/visual-params.ts`)
-  - [ ] 6.1 `mossAmount`, `leanDegrees`, `stoneVisual`, `ghostVisual`, and `plotFloorShade(depth)`.
-  - [ ] 6.2 **P5** (moss never decreases with the decay score within a state and `unused` flag; only ancient stones lean), **P8** (each effect has one source: flipping `unused` changes only cracks and glow; flipping `hot` only the candle; changing `decayScore` changes nothing; changing the age within a state changes only moss and, for ancient, lean), **P9** (moss ranges per state and the value 1 from the decay cap on), **P17** (floor tint: 1 at the root, never lighter with depth, within 0.70 to 1, constant from depth 6).
-  - [ ] 6.3 Edge examples with thresholds 21/45/cap 90: age 20 is fresh and clean; 21 and 44 and 45 are stale (45 still stale); 46 is ancient; 90 and 500 give moss 1 and lean 10. The fresh unused file (`app/components/voice/index.ts`, 19 days old, score 0.6844) is clean, upright, cracked and glowing. A file whose state and age disagree shows its state's range.
-  - [ ] 6.4 Test that `leanDegrees` never exceeds `MAX_LEAN_DEG`, the constant the layout reserved room for.
+- [x] 6. Visual parameters (`model/visual-params.ts`)
+  - [x] 6.1 `model/visual-constants.ts` (the shapes of the curves: moss levels, lean minimum, glow, ghost opacity and float, floor tint range) and `model/visual-params.ts`: `mossAmount`, `leanDegrees`, `stoneVisual`, `ghostVisual`, `plotFloorShade(depth)`. None of them can read the decay score, size, recent commits or folder.
+  - [x] 6.2 `visual-params.property.test.ts`: **P5** (moss does not decrease when the score rises, for files in the same state with the same `unused` flag; only ancient stones lean, never past `MAX_LEAN_DEG`), **P8** (flipping `unused` changes only cracks and glow; flipping `hot` only the candle; any decay score gives the same look; size, recent commits, folder, author and eulogy are ignored; changing the age within a state leaves cracks, glow, candle and hash variety alone; changing only the path leaves every data effect alone), **P9** (moss ranges per state, monotone in age, 1 from the decay cap on), **P17** (floor tint). Test helpers added to `test/arbitraries.ts`: `makeFileCase`, `fileCaseArb`, and an oracle copy of the analyser's state and score rules. P5's "when the score rises" is strict (`score₁ < score₂`), because scores are rounded and two ages can share one.
+  - [x] 6.3 `visual-params.test.ts`: edge examples with thresholds 21/45/cap 90 (age 20 fresh and clean; 21, 44 and 45 stale, 45 still below the heavy level; 46 ancient; 90 and later full moss and the largest lean), a state that disagrees with the age follows the state, the fresh unused stone of the oikos file (`app/components/voice/index.ts`, 19 days old) is clean, upright, cracked and glowing, all three effects at once on one stone, ghost parameters, floor tint, and constants that keep the ordering (every stale amount below the heavy level, the lean minimum below the largest lean).
+  - [x] 6.4 Test that `leanDegrees` never exceeds `MAX_LEAN_DEG`, the constant the layout reserved room for (in the property tests for any age and state, and in the examples).
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 3.6, 5_
 
 - [ ] 7. Signs (`model/signs.ts`)
