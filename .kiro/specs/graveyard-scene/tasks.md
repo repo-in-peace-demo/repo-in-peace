@@ -37,14 +37,15 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
-- [ ] 4. Stone height (`model/tombstone-height.ts`)
-  - [ ] 4.1 `stoneHeight` with the constants from the design.
-  - [ ] 4.2 **P7**: never decreases with lines, stays within the minimum and maximum, minimum for 0 and 1, maximum from 5,000 up. Examples at 1, 100, 1,000, 5,000 and 6,451.
+- [x] 4. Stone height (`model/tombstone-height.ts`)
+  - [x] 4.1 `stoneHeight`, with its three constants (`MIN_STONE_H`, `MAX_STONE_H`, `LOC_AT_MAX_HEIGHT`) in `model/layout-constants.ts`, which is created here so that requirement 3.7 (one module for every layout number) holds from the start; task 5.2 adds the rest.
+  - [x] 4.2 **P7**: never decreases with lines, stays within the minimum and maximum and is finite, minimum for 0 and 1, maximum from 5,000 up, strictly taller for more lines below the cap. Examples at 0, 1, 10, 100, 1,000, 4,999, 5,000, 6,451 and infinity; doubling the lines adds the same height anywhere below the cap (it is a log scale).
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 3.3_
 
 - [ ] 5. Layout
   - [ ] 5.1 `test/arbitraries.ts`: `graveyardArb` (random tree, deep chain up to 300 levels, one crowded folder up to 600 files, wide trees, mixtures, folders with only children or nothing, ghosts in existing, missing and doubly missing folders), `fileArb`, a seeded `shuffle`, and a test that every generated graveyard passes `validateGraveyard`.
-  - [ ] 5.2 `model/layout-constants.ts` with every constant of the design and a comment each. Test: `LEAN_REACH ≥ MAX_STONE_H × sin(MAX_LEAN_DEG)`, and the cell sizes follow from the stone size and the reach.
+  - [ ] 5.2 `model/layout-constants.ts`: add the rest of the constants of the design (the stone's base, the lean limits and reach, cell size and gaps, fence band, item gap, sign size), a comment each; the three height constants are already there from task 4. Test: `LEAN_REACH ≥ MAX_STONE_H × sin(MAX_LEAN_DEG)`, and the cell sizes follow from the stone size and the reach.
   - [ ] 5.3 `model/layout.ts`: grouping, ghost placement, block of cells, shelf packing from the leaves up, positions from the root down, sign spots. No recursion.
   - [ ] 5.4 Property tests with a sort-and-sweep overlap helper: **P1** (cells of a folder, sibling plots, a folder's cells against its child plots), **P2** (containment), **P3** (same layout twice and with shuffled arrays), **P4** (one position per file and ghost, one plot per folder), **P6** (ghost placement against an independent oracle), **P10** (all numbers finite; 500 to 800 files in one folder give an aspect ratio of at most 3).
   - [ ] 5.5 Real-data example tests: read `public/graveyards/demo.oikosledger.graveyard.json` and `demo.spatialql.graveyard.json`, check them with `checkGraveyardData`, lay them out, and assert the invariants of P1 to P4 and P10. spatialql: its `src` block is near-square; its two ghosts (`src/data/surface-placement.test.ts`, `src/surface-placement.ts`) sit in the plots `src/data` and `src`.
