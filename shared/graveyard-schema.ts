@@ -1,0 +1,262 @@
+/**
+ * Graveyard data file schema, version 1.
+ *
+ * The analyser writes this file and the frontend reads it. This is the only
+ * place the schema is defined. Change it only here, and bump SCHEMA_VERSION
+ * when the shape changes.
+ *
+ * Key order in the interfaces below is the key order in the written JSON.
+ */
+
+export const SCHEMA_VERSION = 1;
+
+export type DecayState = 'fresh' | 'stale' | 'ancient';
+
+export const DECAY_STATES: readonly DecayState[] = ['fresh', 'stale', 'ancient'];
+
+export interface RepoMeta {
+  /** Repository name, taken from the clone. */
+  name: string;
+  /** Commit the analysis describes. */
+  snapshotSha: string;
+  /** Committer date of the snapshot commit, ISO 8601 UTC with milliseconds. */
+  snapshotDate: string;
+  /** When the analyser ran, ISO 8601 UTC. The only value not derived from the snapshot. */
+  analysedAt: string;
+  schemaVersion: number;
+}
+
+export interface Folder {
+  /** Repo-relative path with forward slashes and no trailing slash. The repo root is "". */
+  path: string;
+  /** Path of the parent folder. null only for the root. */
+  parent: string | null;
+}
+
+export interface FileEntry {
+  path: string;
+  /** Path of the immediate parent folder. Always present in `folders`. */
+  folder: string;
+  /** Non-blank lines at the snapshot commit. */
+  linesOfCode: number;
+  lastCommitDate: string;
+  lastCommitAuthor: string;
+  /** Commits in the 30 days before the snapshot date. */
+  commitsLast30Days: number;
+  /** Knip lists this file as unused. */
+  unused: boolean;
+  /** 0 to 1, rounded to 4 decimals. */
+  decayScore: number;
+  decayState: DecayState;
+  /** Many commits in the 30 days before the snapshot. */
+  hot: boolean;
+  /** Always "" from the analyser. A later step fills it. */
+  eulogy: string;
+}
+
+export interface Ghost {
+  /** Path of the deleted file. */
+  path: string;
+  /** The commit that deleted it. */
+  deletedInSha: string;
+  deletedDate: string;
+  deletedBy: string;
+  /** First parent of the deleting commit: the last commit in which the file still existed. */
+  lastExistingSha: string;
+}
+
+export interface Graveyard {
+  meta: RepoMeta;
+  folders: Folder[];
+  files: FileEntry[];
+  ghosts: Ghost[];
+}
+
+export type ValidationResult = { ok: true } | { ok: false; errors: string[] };
+
+const MAX_ERRORS = 50;
+const SHA_PATTERN = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
+const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+/**
+ * Checks an unknown value against the schema and against the structural rules
+ * the data file promises: every file's folder exists, the folder tree has one
+ * root and no cycles, and no path is both a current file and a ghost.
+ * Returns every problem found, up to 50.
+ */
+export function validateGraveyard(value: unknown): ValidationResult {
+  const errors: string[] = [];
+  const fail = (message: string): void => {
+    if (errors.length < MAX_ERRORS) errors.push(message);
+  };
+
+  if (!isRecord(value)) return { ok: false, errors: ['graveyard must be an object'] };
+
+  checkMeta(value['meta'], fail);
+  const folderPaths = checkFolders(value['folders'], fail);
+  const filePaths = checkFiles(value['files'], folderPaths, fail);
+  checkGhosts(value['ghosts'], filePaths, fail);
+
+  return errors.length === 0 ? { ok: true } : { ok: false, errors };
+}
+
+type Fail = (message: string) => void;
+
+function checkMeta(meta: unknown, fail: Fail): void {
+  if (!isRecord(meta)) return fail('meta must be an object');
+  if (!isNonEmptyString(meta['name'])) fail('meta.name must be a non-empty string');
+  if (!isSha(meta['snapshotSha'])) fail('meta.snapshotSha must be a full commit SHA');
+  if (!isIsoUtc(meta['snapshotDate'])) fail('meta.snapshotDate must be an ISO 8601 UTC date');
+  if (!isIsoUtc(meta['analysedAt'])) fail('meta.analysedAt must be an ISO 8601 UTC date');
+  if (meta['schemaVersion'] !== SCHEMA_VERSION) {
+    fail(`meta.schemaVersion must be ${SCHEMA_VERSION}`);
+  }
+}
+
+/** Returns the set of folder paths found, so later checks can use it. */
+function checkFolders(folders: unknown, fail: Fail): Set<string> {
+  const paths = new Set<string>();
+  if (!Array.isArray(folders)) {
+    fail('folders must be an array');
+    return paths;
+  }
+
+  const parentOf = new Map<string, string | null>();
+  folders.forEach((folder: unknown, i) => {
+    const at = `folders[${i}]`;
+    if (!isRecord(folder)) return fail(`${at} must be an object`);
+    const { path, parent } = folder;
+    if (typeof path !== 'string') return fail(`${at}.path must be a string`);
+    if (parent !== null && typeof parent !== 'string') {
+      return fail(`${at}.parent must be a string or null`);
+    }
+    if (parentOf.has(path)) return fail(`${at}: duplicate folder path "${path}"`);
+    parentOf.set(path, parent);
+    paths.add(path);
+  });
+
+  const roots = [...parentOf].filter(([, parent]) => parent === null).map(([path]) => path);
+  if (parentOf.size > 0) {
+    if (roots.length !== 1 || roots[0] !== '') {
+      fail('folders must have exactly one root, with path "" and parent null');
+    }
+  }
+
+  for (const [path, parent] of parentOf) {
+    if (parent !== null && !parentOf.has(parent)) {
+      fail(`folder "${path}" names a parent "${parent}" that is not in the folder list`);
+    }
+  }
+
+  // Every parent chain must reach the root without revisiting a folder.
+  for (const start of parentOf.keys()) {
+    const seen = new Set<string>();
+    let current: string | null | undefined = start;
+    while (current !== null && current !== undefined) {
+      if (seen.has(current)) {
+        fail(`folder hierarchy has a cycle through "${current}"`);
+        break;
+      }
+      seen.add(current);
+      current = parentOf.get(current);
+    }
+  }
+
+  return paths;
+}
+
+/** Returns the set of file paths found. */
+function checkFiles(files: unknown, folderPaths: Set<string>, fail: Fail): Set<string> {
+  const paths = new Set<string>();
+  if (!Array.isArray(files)) {
+    fail('files must be an array');
+    return paths;
+  }
+
+  files.forEach((file: unknown, i) => {
+    const at = `files[${i}]`;
+    if (!isRecord(file)) return fail(`${at} must be an object`);
+
+    if (!isNonEmptyString(file['path'])) {
+      fail(`${at}.path must be a non-empty string`);
+    } else if (paths.has(file['path'])) {
+      fail(`${at}: duplicate file path "${file['path']}"`);
+    } else {
+      paths.add(file['path']);
+    }
+
+    const folder = file['folder'];
+    if (typeof folder !== 'string') fail(`${at}.folder must be a string`);
+    else if (!folderPaths.has(folder)) fail(`${at}.folder "${folder}" is not in the folder list`);
+
+    if (!isCount(file['linesOfCode'])) fail(`${at}.linesOfCode must be a whole number, 0 or more`);
+    if (!isIsoUtc(file['lastCommitDate'])) fail(`${at}.lastCommitDate must be an ISO 8601 UTC date`);
+    if (typeof file['lastCommitAuthor'] !== 'string') fail(`${at}.lastCommitAuthor must be a string`);
+    if (!isCount(file['commitsLast30Days'])) {
+      fail(`${at}.commitsLast30Days must be a whole number, 0 or more`);
+    }
+    if (typeof file['unused'] !== 'boolean') fail(`${at}.unused must be a boolean`);
+
+    const score = file['decayScore'];
+    if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1) {
+      fail(`${at}.decayScore must be a number from 0 to 1`);
+    }
+
+    const state = file['decayState'];
+    if (!DECAY_STATES.some((s) => s === state)) {
+      fail(`${at}.decayState must be one of ${DECAY_STATES.join(', ')}`);
+    }
+
+    if (typeof file['hot'] !== 'boolean') fail(`${at}.hot must be a boolean`);
+    if (typeof file['eulogy'] !== 'string') fail(`${at}.eulogy must be a string`);
+  });
+
+  return paths;
+}
+
+function checkGhosts(ghosts: unknown, filePaths: Set<string>, fail: Fail): void {
+  if (!Array.isArray(ghosts)) return fail('ghosts must be an array');
+
+  const seen = new Set<string>();
+  ghosts.forEach((ghost: unknown, i) => {
+    const at = `ghosts[${i}]`;
+    if (!isRecord(ghost)) return fail(`${at} must be an object`);
+
+    const path = ghost['path'];
+    if (!isNonEmptyString(path)) {
+      fail(`${at}.path must be a non-empty string`);
+    } else {
+      if (seen.has(path)) fail(`${at}: duplicate ghost path "${path}"`);
+      seen.add(path);
+      if (filePaths.has(path)) fail(`${at}: "${path}" is both a current file and a ghost`);
+    }
+
+    if (!isSha(ghost['deletedInSha'])) fail(`${at}.deletedInSha must be a full commit SHA`);
+    if (!isIsoUtc(ghost['deletedDate'])) fail(`${at}.deletedDate must be an ISO 8601 UTC date`);
+    if (typeof ghost['deletedBy'] !== 'string') fail(`${at}.deletedBy must be a string`);
+    if (!isSha(ghost['lastExistingSha'])) fail(`${at}.lastExistingSha must be a full commit SHA`);
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value !== '';
+}
+
+function isSha(value: unknown): boolean {
+  return typeof value === 'string' && SHA_PATTERN.test(value);
+}
+
+function isCount(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/** True for strings in exactly the form Date.toISOString() writes, and that are real dates. */
+function isIsoUtc(value: unknown): boolean {
+  if (typeof value !== 'string' || !ISO_UTC_PATTERN.test(value)) return false;
+  const ms = Date.parse(value);
+  return !Number.isNaN(ms) && new Date(ms).toISOString() === value;
+}

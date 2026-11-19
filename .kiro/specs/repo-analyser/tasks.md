@@ -14,7 +14,7 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm install && npm test`
   - _Requirements: 5, 8, 10.1, 10.2; design: git-log-parse_
 
-- [ ] 2. Shared schema. Code written; stays open until the Run command below passes
+- [x] 2. Shared schema
   - [x] 2.1 Write `shared/graveyard-schema.ts`: types, `SCHEMA_VERSION`, `validateGraveyard`.
   - [x] 2.2 Unit tests: valid sample passes; each structural rule fails when broken (missing folder, parent cycle, path in both files and ghosts, bad date, score out of range, wrong version).
   - Note: `shared/` has its own `package.json` so its tests resolve vitest; `analyser/tsconfig.json` excludes shared test files.
