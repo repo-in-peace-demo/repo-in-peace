@@ -1,0 +1,1970 @@
+{
+  "meta": {
+    "name": "oikos_ledger",
+    "snapshotSha": "58b6eeeb6aa911e66bd29827016cfc98359b83c4",
+    "snapshotDate": "2026-08-18T00:38:17.000Z",
+    "analysedAt": "2026-11-19T15:15:20.926Z",
+    "schemaVersion": 2,
+    "thresholds": {
+      "staleAfterDays": 21,
+      "ancientAfterDays": 45,
+      "decayCapDays": 90,
+      "hotCommits": 5,
+      "hotWindowDays": 30
+    }
+  },
+  "folders": [
+    {
+      "path": "",
+      "parent": null
+    },
+    {
+      "path": "app",
+      "parent": ""
+    },
+    {
+      "path": "app/app",
+      "parent": "app"
+    },
+    {
+      "path": "app/app/(auth)",
+      "parent": "app/app"
+    },
+    {
+      "path": "app/app/(auth)/login",
+      "parent": "app/app/(auth)"
+    },
+    {
+      "path": "app/app/(auth)/signup",
+      "parent": "app/app/(auth)"
+    },
+    {
+      "path": "app/app/(dashboard)",
+      "parent": "app/app"
+    },
+    {
+      "path": "app/app/(dashboard)/analytics",
+      "parent": "app/app/(dashboard)"
+    },
+    {
+      "path": "app/app/(dashboard)/compare",
+      "parent": "app/app/(dashboard)"
+    },
+    {
+      "path": "app/app/(dashboard)/insights",
+      "parent": "app/app/(dashboard)"
+    },
+    {
+      "path": "app/app/(dashboard)/macro",
+      "parent": "app/app/(dashboard)"
+    },
+    {
+      "path": "app/app/(dashboard)/recommendations",
+      "parent": "app/app/(dashboard)"
+    },
+    {
+      "path": "app/app/api",
+      "parent": "app/app"
+    },
+    {
+      "path": "app/app/api/accounts",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/accounts/compare",
+      "parent": "app/app/api/accounts"
+    },
+    {
+      "path": "app/app/api/accounts/compare/query",
+      "parent": "app/app/api/accounts/compare"
+    },
+    {
+      "path": "app/app/api/analytics",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/auth",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/auth/[...nextauth]",
+      "parent": "app/app/api/auth"
+    },
+    {
+      "path": "app/app/api/bank_accounts",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/bank_accounts/[account_id]",
+      "parent": "app/app/api/bank_accounts"
+    },
+    {
+      "path": "app/app/api/categories",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/insights",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/insights/cache",
+      "parent": "app/app/api/insights"
+    },
+    {
+      "path": "app/app/api/insights/query",
+      "parent": "app/app/api/insights"
+    },
+    {
+      "path": "app/app/api/insights/session",
+      "parent": "app/app/api/insights"
+    },
+    {
+      "path": "app/app/api/macro",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/macro/balance-history",
+      "parent": "app/app/api/macro"
+    },
+    {
+      "path": "app/app/api/macro/query",
+      "parent": "app/app/api/macro"
+    },
+    {
+      "path": "app/app/api/recommendations",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/transactions",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/transactions/[transaction_id]",
+      "parent": "app/app/api/transactions"
+    },
+    {
+      "path": "app/app/api/transactions/[transaction_id]/amend",
+      "parent": "app/app/api/transactions/[transaction_id]"
+    },
+    {
+      "path": "app/app/api/transactions/[transaction_id]/amendments",
+      "parent": "app/app/api/transactions/[transaction_id]"
+    },
+    {
+      "path": "app/app/api/transactions/balances",
+      "parent": "app/app/api/transactions"
+    },
+    {
+      "path": "app/app/api/transactions/categories",
+      "parent": "app/app/api/transactions"
+    },
+    {
+      "path": "app/app/api/transactions/months",
+      "parent": "app/app/api/transactions"
+    },
+    {
+      "path": "app/app/api/upload",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/upload/[upload_id]",
+      "parent": "app/app/api/upload"
+    },
+    {
+      "path": "app/app/api/uploads",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/api/voice",
+      "parent": "app/app/api"
+    },
+    {
+      "path": "app/app/public",
+      "parent": "app/app"
+    },
+    {
+      "path": "app/components",
+      "parent": "app"
+    },
+    {
+      "path": "app/components/accounts",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/analytics",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/bank_accounts",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/charts",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/dashboard",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/guest",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/insights",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/macro",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/nav",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/recommendations",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/transactions",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/ui",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/uploads",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/components/voice",
+      "parent": "app/components"
+    },
+    {
+      "path": "app/lib",
+      "parent": "app"
+    },
+    {
+      "path": "app/lib/compare",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/constants",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/db",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/db/queries",
+      "parent": "app/lib/db"
+    },
+    {
+      "path": "app/lib/hooks",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/insights",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/macro",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/mcp",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/lib/voice",
+      "parent": "app/lib"
+    },
+    {
+      "path": "app/types",
+      "parent": "app"
+    }
+  ],
+  "files": [
+    {
+      "path": "app/app/(auth)/layout.tsx",
+      "folder": "app/app/(auth)",
+      "linesOfCode": 7,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(auth)/login/page.tsx",
+      "folder": "app/app/(auth)/login",
+      "linesOfCode": 60,
+      "lastCommitDate": "2026-08-02T23:03:50.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(auth)/signup/page.tsx",
+      "folder": "app/app/(auth)/signup",
+      "linesOfCode": 4,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/analytics/page.tsx",
+      "folder": "app/app/(dashboard)/analytics",
+      "linesOfCode": 9,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/compare/page.tsx",
+      "folder": "app/app/(dashboard)/compare",
+      "linesOfCode": 16,
+      "lastCommitDate": "2026-07-28T20:56:28.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0889,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/insights/page.tsx",
+      "folder": "app/app/(dashboard)/insights",
+      "linesOfCode": 12,
+      "lastCommitDate": "2026-06-24T18:47:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.24,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/layout.tsx",
+      "folder": "app/app/(dashboard)",
+      "linesOfCode": 43,
+      "lastCommitDate": "2026-06-25T23:12:18.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2356,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/macro/page.tsx",
+      "folder": "app/app/(dashboard)/macro",
+      "linesOfCode": 16,
+      "lastCommitDate": "2026-07-29T20:41:08.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/page.tsx",
+      "folder": "app/app/(dashboard)",
+      "linesOfCode": 10,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/(dashboard)/recommendations/page.tsx",
+      "folder": "app/app/(dashboard)/recommendations",
+      "linesOfCode": 16,
+      "lastCommitDate": "2026-06-27T12:45:45.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2267,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/accounts/compare/query/route.ts",
+      "folder": "app/app/api/accounts/compare/query",
+      "linesOfCode": 328,
+      "lastCommitDate": "2026-08-01T12:42:16.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 7,
+      "unused": false,
+      "decayScore": 0.0711,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/accounts/compare/route.ts",
+      "folder": "app/app/api/accounts/compare",
+      "linesOfCode": 375,
+      "lastCommitDate": "2026-08-02T18:54:15.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 4,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/analytics/route.ts",
+      "folder": "app/app/api/analytics",
+      "linesOfCode": 103,
+      "lastCommitDate": "2026-06-24T18:47:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.24,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/auth/[...nextauth]/route.ts",
+      "folder": "app/app/api/auth/[...nextauth]",
+      "linesOfCode": 2,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/auth/route.ts",
+      "folder": "app/app/api/auth",
+      "linesOfCode": 7,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/bank_accounts/[account_id]/route.ts",
+      "folder": "app/app/api/bank_accounts/[account_id]",
+      "linesOfCode": 122,
+      "lastCommitDate": "2026-08-02T15:36:06.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/bank_accounts/route.ts",
+      "folder": "app/app/api/bank_accounts",
+      "linesOfCode": 43,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/categories/route.ts",
+      "folder": "app/app/api/categories",
+      "linesOfCode": 32,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/insights/cache/route.ts",
+      "folder": "app/app/api/insights/cache",
+      "linesOfCode": 71,
+      "lastCommitDate": "2026-08-03T21:33:56.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0622,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/insights/query/route.ts",
+      "folder": "app/app/api/insights/query",
+      "linesOfCode": 1832,
+      "lastCommitDate": "2026-08-03T22:03:21.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 10,
+      "unused": false,
+      "decayScore": 0.0622,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/insights/route.ts",
+      "folder": "app/app/api/insights",
+      "linesOfCode": 4,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/insights/session/route.ts",
+      "folder": "app/app/api/insights/session",
+      "linesOfCode": 61,
+      "lastCommitDate": "2026-06-18T20:12:32.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2667,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/macro/balance-history/route.ts",
+      "folder": "app/app/api/macro/balance-history",
+      "linesOfCode": 93,
+      "lastCommitDate": "2026-07-31T12:49:42.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/macro/query/route.ts",
+      "folder": "app/app/api/macro/query",
+      "linesOfCode": 325,
+      "lastCommitDate": "2026-07-31T13:11:24.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 5,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/macro/route.ts",
+      "folder": "app/app/api/macro",
+      "linesOfCode": 373,
+      "lastCommitDate": "2026-07-29T20:41:08.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/recommendations/route.ts",
+      "folder": "app/app/api/recommendations",
+      "linesOfCode": 338,
+      "lastCommitDate": "2026-08-02T18:54:15.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/[transaction_id]/amend/route.ts",
+      "folder": "app/app/api/transactions/[transaction_id]/amend",
+      "linesOfCode": 104,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/[transaction_id]/amendments/route.ts",
+      "folder": "app/app/api/transactions/[transaction_id]/amendments",
+      "linesOfCode": 28,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/balances/route.ts",
+      "folder": "app/app/api/transactions/balances",
+      "linesOfCode": 67,
+      "lastCommitDate": "2026-06-24T18:47:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.24,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/categories/route.ts",
+      "folder": "app/app/api/transactions/categories",
+      "linesOfCode": 23,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/months/route.ts",
+      "folder": "app/app/api/transactions/months",
+      "linesOfCode": 48,
+      "lastCommitDate": "2026-08-02T18:54:15.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/transactions/route.ts",
+      "folder": "app/app/api/transactions",
+      "linesOfCode": 139,
+      "lastCommitDate": "2026-06-24T18:47:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.24,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/upload/[upload_id]/route.ts",
+      "folder": "app/app/api/upload/[upload_id]",
+      "linesOfCode": 88,
+      "lastCommitDate": "2026-06-14T00:33:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/upload/route.ts",
+      "folder": "app/app/api/upload",
+      "linesOfCode": 123,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/uploads/route.ts",
+      "folder": "app/app/api/uploads",
+      "linesOfCode": 40,
+      "lastCommitDate": "2026-06-14T16:35:03.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2844,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/api/voice/route.ts",
+      "folder": "app/app/api/voice",
+      "linesOfCode": 4,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/layout.tsx",
+      "folder": "app/app",
+      "linesOfCode": 21,
+      "lastCommitDate": "2026-07-27T23:05:43.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0933,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/app/public/pcm-processor.js",
+      "folder": "app/app/public",
+      "linesOfCode": 14,
+      "lastCommitDate": "2026-06-20T10:53:32.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8578,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/auth.config.ts",
+      "folder": "app",
+      "linesOfCode": 21,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/auth.ts",
+      "folder": "app",
+      "linesOfCode": 112,
+      "lastCommitDate": "2026-08-02T22:55:42.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/accounts/AccountsContext.tsx",
+      "folder": "app/components/accounts",
+      "linesOfCode": 43,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/accounts/AccountsSidebar.tsx",
+      "folder": "app/components/accounts",
+      "linesOfCode": 149,
+      "lastCommitDate": "2026-06-27T11:17:33.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2267,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/accounts/DeleteAccountModal.tsx",
+      "folder": "app/components/accounts",
+      "linesOfCode": 121,
+      "lastCommitDate": "2026-06-14T17:30:12.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2844,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/analytics/AnalyticsPanel.tsx",
+      "folder": "app/components/analytics",
+      "linesOfCode": 266,
+      "lastCommitDate": "2026-07-11T13:11:17.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1644,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/analytics/ComparePage.tsx",
+      "folder": "app/components/analytics",
+      "linesOfCode": 22,
+      "lastCommitDate": "2026-07-28T20:56:28.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0889,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/analytics/ComparePanel.tsx",
+      "folder": "app/components/analytics",
+      "linesOfCode": 347,
+      "lastCommitDate": "2026-07-31T13:26:37.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 5,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/analytics/CompareVoiceButton.tsx",
+      "folder": "app/components/analytics",
+      "linesOfCode": 59,
+      "lastCommitDate": "2026-07-31T22:18:02.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 6,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/bank_accounts/AddBankAccountModal.tsx",
+      "folder": "app/components/bank_accounts",
+      "linesOfCode": 189,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/bank_accounts/BankAccountsSection.tsx",
+      "folder": "app/components/bank_accounts",
+      "linesOfCode": 77,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/bank_accounts/BankLogo.tsx",
+      "folder": "app/components/bank_accounts",
+      "linesOfCode": 18,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/charts/index.ts",
+      "folder": "app/components/charts",
+      "linesOfCode": 1,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/dashboard/DashboardClient.tsx",
+      "folder": "app/components/dashboard",
+      "linesOfCode": 21,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/guest/GuestContext.tsx",
+      "folder": "app/components/guest",
+      "linesOfCode": 16,
+      "lastCommitDate": "2026-06-25T23:12:18.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2356,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/insights/InsightsChart.tsx",
+      "folder": "app/components/insights",
+      "linesOfCode": 257,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/insights/InsightsPanel.tsx",
+      "folder": "app/components/insights",
+      "linesOfCode": 765,
+      "lastCommitDate": "2026-08-03T21:05:51.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 4,
+      "unused": false,
+      "decayScore": 0.0622,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/insights/TurnCard.tsx",
+      "folder": "app/components/insights",
+      "linesOfCode": 197,
+      "lastCommitDate": "2026-07-31T21:13:43.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/BalanceTrendChart.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 109,
+      "lastCommitDate": "2026-07-31T12:49:42.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/InvestmentScenarioSlider.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 90,
+      "lastCommitDate": "2026-07-29T20:41:08.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/MacroPanel.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 369,
+      "lastCommitDate": "2026-08-02T17:57:00.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 7,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/MacroVoiceButton.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 89,
+      "lastCommitDate": "2026-07-31T13:11:24.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 5,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": true,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/MemoryPanel.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 60,
+      "lastCommitDate": "2026-07-30T21:59:19.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.08,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/macro/PurchasingPowerGapChart.tsx",
+      "folder": "app/components/macro",
+      "linesOfCode": 66,
+      "lastCommitDate": "2026-07-31T12:49:42.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/nav/NavSidebar.tsx",
+      "folder": "app/components/nav",
+      "linesOfCode": 211,
+      "lastCommitDate": "2026-07-27T23:05:43.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0933,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/recommendations/RecommendationCard.tsx",
+      "folder": "app/components/recommendations",
+      "linesOfCode": 149,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/recommendations/RecommendationsPanel.tsx",
+      "folder": "app/components/recommendations",
+      "linesOfCode": 528,
+      "lastCommitDate": "2026-07-30T21:47:12.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.08,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/recommendations/index.ts",
+      "folder": "app/components/recommendations",
+      "linesOfCode": 2,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/AmendTransactionModal.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 262,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/CategoryBadge.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 30,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/FilterBar.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 198,
+      "lastCommitDate": "2026-06-24T18:47:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.24,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/MethodBadge.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 24,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/Pagination.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 46,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/TransactionGroup.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 192,
+      "lastCommitDate": "2026-06-25T23:12:18.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2356,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/TransactionList.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 154,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/transactions/TransactionsPanel.tsx",
+      "folder": "app/components/transactions",
+      "linesOfCode": 315,
+      "lastCommitDate": "2026-07-10T15:36:13.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1689,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/CollapsibleSection.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 34,
+      "lastCommitDate": "2026-07-31T13:11:36.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/button.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 51,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/card.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 71,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/dialog.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 109,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/index.ts",
+      "folder": "app/components/ui",
+      "linesOfCode": 1,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/input.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 19,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/label.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 21,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/progress.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 25,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/ui/select.tsx",
+      "folder": "app/components/ui",
+      "linesOfCode": 146,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/uploads/UploadHistoryModal.tsx",
+      "folder": "app/components/uploads",
+      "linesOfCode": 272,
+      "lastCommitDate": "2026-06-14T16:35:03.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2844,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/uploads/UploadStatementModal.tsx",
+      "folder": "app/components/uploads",
+      "linesOfCode": 400,
+      "lastCommitDate": "2026-07-08T22:30:40.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1778,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/voice/VoiceButton.tsx",
+      "folder": "app/components/voice",
+      "linesOfCode": 102,
+      "lastCommitDate": "2026-07-29T22:52:51.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/components/voice/index.ts",
+      "folder": "app/components/voice",
+      "linesOfCode": 2,
+      "lastCommitDate": "2026-07-29T22:52:51.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": true,
+      "decayScore": 0.6844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/drizzle.config.ts",
+      "folder": "app",
+      "linesOfCode": 10,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/compare/comparisonSnapshots.ts",
+      "folder": "app/lib/compare",
+      "linesOfCode": 133,
+      "lastCommitDate": "2026-07-31T22:18:02.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 3,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/constants/banks.ts",
+      "folder": "app/lib/constants",
+      "linesOfCode": 17,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/constants/currencies.ts",
+      "folder": "app/lib/constants",
+      "linesOfCode": 8,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/currency.ts",
+      "folder": "app/lib",
+      "linesOfCode": 11,
+      "lastCommitDate": "2026-07-09T23:39:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1733,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/client.ts",
+      "folder": "app/lib/db",
+      "linesOfCode": 27,
+      "lastCommitDate": "2026-06-29T15:39:40.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2178,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/bank_accounts.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 14,
+      "lastCommitDate": "2026-06-15T13:48:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.28,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/insights.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 1,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/macro.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 62,
+      "lastCommitDate": "2026-07-09T23:39:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1733,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/recommendations.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 1,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/transactions.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 166,
+      "lastCommitDate": "2026-08-02T18:54:15.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/queries/users.ts",
+      "folder": "app/lib/db/queries",
+      "linesOfCode": 19,
+      "lastCommitDate": "2026-06-13T21:24:06.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/db/schema.ts",
+      "folder": "app/lib/db",
+      "linesOfCode": 282,
+      "lastCommitDate": "2026-07-11T13:11:17.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1644,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/embeddings.ts",
+      "folder": "app/lib",
+      "linesOfCode": 12,
+      "lastCommitDate": "2026-07-08T22:30:40.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1778,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/fetcher.ts",
+      "folder": "app/lib",
+      "linesOfCode": 8,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/highlightText.tsx",
+      "folder": "app/lib",
+      "linesOfCode": 31,
+      "lastCommitDate": "2026-07-30T21:59:19.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.08,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useAvailableMonths.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 27,
+      "lastCommitDate": "2026-06-15T13:48:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.28,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useBankAccounts.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 20,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useCategories.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 31,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useMacro.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 82,
+      "lastCommitDate": "2026-07-09T23:39:30.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1733,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useTransactionCategories.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 10,
+      "lastCommitDate": "2026-06-22T19:58:46.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2489,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useTransactions.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 68,
+      "lastCommitDate": "2026-06-20T10:52:13.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2578,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useUploadStatus.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 26,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/hooks/useUploads.ts",
+      "folder": "app/lib/hooks",
+      "linesOfCode": 33,
+      "lastCommitDate": "2026-06-14T16:35:03.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2844,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/insights/factCandidates.ts",
+      "folder": "app/lib/insights",
+      "linesOfCode": 177,
+      "lastCommitDate": "2026-08-03T22:29:14.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0622,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/logger.ts",
+      "folder": "app/lib",
+      "linesOfCode": 26,
+      "lastCommitDate": "2026-07-10T15:34:41.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1689,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/macro/balanceFacts.ts",
+      "folder": "app/lib/macro",
+      "linesOfCode": 108,
+      "lastCommitDate": "2026-07-30T21:46:53.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.08,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/macro/balanceTrendPoints.ts",
+      "folder": "app/lib/macro",
+      "linesOfCode": 66,
+      "lastCommitDate": "2026-07-31T12:49:42.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0756,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/macro/formatIndicator.ts",
+      "folder": "app/lib/macro",
+      "linesOfCode": 14,
+      "lastCommitDate": "2026-07-29T22:52:51.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/mcp/client.ts",
+      "folder": "app/lib/mcp",
+      "linesOfCode": 94,
+      "lastCommitDate": "2026-07-08T22:30:40.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.1778,
+      "decayState": "stale",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/memoryCardStyle.ts",
+      "folder": "app/lib",
+      "linesOfCode": 16,
+      "lastCommitDate": "2026-08-02T19:20:26.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/openai.ts",
+      "folder": "app/lib",
+      "linesOfCode": 7,
+      "lastCommitDate": "2026-06-17T18:36:38.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2711,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/queryCacheFreshness.ts",
+      "folder": "app/lib",
+      "linesOfCode": 129,
+      "lastCommitDate": "2026-08-03T21:33:56.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0622,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/today.ts",
+      "folder": "app/lib",
+      "linesOfCode": 15,
+      "lastCommitDate": "2026-08-02T18:54:15.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0.0667,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/utils.ts",
+      "folder": "app/lib",
+      "linesOfCode": 6,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/voice/index.ts",
+      "folder": "app/lib/voice",
+      "linesOfCode": 2,
+      "lastCommitDate": "2026-07-29T22:52:51.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 1,
+      "unused": true,
+      "decayScore": 0.6844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/lib/voice/useRealtimeVoiceSession.ts",
+      "folder": "app/lib/voice",
+      "linesOfCode": 723,
+      "lastCommitDate": "2026-07-30T00:15:38.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 2,
+      "unused": false,
+      "decayScore": 0.0844,
+      "decayState": "fresh",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/middleware.ts",
+      "folder": "app",
+      "linesOfCode": 7,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/next.config.ts",
+      "folder": "app",
+      "linesOfCode": 13,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/postcss.config.mjs",
+      "folder": "app",
+      "linesOfCode": 7,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/tailwind.config.ts",
+      "folder": "app",
+      "linesOfCode": 54,
+      "lastCommitDate": "2026-06-13T15:02:01.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2889,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    },
+    {
+      "path": "app/types/index.ts",
+      "folder": "app/types",
+      "linesOfCode": 42,
+      "lastCommitDate": "2026-06-14T16:37:26.000Z",
+      "lastCommitAuthor": "sl2902",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2844,
+      "decayState": "ancient",
+      "hot": false,
+      "eulogy": ""
+    }
+  ],
+  "ghosts": []
+}
