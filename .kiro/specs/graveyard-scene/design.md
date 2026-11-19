@@ -118,8 +118,12 @@ interface PlotLayout   { path: string; parent: string | null; depth: number; rec
 interface SignSpot     { x: number; z: number; footprint: Rect }       // centre of the front fence, inside the fence band
 interface StoneLayout  { path: string; folder: string; cell: Rect; x: number; z: number; height: number }  // x, z = centre of the base
 interface GhostLayout  { path: string; folder: string; cell: Rect; x: number; z: number }               // folder = the plot it sits in
-interface Layout       { plots: PlotLayout[]; stones: StoneLayout[]; ghosts: GhostLayout[]; bounds: Rect }
+interface Layout       { plots: PlotLayout[]; blocks: BlockLayout[]; stones: StoneLayout[]; ghosts: GhostLayout[]; bounds: Rect }
+interface BlockLayout  { folder: string; rect: Rect; columns: number; rows: number; count: number }   // a folder's block of cells
 layout(graveyard: Graveyard): Layout
+blockShape(count): { columns; rows; w; d }          // exported, for tests
+packRows(items): { offsets; w; d }                  // exported, for tests: the shelf packing
+nearestExistingFolder(path, folders): string        // exported, for tests: where a ghost sits
 ```
 
 **Algorithm**, with no recursion, so a chain 300 or more folders deep is safe (Req 2.7):

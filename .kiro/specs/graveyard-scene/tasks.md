@@ -43,13 +43,15 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 3.3_
 
-- [ ] 5. Layout
-  - [ ] 5.1 `test/arbitraries.ts`: `graveyardArb` (random tree, deep chain up to 300 levels, one crowded folder up to 600 files, wide trees, mixtures, folders with only children or nothing, ghosts in existing, missing and doubly missing folders), `fileArb`, a seeded `shuffle`, and a test that every generated graveyard passes `validateGraveyard`.
-  - [ ] 5.2 `model/layout-constants.ts`: add the rest of the constants of the design (the stone's base, the lean limits and reach, cell size and gaps, fence band, item gap, sign size), a comment each; the three height constants are already there from task 4. Test: `LEAN_REACH ≥ MAX_STONE_H × sin(MAX_LEAN_DEG)`, and the cell sizes follow from the stone size and the reach.
-  - [ ] 5.3 `model/layout.ts`: grouping, ghost placement, block of cells, shelf packing from the leaves up, positions from the root down, sign spots. No recursion.
-  - [ ] 5.4 Property tests with a sort-and-sweep overlap helper: **P1** (cells of a folder, sibling plots, a folder's cells against its child plots), **P2** (containment), **P3** (same layout twice and with shuffled arrays), **P4** (one position per file and ghost, one plot per folder), **P6** (ghost placement against an independent oracle), **P10** (all numbers finite; 500 to 800 files in one folder give an aspect ratio of at most 3).
-  - [ ] 5.5 Real-data example tests: read `public/graveyards/demo.oikosledger.graveyard.json` and `demo.spatialql.graveyard.json`, check them with `checkGraveyardData`, lay them out, and assert the invariants of P1 to P4 and P10. spatialql: its `src` block is near-square; its two ghosts (`src/data/surface-placement.test.ts`, `src/surface-placement.ts`) sit in the plots `src/data` and `src`.
-  - [ ] 5.6 Examples: an empty graveyard (root plot only); a folder with no files; a 300-level chain; a ghost whose whole folder chain is gone goes to the root plot.
+- [x] 5. Layout
+  - [x] 5.1 Generators, built on the synthetic graveyard builder (which also covers task 12.1, because requirement 12.4 wants the tests and the performance check to share one builder): `model/prng.ts` (seeded Mulberry32, `intBetween`, `pick`), `model/synthetic.ts` (`makeSyntheticGraveyard`, shapes `tree`, `flat`, `deep`, `wide`, `mixed`; valid against `validateGraveyard`), `test/arbitraries.ts` (`graveyardArb`, `smallGraveyardArb`, `crowdedGraveyardArb` for 500 to 800 files in one folder, `deepGraveyardArb` for chains 100 to 300 deep, `thresholdsArb`, a seeded `shuffled` and `shuffledGraveyard`), `test/make-graveyard.ts` (`graveyardFrom`, for hand-made example graveyards), `test/real-data.ts`. Tests: `prng.test.ts`, `synthetic.test.ts` (including that every generated graveyard passes the validator, in every shape).
+  - [x] 5.2 `model/layout-constants.ts`: the rest of the constants, a comment each. `layout-constants.test.ts` checks the relationships that must hold whatever the values are tuned to: `LEAN_REACH ≥ MAX_STONE_H × sin(MAX_LEAN_DEG)`, cells are the stone plus the reach, pitch is cell plus gap, the plaque fits the fence band.
+  - [x] 5.3 `model/rect.ts` (`Rect`, `overlaps`, `contains`, tolerance 1e-9) and `model/layout.ts`: grouping, ghost placement, `blockShape`, `packRows` (shelf packing), sizes from the leaves up, positions from the root down, sign spots, no recursion. The layout also returns `blocks` (the rectangle of each folder's block of cells), which the design did not list.
+  - [x] 5.4 Property tests in `layout.property.test.ts`, with the checkers in `test/layout-checks.ts` (a sort-and-sweep overlap check) and `test/layout-checks.test.ts` (the checkers are shown to fail on broken layouts, so the properties cannot pass for nothing): **P1**, **P2**, **P3** (twice, shuffled, input not changed), **P4**, **P6** (independent oracle; ghosts after the stones), **P10** (finite; crowded folder at most 3 times longer than wide).
+  - [x] 5.5 Real-data tests in `layout.test.ts`: both test files lay out with no problem of any kind; oikos has 68 plots and 129 stones; spatialql has the plots `''`, `src`, `src/data`, a 69-cell `src` block (68 files and a ghost) that is near-square, and its two ghosts in `src/data` and `src`.
+  - [x] 5.6 Examples in `layout.test.ts`: an empty graveyard, one stone, ordering, a 300-level chain, 600 files in one folder, 300 sibling folders, folders with nothing in them, names with spaces and non-ASCII characters, and ghost placement for an existing folder, a missing one, several missing levels and no existing ancestor but the root.
+  - Example tests compute their expected numbers from the constants where they can, so the density review (task 25) can tune the constants without rewriting them.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 2, 3, 4_
 
 - [ ] 6. Visual parameters (`model/visual-params.ts`)
@@ -89,7 +91,7 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 8.3 to 8.6_
 
 - [ ] 12. Synthetic graveyard and scene model
-  - [ ] 12.1 `model/synthetic.ts` (seeded generator; shapes `tree`, `flat`, `deep`); tests: valid against `validateGraveyard`, the same arguments give the same file, the requested number of files.
+  - [x] 12.1 `model/synthetic.ts` and its tests: done in task 5.1, because the layout properties are built on it.
   - [ ] 12.2 `model/scene-model.ts` (`buildSceneModel`) and a test that its lookup has exactly one entry per file and ghost.
   - [ ] 12.3 Speed guards: a 2,000-file synthetic graveyard lays out in under 1 second; a 300-level chain lays out without error.
   - _Requirements: 11.2, 11.3, 11.6_

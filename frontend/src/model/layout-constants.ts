@@ -18,3 +18,53 @@ export const MAX_STONE_H = 4.0;
  * the test data, so the largest files are clamped rather than dwarfing everything else.
  */
 export const LOC_AT_MAX_HEIGHT = 5000;
+
+// ---- Stones and cells ----
+
+/** The base of a tombstone slab, along x and along z. */
+export const STONE_W = 1.0;
+export const STONE_D = 0.4;
+
+/**
+ * The largest lean any stone can have, in degrees. Only ancient stones lean (visual-params.ts), and
+ * never by more than this.
+ */
+export const MAX_LEAN_DEG = 10;
+
+/**
+ * How far a leaning stone's top can reach beyond its base on the ground, reserved around every stone so that a
+ * leaning stone never reaches into a neighbour. It must be at least `MAX_STONE_H * sin(MAX_LEAN_DEG)` (0.69).
+ * The reservation is the same for every stone, whether it leans or not, so the rows stay regular.
+ */
+export const LEAN_REACH = 0.7;
+
+/** A cell is the ground one stone (or ghost) reserves: its base plus the reach on every side. */
+export const CELL_W = STONE_W + 2 * LEAN_REACH;
+export const CELL_D = STONE_D + 2 * LEAN_REACH;
+
+/** The gap between neighbouring cells, along x and along z. */
+export const CELL_GAP = 0.3;
+
+/** Distance from one cell's corner to the next one's, along x and along z. */
+export const CELL_PITCH_X = CELL_W + CELL_GAP;
+export const CELL_PITCH_Z = CELL_D + CELL_GAP;
+
+// ---- Plots ----
+
+/** The inset between a plot's outer rectangle (its fence line) and what it holds. */
+export const FENCE_BAND = 1.5;
+
+/** The gap between the things a plot holds: its block of stones and its child plots. */
+export const ITEM_GAP = 2.5;
+
+/**
+ * How wide, compared with a square of the same total area, a plot's contents are packed.
+ * 1 would be a square; a little more gives rows a chance to hold two or three items side by side.
+ */
+export const PACK_ASPECT = 1.25;
+
+// ---- Signs ----
+
+/** The plaque at the front of a plot: its footprint along x and along z. It lies inside the fence band. */
+export const SIGN_W = 1.6;
+export const SIGN_D = 0.5;
