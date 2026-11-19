@@ -318,8 +318,8 @@ A `MeshStandardMaterial` is patched with `onBeforeCompile`, so lighting and fog 
 
 - **Stone**: a grey base colour with value noise for a weathered surface (procedural, no texture).
 - **Moss**: green, rising from the base. A pixel is mossy when its height up the stone, plus noise, is below `aMoss`, so low values creep up the foot and the sides and high values cover the stone.
-- **Cracks**: dark thin lines from a noise function, only where `aCrack = 1`; inside the cracks a faint red emissive term of strength `GLOW`.
-- **Highlight**: a pale blue-white rim (fresnel), 50% for hover and 100% with a slow pulse for selected. It is not green, red or yellow, so it cannot be mistaken for a data effect (Req 8.2).
+- **Cracks**: thin dark lines from two noise layers (the lines are where the noise crosses a level, 0.016 and 0.010 wide), only where `aCrack = 1`; inside the cracks a faint red emissive term of strength `GLOW` × 1.1. Tuned by eye on `app/components/voice/index.ts`: a first version with wider lines and a factor of 2.2 looked like lava, not like a faint glow.
+- **Highlight**: a rim of light at the stone's edge (fresnel), never a tint of the surface: pale blue-white at 50% for hover, and for selected the selection ring's magenta with a slow pulse. Neither is green, red, yellow or the ghost's cyan, so neither can be mistaken for a data effect (Req 8.2), and a selected stone is never lightened into looking like a ghost.
 
 The attribute values are written once when the model loads, and a single element is written when hover or selection changes.
 

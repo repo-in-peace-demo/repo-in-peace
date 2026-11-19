@@ -59,10 +59,14 @@ function expectedPick(p: CameraPose, x: number, y: number) {
 const samePose = (a: CameraPose, b: CameraPose): boolean => distance(a.position, b.position) < 1e-3 && distance(a.target, b.target) < 1e-3;
 
 /** Where the middle of the pink selection ring is on the screen, from the pixels in `clip`; `null` if there is none. */
-async function ringCentre(page: Page, clip: { x: number; y: number; width: number; height: number }): Promise<{ x: number; y: number; pixels: number } | null> {
+async function ringCentre(
+  page: Page,
+  clip: { x: number; y: number; width: number; height: number },
+  skipMiddle = 0,
+): Promise<{ x: number; y: number; pixels: number } | null> {
   const png = (await page.screenshot({ clip })).toString('base64');
   return page.evaluate(
-    async ({ data, left, top }) => {
+    async ({ data, left, top, skip }) => {
       const image = new Image();
       image.src = `data:image/png;base64,${data}`;
       await image.decode();
@@ -77,8 +81,10 @@ async function ringCentre(page: Page, clip: { x: number; y: number; width: numbe
       let count = 0;
       for (let i = 0; i < rgba.length; i += 4) {
         const [r, g, b] = [rgba[i]!, rgba[i + 1]!, rgba[i + 2]!];
+        const pixel = i / 4;
+        // `skip`: leave out the middle of the window, where the selected object's own rim of light is, so only the ring counts.
+        if (Math.abs((pixel % canvas.width) - canvas.width / 2) < skip) continue;
         if (r > 170 && b > 120 && g < r - 60 && g < b - 30) {
-          const pixel = i / 4;
           sumX += pixel % canvas.width;
           sumY += Math.floor(pixel / canvas.width);
           count++;
@@ -87,11 +93,31 @@ async function ringCentre(page: Page, clip: { x: number; y: number; width: numbe
       // The screenshot is in device pixels; the page's units are CSS pixels (the same here: the scale factor is 1).
       return count === 0 ? null : { x: left + sumX / count, y: top + sumY / count, pixels: count };
     },
-    { data: png, left: clip.x, top: clip.y },
+    { data: png, left: clip.x, top: clip.y, skip: skipMiddle },
   );
 }
 
 const project = (page: Page, x: number, y: number, z: number) => page.evaluate(([a, b, c]) => window.repoInPeace!.projectPoint(a!, b!, c!), [x, y, z]);
+
+/** The average colour of the pixels in `clip`, each channel from 0 to 255. */
+async function averageColour(page: Page, clip: { x: number; y: number; width: number; height: number }): Promise<{ r: number; g: number; b: number }> {
+  const png = (await page.screenshot({ clip })).toString('base64');
+  return page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext('2d')!;
+    context.drawImage(image, 0, 0);
+    const { data: rgba } = context.getImageData(0, 0, canvas.width, canvas.height);
+    const sum = [0, 0, 0];
+    for (let i = 0; i < rgba.length; i += 4) for (let c = 0; c < 3; c++) sum[c]! += rgba[i + c]!;
+    const n = rgba.length / 4;
+    return { r: sum[0]! / n, g: sum[1]! / n, b: sum[2]! / n };
+  }, png);
+}
 
 async function openApp(page: Page): Promise<void> {
   await page.goto('/?graveyard=demo.spatialql');
@@ -252,15 +278,20 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
     await page.mouse.move(EMPTY_GROUND.x, EMPTY_GROUND.y);
     await page.waitForTimeout(300);
     const body = { x: Math.round(at.x) - 3, y: Math.round(at.y) - 3, width: 6, height: 6 }; // the middle of the stone's body
-    const before = await page.screenshot({ clip: body });
+    const before = await averageColour(page, body);
     await select(page, 'file', frontStone);
     await page.waitForTimeout(600);
-    expect((await page.screenshot({ clip: body })).equals(before), 'the stone body changed colour when selected').toBe(true);
+    const after = await averageColour(page, body);
+    // The stone's edge glows (a rim of light), but its surface is not lightened or tinted: a lightened stone would be
+    // tens of levels brighter in the middle, and this is the middle. A few levels are the rim's glow reaching inwards.
+    const change = Math.max(Math.abs(after.r - before.r), Math.abs(after.g - before.g), Math.abs(after.b - before.b));
+    expect(change, `the stone body changed colour when selected: ${JSON.stringify(before)} to ${JSON.stringify(after)}`).toBeLessThan(18);
+    expect(after.r + after.g + after.b - (before.r + before.g + before.b), 'the stone body got lighter when selected').toBeLessThan(30);
 
     // And the ring is on the ground at its foot.
     const stone = model.stones.find((s) => s.file.path === frontStone)!.layout;
     const foot = (await project(page, stone.x, RING_LIFT, stone.z))!;
-    const ring = await ringCentre(page, { x: Math.max(0, Math.round(foot.x) - 150), y: Math.max(0, Math.round(foot.y) - 150), width: 300, height: 300 });
+    const ring = await ringCentre(page, { x: Math.max(0, Math.round(foot.x) - 150), y: Math.max(0, Math.round(foot.y) - 150), width: 300, height: 300 }, 45);
     expect(ring, 'no pink ring found around the stone').not.toBeNull();
     expect(Math.hypot(ring!.x - foot.x, ring!.y - foot.y), `ring centre ${JSON.stringify(ring)} vs foot ${JSON.stringify(foot)}`).toBeLessThan(15);
   });
@@ -281,7 +312,7 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
       y: Math.max(0, Math.round(atBase.y) - 200),
       width: 400,
       height: Math.min(400, VIEWPORT.height - Math.max(0, Math.round(atBase.y) - 200)),
-    });
+    }, 45);
     expect(ring, 'no pink ring found around the ghost').not.toBeNull();
     const toBase = Math.hypot(ring!.x - atBase.x, ring!.y - atBase.y);
     const toGround = Math.hypot(ring!.x - onGround.x, ring!.y - onGround.y);
