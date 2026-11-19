@@ -51,9 +51,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 5, 8_
 
-- [ ] 7. Knip parsing and config detection
-  - [ ] 7.1 `core/knip-parse.ts`: current `issues[].files[]` shape, older `files: []` shape, error on garbage; unit tests including the sample from Knip's docs.
-  - [ ] 7.2 `core/knip-config.ts`: `hasKnipConfig(treePaths, packageJsonText)`; unit tests for each config file name and for a `knip` key in `package.json`.
+- [x] 7. Knip parsing and config detection
+  - [x] 7.1 `core/knip-parse.ts`: current `issues[].files[]` shape, older `files: []` shape, error on garbage; unit tests including the sample from Knip's docs.
+  - [x] 7.2 `core/knip-config.ts`: `hasKnipConfig(treePaths, packageJsonText)`; unit tests for each config file name and for a `knip` key in `package.json`.
+  - Note for task 10: `hasKnipConfig` needs the whole snapshot tree (not only source files) and the root `package.json` text, so `io/git.ts` must expose both.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 6_
 
 - [ ] 8. Assembly and serialisation
