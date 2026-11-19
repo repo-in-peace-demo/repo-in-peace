@@ -16,8 +16,15 @@ export const KNIP_ADVICE =
   'Install them yourself (for example `npm install` inside the clone), then run the analyser again. ' +
   'The analyser never installs anything.';
 
+/** Used instead of KNIP_ADVICE when Knip itself says it cannot find a package.json: installing would not help. */
+export const KNIP_DIR_ADVICE =
+  'Knip needs a package.json in the folder it runs in. If this repository keeps its JS/TS in a subfolder, ' +
+  'run the analyser again with --knip-dir <folder> (repeat it for several folders).';
+
+const NO_PACKAGE_JSON = /unable to find package\.json/i;
+
 export interface KnipRunOptions {
-  /** Real path of the clone. */
+  /** Real path of the folder Knip runs in: the clone root, or a folder inside it (--knip-dir). */
   clonePath: string;
   /** Knip config file to use instead of the clone's own. */
   configPath?: string;
@@ -32,10 +39,16 @@ export interface KnipProcessResult {
   spawnError?: string;
 }
 
-/** An AnalyserError for any Knip problem. Every one ends with the same advice (Req 6.5). */
-export function knipFailure(reason: string, stderr = ''): AnalyserError {
+/**
+ * An AnalyserError for any Knip problem. It ends with advice (Req 6.5): install the repository's
+ * dependencies yourself, except when Knip says it found no package.json, where the fix is --knip-dir.
+ * @param folder the --knip-dir folder Knip ran in, named in the message; "" for the clone root.
+ */
+export function knipFailure(reason: string, stderr = '', folder = ''): AnalyserError {
   const tail = stderrTail(stderr);
-  return new AnalyserError(`Knip failed: ${reason}${tail === '' ? '' : `\n${tail}`}\n\n${KNIP_ADVICE}`);
+  const where = folder === '' ? '' : ` in "${folder}"`;
+  const advice = NO_PACKAGE_JSON.test(`${reason}\n${stderr}`) ? KNIP_DIR_ADVICE : KNIP_ADVICE;
+  return new AnalyserError(`Knip failed${where}: ${reason}${tail === '' ? '' : `\n${tail}`}\n\n${advice}`);
 }
 
 function stderrTail(stderr: string): string {
@@ -104,21 +117,22 @@ export function runKnipProcess(options: KnipRunOptions): Promise<KnipProcessResu
   });
 }
 
-/** Turns a Knip run into the set of unused files, or throws an AnalyserError. Pure. */
-export function readKnipResult(result: KnipProcessResult): Set<string> {
+/** Turns a Knip run into the set of unused files, or throws an AnalyserError. Pure. `folder` is the --knip-dir it ran in. */
+export function readKnipResult(result: KnipProcessResult, folder = ''): Set<string> {
   if (result.spawnError !== undefined) {
-    throw knipFailure(`could not run Knip: ${result.spawnError}`, result.stderr);
+    throw knipFailure(`could not run Knip: ${result.spawnError}`, result.stderr, folder);
   }
   if (result.exitCode !== 0 && result.exitCode !== 1) {
     throw knipFailure(
       result.exitCode === null ? 'Knip was stopped before it finished.' : `Knip exited with code ${result.exitCode}.`,
       result.stderr,
+      folder,
     );
   }
   try {
     return parseKnipOutput(result.stdout);
   } catch (error) {
-    if (error instanceof KnipOutputError) throw knipFailure(error.message, result.stderr);
+    if (error instanceof KnipOutputError) throw knipFailure(error.message, result.stderr, folder);
     throw error;
   }
 }

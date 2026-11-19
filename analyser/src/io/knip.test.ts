@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { AnalyserError } from '../errors';
 import {
   KNIP_ADVICE,
+  KNIP_DIR_ADVICE,
   buildKnipArgs,
   findKnipBin,
   knipFailure,
@@ -142,5 +143,32 @@ describe('findKnipBin', () => {
   it('fails with the install advice when Knip is not installed', () => {
     expect(() => findKnipBin('/')).toThrow(/Knip is not installed/);
     expect(() => findKnipBin('/')).toThrow(KNIP_ADVICE);
+  });
+});
+
+describe('the advice depends on the cause', () => {
+  const noPackageJson = result({ exitCode: 2, stdout: '', stderr: 'ERROR: Unable to find package.json' });
+
+  it('suggests --knip-dir, and not installing, when Knip cannot find a package.json', () => {
+    const message = failureOf(noPackageJson).message;
+    expect(message).toContain(KNIP_DIR_ADVICE);
+    expect(message).toContain('--knip-dir');
+    expect(message).not.toContain(KNIP_ADVICE);
+    expect(message).not.toMatch(/npm install/);
+  });
+
+  it('recognises the message whatever its case', () => {
+    expect(failureOf(result({ exitCode: 2, stderr: 'unable to find PACKAGE.JSON' })).message).toContain(KNIP_DIR_ADVICE);
+  });
+
+  it('keeps the install advice for every other failure', () => {
+    expect(failureOf(result({ exitCode: 2, stderr: 'Cannot find module "vite"' })).message).toContain(KNIP_ADVICE);
+    expect(failureOf(result({ exitCode: 2, stderr: 'Cannot find module "vite"' })).message).not.toContain(KNIP_DIR_ADVICE);
+  });
+
+  it('names the folder Knip ran in, and nothing for the clone root', () => {
+    expect(() => readKnipResult(result({ exitCode: 2 }), 'app')).toThrow('Knip failed in "app":');
+    expect(() => readKnipResult(result({ exitCode: 2 }), '')).toThrow('Knip failed:');
+    expect(() => readKnipResult(result({ exitCode: 2 }))).toThrow('Knip failed:');
   });
 });

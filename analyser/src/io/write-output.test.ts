@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { writeFileAtomic } from './write-output';
+import { realPathOfFuture, writeFileAtomic } from './write-output';
 
 let dir: string;
 beforeEach(() => {
@@ -60,5 +60,30 @@ describe('writeFileAtomic', () => {
     const blocker = join(dir, 'blocker');
     writeFileSync(blocker, 'file');
     await expect(writeFileAtomic(join(blocker, 'out.json'), 'x')).rejects.toThrow();
+  });
+});
+
+describe('realPathOfFuture', () => {
+  it('returns the real path of a file that exists', async () => {
+    const file = join(dir, 'here.json');
+    writeFileSync(file, 'x');
+    expect(await realPathOfFuture(file)).toBe(realpathSync(file));
+  });
+
+  it('resolves the existing part and appends the part that does not exist yet', async () => {
+    expect(await realPathOfFuture(join(dir, 'a', 'b', 'new.json'))).toBe(join(realpathSync(dir), 'a', 'b', 'new.json'));
+  });
+
+  it('follows a symlink in the existing part', async () => {
+    const real = join(dir, 'real');
+    mkdirSync(real);
+    symlinkSync(real, join(dir, 'link'));
+    expect(await realPathOfFuture(join(dir, 'link', 'sub', 'out.json'))).toBe(join(realpathSync(real), 'sub', 'out.json'));
+  });
+
+  it('makes a relative path absolute', async () => {
+    const result = await realPathOfFuture('does-not-exist-here/out.json');
+    expect(result.startsWith('/')).toBe(true);
+    expect(result.endsWith(join('does-not-exist-here', 'out.json'))).toBe(true);
   });
 });

@@ -1,0 +1,522 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { validateGraveyard, type Graveyard } from '../../shared/graveyard-schema';
+import { makeRepo, type BuiltRepo, type Step } from '../test/make-repo';
+import { AnalyserError } from './errors';
+import { KNIP_ADVICE, KNIP_DIR_ADVICE, type KnipProcessResult, type KnipRunOptions } from './io/knip';
+import { runPipeline, type PipelineDeps, type PipelineOptions } from './pipeline';
+
+const scratch: string[] = [];
+const repos: BuiltRepo[] = [];
+afterAll(() => {
+  for (const repo of repos) repo.cleanup();
+  for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
+
+const tempDir = (): string => {
+  const dir = mkdtempSync(join(tmpdir(), 'rip-pipe-'));
+  scratch.push(dir);
+  return dir;
+};
+const build = (steps: Step[]): BuiltRepo => {
+  const repo = makeRepo(steps);
+  repos.push(repo);
+  return repo;
+};
+
+const ANALYSED_AT = '2026-03-02T09:30:00.000Z';
+const knipJson = (...unused: string[]): string =>
+  JSON.stringify({ issues: unused.map((file) => ({ file, files: [{ name: file }] })) });
+const knipOk = (...unused: string[]): KnipProcessResult => ({ exitCode: unused.length > 0 ? 1 : 0, stdout: knipJson(...unused), stderr: '' });
+
+/** Collects what the pipeline logs and what it asks Knip. */
+function harness(result: KnipProcessResult | (() => KnipProcessResult)) {
+  const logs: string[] = [];
+  const knipCalls: KnipRunOptions[] = [];
+  const deps: PipelineDeps = {
+    log: (m) => logs.push(m),
+    runKnip: async (options) => {
+      knipCalls.push(options);
+      return typeof result === 'function' ? result() : result;
+    },
+  };
+  return { deps, logs, knipCalls };
+}
+
+/** The error a pipeline run fails with. Fails the test if the run succeeds. */
+async function errorOf(run: Promise<unknown>): Promise<Error> {
+  try {
+    await run;
+  } catch (error) {
+    return error as Error;
+  }
+  throw new Error('expected the pipeline to fail, but it succeeded');
+}
+
+const optionsFor = (repo: BuiltRepo, outDir: string, extra: Partial<PipelineOptions> = {}): PipelineOptions => ({
+  repoPath: repo.dir,
+  outPath: join(outDir, 'out', 'graveyard.json'),
+  analysedAt: ANALYSED_AT,
+  cwd: outDir,
+  ...extra,
+});
+
+// A repo with every kind of file the analyser must handle.
+//   c1 2025-01-01: adds sources, an unused file, build output, docs, a declaration file, a file that is deleted later
+//   c2 2025-06-01: deletes ghost.ts
+//   c3..c7 (Feb 16-20 2026): five edits to src/a.ts, making it hot
+//   c8 2026-02-20: renames src/b.ts to src/moved.ts
+const steps: Step[] = [
+  {
+    kind: 'commit',
+    message: 'c1',
+    author: 'Ann',
+    date: '2025-01-01T10:00:00+00:00',
+    ops: [
+      { op: 'write', path: 'src/a.ts', content: 'export const a = 0;\n\n// note\n' },
+      { op: 'write', path: 'src/old.ts', content: 'export const old = 1;\n' },
+      { op: 'write', path: 'src/b.ts', content: 'export const b = 1;\nexport const b2 = 2;\nexport const b3 = 3;\n' },
+      { op: 'write', path: 'ghost.ts', content: 'export const ghost = 1;\n' },
+      { op: 'write', path: 'dist/skip.js', content: 'module.exports = 1;\n' },
+      { op: 'write', path: 'README.md', content: '# demo\n' },
+      { op: 'write', path: 'types.d.ts', content: 'declare const t: number;\n' },
+      { op: 'write', path: 'package.json', content: '{"name":"demo","knip":{}}\n' },
+    ],
+  },
+  { kind: 'commit', message: 'c2', author: 'Bob', date: '2025-06-01T10:00:00+00:00', ops: [{ op: 'delete', path: 'ghost.ts' }] },
+  ...[16, 17, 18, 19, 20].map(
+    (day): Step => ({
+      kind: 'commit',
+      message: `edit a on ${day}`,
+      author: 'Cy',
+      date: `2026-02-${day}T09:00:00+00:00`,
+      ops: [{ op: 'write', path: 'src/a.ts', content: `export const a = ${day};\n\n// note\n` }],
+    }),
+  ),
+  {
+    kind: 'commit',
+    message: 'c8',
+    author: 'Di',
+    date: '2026-02-20T10:00:00+00:00',
+    ops: [{ op: 'rename', from: 'src/b.ts', to: 'src/moved.ts' }],
+  },
+];
+
+const demo = build(steps);
+
+function readOutput(path: string): Graveyard {
+  return JSON.parse(readFileSync(path, 'utf8')) as Graveyard;
+}
+
+describe('runPipeline on a real repository', () => {
+  const out = tempDir();
+  const h = harness(knipOk('src/old.ts', 'dist/skip.js', 'not/in/the/tree.ts'));
+  const result = runPipeline(optionsFor(demo, out), h.deps);
+  result.catch(() => {}); // a failure is reported by the tests that await `result`, not as an unhandled rejection
+
+  it('writes a graveyard file that passes the schema validator', async () => {
+    const { outPath, graveyard } = await result;
+    expect(existsSync(outPath)).toBe(true);
+    const onDisk = readOutput(outPath);
+    expect(onDisk).toEqual(graveyard);
+    expect(validateGraveyard(onDisk)).toEqual({ ok: true });
+    expect(readFileSync(outPath, 'utf8').endsWith('}\n')).toBe(true);
+  });
+
+  it('describes the snapshot', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.meta).toMatchObject({
+      snapshotSha: demo.shas.at(-1),
+      snapshotDate: '2026-02-20T10:00:00.000Z',
+      analysedAt: ANALYSED_AT,
+      schemaVersion: 1,
+    });
+  });
+
+  it('lists only the source files git tracks, not build output, docs or declarations', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.map((f) => f.path)).toEqual(['src/a.ts', 'src/moved.ts', 'src/old.ts']);
+  });
+
+  it('counts non-blank lines', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.find((f) => f.path === 'src/a.ts')?.linesOfCode).toBe(2); // blank line not counted
+    expect(graveyard.files.find((f) => f.path === 'src/moved.ts')?.linesOfCode).toBe(3);
+  });
+
+  it('flags the unused file and ignores Knip paths that are not current source files', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.filter((f) => f.unused).map((f) => f.path)).toEqual(['src/old.ts']);
+  });
+
+  it('scores an old unused file as ancient, high on the scale', async () => {
+    const { graveyard } = await result;
+    // 415 days between 2025-01-01 and 2026-02-20: 0.6 + 0.4 * 415 / 720
+    expect(graveyard.files.find((f) => f.path === 'src/old.ts')).toMatchObject({
+      decayState: 'ancient',
+      decayScore: 0.8306,
+      lastCommitAuthor: 'Ann',
+      hot: false,
+    });
+  });
+
+  it('marks the file edited five times in 30 days as hot and fresh', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.find((f) => f.path === 'src/a.ts')).toMatchObject({
+      decayState: 'fresh',
+      hot: true,
+      commitsLast30Days: 5,
+      lastCommitAuthor: 'Cy',
+      unused: false,
+    });
+  });
+
+  it('follows the rename, so the moved file keeps its history', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.find((f) => f.path === 'src/moved.ts')).toMatchObject({
+      commitsLast30Days: 1, // the rename; the original add is outside the 30 days
+      lastCommitAuthor: 'Di',
+      decayState: 'fresh',
+    });
+    expect(graveyard.ghosts.map((g) => g.path)).not.toContain('src/b.ts');
+  });
+
+  it('records the deleted file as a ghost that can be restored from its last commit', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.ghosts).toEqual([
+      {
+        path: 'ghost.ts',
+        deletedInSha: demo.shas[1],
+        deletedDate: '2025-06-01T10:00:00.000Z',
+        deletedBy: 'Bob',
+        lastExistingSha: demo.shas[0],
+      },
+    ]);
+    const restored = execFileSync('git', ['-C', demo.dir, 'show', `${demo.shas[0]}:ghost.ts`], { encoding: 'utf8' });
+    expect(restored).toBe('export const ghost = 1;\n');
+  });
+
+  it('builds the folder hierarchy', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.folders).toEqual([
+      { path: '', parent: null },
+      { path: 'src', parent: '' },
+    ]);
+  });
+
+  it('leaves every eulogy empty', async () => {
+    const { graveyard } = await result;
+    expect(graveyard.files.every((f) => f.eulogy === '')).toBe(true);
+  });
+
+  it('asks Knip to run in the clone, with no config override, and logs its progress', async () => {
+    await result;
+    expect(h.knipCalls).toHaveLength(1);
+    expect(h.knipCalls[0]?.configPath).toBeUndefined();
+    expect(h.logs.join('\n')).toMatch(/Analysing .* at [0-9a-f]{7}/);
+  });
+
+  it('does not warn about Knip config when the clone has one', async () => {
+    await result;
+    expect(h.logs.some((m) => m.startsWith('Warning'))).toBe(false);
+  });
+
+  it('leaves the clone exactly as it was', async () => {
+    await result;
+    const status = execFileSync('git', ['-C', demo.dir, 'status', '--porcelain'], { encoding: 'utf8' });
+    expect(status).toBe('');
+  });
+});
+
+describe('Knip configuration', () => {
+  const noConfigRepo = build([
+    {
+      kind: 'commit',
+      message: 'c1',
+      author: 'Ann',
+      date: '2026-01-01T10:00:00+00:00',
+      ops: [
+        { op: 'write', path: 'index.ts', content: 'export {};\n' },
+        { op: 'write', path: 'package.json', content: '{"name":"x"}\n' },
+      ],
+    },
+  ]);
+
+  it('warns when the clone has no Knip config and none is given, then carries on', async () => {
+    const out = tempDir();
+    const h = harness(knipOk());
+    await runPipeline(optionsFor(noConfigRepo, out), h.deps);
+    const warning = h.logs.find((m) => m.startsWith('Warning'));
+    expect(warning).toMatch(/no Knip configuration/);
+    expect(warning).toMatch(/--knip-config/);
+    expect(existsSync(join(out, 'out', 'graveyard.json'))).toBe(true);
+  });
+
+  it('does not warn, and passes the config on as an absolute path, when --knip-config is given', async () => {
+    const out = tempDir();
+    writeFileSync(join(out, 'my-knip.json'), '{}');
+    const h = harness(knipOk());
+    await runPipeline(optionsFor(noConfigRepo, out, { knipConfigPath: 'my-knip.json' }), h.deps);
+    expect(h.logs.some((m) => m.startsWith('Warning'))).toBe(false);
+    expect(h.knipCalls[0]?.configPath).toBe(join(out, 'my-knip.json'));
+  });
+
+  it('does not warn when the clone has a knip.json in its root', async () => {
+    const withConfig = build([
+      {
+        kind: 'commit',
+        message: 'c1',
+        author: 'Ann',
+        date: '2026-01-01T10:00:00+00:00',
+        ops: [
+          { op: 'write', path: 'index.ts', content: 'export {};\n' },
+          { op: 'write', path: 'package.json', content: '{"name":"x"}\n' },
+          { op: 'write', path: 'knip.json', content: '{}\n' },
+        ],
+      },
+    ]);
+    const h = harness(knipOk());
+    await runPipeline(optionsFor(withConfig, tempDir()), h.deps);
+    expect(h.logs.some((m) => m.startsWith('Warning'))).toBe(false);
+  });
+
+  it('fails before running Knip when the given config file does not exist', async () => {
+    const out = tempDir();
+    const h = harness(knipOk());
+    await expect(runPipeline(optionsFor(noConfigRepo, out, { knipConfigPath: 'missing.json' }), h.deps)).rejects.toThrow(
+      /Knip config file "missing\.json" does not exist/,
+    );
+    expect(h.knipCalls).toHaveLength(0);
+  });
+});
+
+describe('a failed run leaves no output file', () => {
+  const outFileOf = (out: string) => join(out, 'out', 'graveyard.json');
+  const expectNothingWritten = (out: string) => {
+    expect(existsSync(outFileOf(out))).toBe(false);
+    // not even a temporary file or the created directory's contents
+    const outDir = join(out, 'out');
+    expect(existsSync(outDir) ? readdirSync(outDir) : []).toEqual([]);
+  };
+
+  it('when the path does not exist', async () => {
+    const out = tempDir();
+    await expect(
+      runPipeline({ ...optionsFor(demo, out), repoPath: join(out, 'nope') }, harness(knipOk()).deps),
+    ).rejects.toBeInstanceOf(AnalyserError);
+    expectNothingWritten(out);
+  });
+
+  it('when the clone is shallow', async () => {
+    const out = tempDir();
+    const shallow = join(tempDir(), 'shallow');
+    execFileSync('git', ['clone', '-q', '--depth', '1', `file://${demo.dir}`, shallow], {
+      env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null' },
+    });
+    const h = harness(knipOk());
+    await expect(runPipeline({ ...optionsFor(demo, out), repoPath: shallow }, h.deps)).rejects.toThrow(/shallow clone/);
+    expect(h.knipCalls).toHaveLength(0);
+    expectNothingWritten(out);
+  });
+
+  it.each([
+    ['Knip exits with code 2', { exitCode: 2, stdout: '', stderr: 'Cannot find module "typescript"' }],
+    ['Knip prints something that is not JSON', { exitCode: 0, stdout: 'oops', stderr: '' }],
+    ['Knip cannot be started', { exitCode: null, stdout: '', stderr: '', spawnError: 'spawn ENOENT' }],
+  ] as Array<[string, KnipProcessResult]>)('when %s, with the install advice in the message', async (_label, knip) => {
+    const out = tempDir();
+    await expect(runPipeline(optionsFor(demo, out), harness(knip).deps)).rejects.toThrow(KNIP_ADVICE);
+    expectNothingWritten(out);
+  });
+
+  it('when the output path is inside the clone, and says why', async () => {
+    const h = harness(knipOk());
+    const inside = join(demo.dir, 'graveyard.json');
+    await expect(runPipeline({ ...optionsFor(demo, tempDir()), outPath: inside }, h.deps)).rejects.toThrow(/inside the clone/);
+    expect(existsSync(inside)).toBe(false);
+    expect(h.knipCalls).toHaveLength(0);
+  });
+
+  it('when the output path is inside the clone through a symlink', async () => {
+    const link = join(tempDir(), 'link');
+    execFileSync('ln', ['-s', demo.dir, link]);
+    await expect(
+      runPipeline({ ...optionsFor(demo, tempDir()), outPath: join(link, 'sub', 'g.json') }, harness(knipOk()).deps),
+    ).rejects.toThrow(/inside the clone/);
+    expect(existsSync(join(demo.dir, 'sub'))).toBe(false);
+  });
+});
+
+describe('the default output file', () => {
+  it('is <repo-name>.graveyard.json in the working directory', async () => {
+    const cwd = tempDir();
+    const result = await runPipeline(
+      { repoPath: demo.dir, analysedAt: ANALYSED_AT, cwd },
+      harness(knipOk()).deps,
+    );
+    expect(result.outPath).toMatch(/[\\/][A-Za-z0-9._-]+\.graveyard\.json$/);
+    expect(result.outPath.startsWith(cwd)).toBe(true);
+    expect(existsSync(result.outPath)).toBe(true);
+  });
+
+  it('resolves a relative --out against the working directory, creating directories', async () => {
+    const cwd = tempDir();
+    mkdirSync(join(cwd, 'results'));
+    const result = await runPipeline(
+      { repoPath: demo.dir, outPath: 'results/deep/g.json', analysedAt: ANALYSED_AT, cwd },
+      harness(knipOk()).deps,
+    );
+    expect(result.outPath).toBe(join(cwd, 'results', 'deep', 'g.json'));
+    expect(existsSync(result.outPath)).toBe(true);
+  });
+});
+
+describe('a repository with nothing to show', () => {
+  it('writes a valid graveyard with only the root folder', async () => {
+    const empty = build([
+      {
+        kind: 'commit',
+        message: 'docs only',
+        author: 'Ann',
+        date: '2026-01-01T10:00:00+00:00',
+        ops: [
+          { op: 'write', path: 'README.md', content: '# hi\n' },
+          { op: 'write', path: 'package.json', content: '{"name":"x"}\n' },
+        ],
+      },
+    ]);
+    const out = tempDir();
+    const { graveyard } = await runPipeline(optionsFor(empty, out), harness(knipOk()).deps);
+    expect(graveyard.files).toEqual([]);
+    expect(graveyard.ghosts).toEqual([]);
+    expect(graveyard.folders).toEqual([{ path: '', parent: null }]);
+  });
+});
+
+describe('side effects', () => {
+  it('never calls Knip more than once', async () => {
+    const run = vi.fn(async () => knipOk());
+    await runPipeline(optionsFor(demo, tempDir()), { log: () => {}, runKnip: run });
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+});
+
+// A Python project with its web apps in subfolders, like the first real repository tried.
+const polyglot = build([
+  {
+    kind: 'commit',
+    message: 'c1',
+    author: 'Ann',
+    date: '2025-01-01T10:00:00+00:00',
+    ops: [
+      { op: 'write', path: 'pyproject.toml', content: '[project]\nname = "x"\n' },
+      { op: 'write', path: 'scripts/run.py', content: 'print(1)\n' },
+      { op: 'write', path: 'app/package.json', content: '{"name":"app","knip":{}}\n' },
+      { op: 'write', path: 'app/src/index.ts', content: 'export const a = 1;\n' },
+      { op: 'write', path: 'app/src/old.ts', content: 'export const old = 1;\n' },
+      { op: 'write', path: 'tools/web/package.json', content: '{"name":"web"}\n' },
+      { op: 'write', path: 'tools/web/main.ts', content: 'export const w = 1;\n' },
+      { op: 'write', path: 'tools/web/unused.ts', content: 'export const u = 1;\n' },
+    ],
+  },
+]);
+
+describe('Knip folders (--knip-dir)', () => {
+  const realRoot = realpathSync(polyglot.dir);
+
+  it('stops before running Knip when the clone root has no package.json, listing every folder that has one', async () => {
+    const out = tempDir();
+    const h = harness(knipOk());
+    const attempt = runPipeline(optionsFor(polyglot, out), h.deps);
+    await expect(attempt).rejects.toThrow(/No package\.json found in the clone root/);
+    await expect(attempt).rejects.toThrow(/"app", "tools\/web"/);
+    await expect(attempt).rejects.toThrow(/--knip-dir app/);
+    expect(h.knipCalls).toHaveLength(0);
+    expect(existsSync(join(out, 'out'))).toBe(false);
+  });
+
+  it('does not suggest installing dependencies when the folder is wrong', async () => {
+    const error = await errorOf(runPipeline(optionsFor(polyglot, tempDir()), harness(knipOk()).deps));
+    expect(error).toBeInstanceOf(AnalyserError);
+    expect(error.message).not.toMatch(/install/i);
+  });
+
+  it('runs Knip in the folder and prefixes what it reports, so the right current file is flagged', async () => {
+    const h = harness(knipOk('src/old.ts'));
+    const { graveyard } = await runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app'] }), h.deps);
+
+    expect(h.knipCalls.map((c) => c.clonePath)).toEqual([join(realRoot, 'app')]);
+    expect(graveyard.files.filter((f) => f.unused).map((f) => f.path)).toEqual(['app/src/old.ts']);
+    expect(graveyard.files.map((f) => f.path)).toEqual(['app/src/index.ts', 'app/src/old.ts', 'tools/web/main.ts', 'tools/web/unused.ts']);
+  });
+
+  it('runs Knip once per folder and merges the results', async () => {
+    const answers: Record<string, KnipProcessResult> = {
+      [join(realRoot, 'app')]: knipOk('src/old.ts'),
+      [join(realRoot, 'tools/web')]: knipOk('unused.ts'),
+    };
+    const knipCalls: KnipRunOptions[] = [];
+    const logs: string[] = [];
+    const deps: PipelineDeps = {
+      log: (m) => logs.push(m),
+      runKnip: async (options) => {
+        knipCalls.push(options);
+        return answers[options.clonePath] ?? { exitCode: 2, stdout: '', stderr: 'unexpected folder' };
+      },
+    };
+
+    const { graveyard } = await runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app', 'tools/web'] }), deps);
+
+    expect(knipCalls).toHaveLength(2);
+    expect(graveyard.files.filter((f) => f.unused).map((f) => f.path)).toEqual(['app/src/old.ts', 'tools/web/unused.ts']);
+    expect(logs.some((m) => m.includes('Running Knip (unused files) in "app"'))).toBe(true);
+    expect(logs.some((m) => m.includes('Running Knip (unused files) in "tools/web"'))).toBe(true);
+  });
+
+  it('runs a repeated folder only once', async () => {
+    const h = harness(knipOk());
+    await runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app', 'app'] }), h.deps);
+    expect(h.knipCalls).toHaveLength(1);
+  });
+
+  it('reports a path Knip names that is not a current file without flagging anything', async () => {
+    const h = harness(knipOk('src/not-tracked.ts', '../escape.ts'));
+    const { graveyard } = await runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app'] }), h.deps);
+    expect(graveyard.files.some((f) => f.unused)).toBe(false);
+  });
+
+  it('lists every folder that has a package.json when a requested folder does not', async () => {
+    const h = harness(knipOk());
+    await expect(runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app', 'nope'] }), h.deps)).rejects.toThrow(
+      /No package\.json found in "nope"[\s\S]*"app", "tools\/web"/,
+    );
+    expect(h.knipCalls).toHaveLength(0); // even the valid folder is not run first
+  });
+
+  it('warns about a missing Knip config for each folder that lacks one', async () => {
+    const h = harness(knipOk());
+    await runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app', 'tools/web'] }), h.deps);
+    const warnings = h.logs.filter((m) => m.startsWith('Warning'));
+    expect(warnings).toHaveLength(1); // app has a "knip" key in its package.json; tools/web has no config
+    expect(warnings[0]).toContain('"tools/web"');
+    expect(warnings[0]).toMatch(/no Knip configuration/);
+  });
+
+  it('names the folder in a Knip failure, and keeps the install advice when a package.json exists', async () => {
+    const failing = harness({ exitCode: 2, stdout: '', stderr: 'Cannot find module "vite"' });
+    const error = await errorOf(runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app'] }), failing.deps));
+    expect(error.message).toContain('Knip failed in "app"');
+    expect(error.message).toContain(KNIP_ADVICE);
+    expect(error.message).not.toContain(KNIP_DIR_ADVICE);
+  });
+
+  it('suggests --knip-dir, not installing, when Knip itself cannot find a package.json', async () => {
+    const failing = harness({ exitCode: 2, stdout: '', stderr: 'ERROR: Unable to find package.json' });
+    const error = await errorOf(runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app'] }), failing.deps));
+    expect(error.message).toContain(KNIP_DIR_ADVICE);
+    expect(error.message).not.toContain(KNIP_ADVICE);
+  });
+});

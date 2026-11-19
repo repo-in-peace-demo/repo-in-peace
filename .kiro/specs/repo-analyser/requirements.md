@@ -28,6 +28,7 @@ The schema lives once in `shared/` and is versioned. Scoring and data shaping ar
 5. THE analyser SHALL NOT modify the clone, including its working tree, index, and branches.
 6. WHERE an optional `--analysed-at <ISO timestamp>` is given THE analyser SHALL use it as the analysis timestamp. OTHERWISE it SHALL use the current clock, read once at the command-line edge and passed into the pure pipeline.
 7. WHERE an optional `--knip-config <path>` is given THE analyser SHALL use it as Knip's configuration file (see Requirement 6).
+8. WHERE `--knip-dir <folder>` is given, once or several times, THE analyser SHALL run Knip in each named folder of the clone instead of the clone root (see Requirement 6).
 
 ### 2. Shared schema
 
@@ -76,10 +77,12 @@ The schema lives once in `shared/` and is versioned. Scoring and data shaping ar
 2. THE analyser SHALL parse Knip's output in a pure function that takes the JSON text and returns a set of repo-relative paths.
 3. Files Knip does not list SHALL have `unused: false`.
 4. IF Knip fails to run or its output cannot be parsed THEN THE analyser SHALL exit non-zero, SHALL print the Knip error, and SHALL NOT write an output file. (Silently reporting everything as used would produce false facts.)
-5. EVERY Knip failure message SHALL also state the most likely cause and fix: the repository's dependencies are probably not installed in the clone, and the user should install them themselves and run the analyser again. THE analyser SHALL NOT run `npm install` or any install command.
+5. EVERY Knip failure message SHALL also state the most likely cause and fix: the repository's dependencies are probably not installed in the clone, and the user should install them themselves and run the analyser again. THE analyser SHALL NOT run `npm install` or any install command. The one exception is a failure where Knip itself reports that it cannot find a `package.json`: that message SHALL suggest `--knip-dir` and SHALL NOT suggest installing dependencies.
 6. "Unused" means files Knip reports as unused, and nothing else. Unused exports, types, and dependencies are not read.
 7. THE analyser SHALL run Knip from the clone so that Knip finds and uses the repository's own Knip configuration. WHERE `--knip-config <path>` is given THE analyser SHALL pass that file to Knip instead. IF the given file does not exist THEN THE analyser SHALL exit non-zero before running Knip.
-8. IF the clone has no Knip configuration (no Knip config file in the snapshot tree and no `knip` key in its `package.json`) and no `--knip-config` is given THEN THE analyser SHALL print a warning to stderr that Knip may flag test files, scripts, and tool configs as unused. The run continues. The analyser README SHALL document this.
+8. IF the clone has no Knip configuration (no Knip config file in the snapshot tree and no `knip` key in its `package.json`) and no `--knip-config` is given THEN THE analyser SHALL print a warning to stderr that Knip may flag test files, scripts, and tool configs as unused. The run continues. The analyser README SHALL document this. With `--knip-dir`, the check is made in each folder Knip runs in.
+9. WHERE `--knip-dir <folder>` is given, once or several times, THE analyser SHALL run Knip once in each named folder instead of the clone root, prefix every path Knip reports with its folder, and merge the results. Prefixed paths are repo-relative, so they match current-file paths. Folders are relative to the clone root and SHALL stay inside it. Without the option, Knip runs in the clone root.
+10. BEFORE running Knip THE analyser SHALL check that the snapshot tree has a `package.json` in every folder Knip will run in. IF any is missing THEN THE analyser SHALL exit non-zero before running Knip, name the missing folders, list every folder of the clone that contains a `package.json` (outside `node_modules`), suggest `--knip-dir` with a folder from that list, and SHALL NOT suggest installing dependencies.
 
 ### 7. Decay rules
 

@@ -73,11 +73,14 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 1, 3, 6, 9.5_
 
-- [ ] 10. Pipeline and CLI
-  - [ ] 10.1 `pipeline.ts`: the ten steps from the design; nothing is written until validation passes; warn on stderr when `hasKnipConfig` is false and no `--knip-config` was given.
-  - [ ] 10.2 `cli.ts` with `util.parseArgs`: `--out`, `--analysed-at`, `--knip-config`; exit codes 0, 1, 2; default output name.
-  - [ ] 10.3 Tests: each failure path leaves no output file; `--knip-config` that does not exist exits 1 before Knip runs.
-  - _Requirements: 1, 6.7, 6.8, 9_
+- [x] 10. Pipeline and CLI
+  - [x] 10.1 `pipeline.ts`: the ten steps from the design; nothing is written until validation passes; warn on stderr when `hasKnipConfig` is false and no `--knip-config` was given.
+  - [x] 10.2 `cli.ts` with `util.parseArgs`: `--out`, `--analysed-at`, `--knip-config`; exit codes 0, 1, 2; default output name.
+  - [x] 10.3 Tests: each failure path leaves no output file; `--knip-config` that does not exist exits 1 before Knip runs.
+  - Added beyond the plan: the pipeline refuses an output path inside the clone (Req 1.5: the analyser never modifies the clone; the default output is in the current directory, which is often the clone itself). `--knip-config` is checked first, so a missing file fails before any git or Knip work. Files: `pipeline.ts`, `cli.ts`, `cli-args.ts`, `core/paths.ts`, `realPathOfFuture` in `io/write-output.ts`.
+  - [x] 10.4 `--knip-dir <folder>` (repeatable), found necessary by the first real run (`oikos_ledger`: a Python repo whose only `package.json` is in `app/`). `core/knip-dirs.ts` (normalise folders, list folders with a `package.json`, the fast-check message, prefix Knip paths, strip a folder prefix); the pipeline checks the tree before any Knip run, runs Knip once per folder, prefixes and merges; Knip's `Unable to find package.json` gets `--knip-dir` advice instead of the install advice; the missing-config warning is per folder. Property test: every Knip path, once prefixed, is a current file.
+  - Verified: `npx tsc --noEmit` clean; `npx vitest run` 451 tests in 25 files pass; smoke test `npm run analyse -- /Users/sl/projects/oikos_ledger --knip-dir app --out /tmp/demo.graveyard.json` wrote 129 files, 68 folders, 0 ghosts, 12 unused, 7 hot, every file fresh (the repo's history is only June to August 2026).
+  - _Requirements: 1, 6.7 to 6.10, 9_
 
 - [ ] 11. End-to-end property tests
   - [ ] 11.1 **P2 end-to-end**: build a fixture repo, run the pipeline twice with the same `--analysed-at` and a stub Knip, compare bytes.
