@@ -76,10 +76,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 9_
 
-- [ ] 9. Camera poses (`model/camera-pose.ts`)
-  - [ ] 9.1 `startPose`, `flyToPose`, `interpolatePose`, `easeInOutCubic`.
-  - [ ] 9.2 **P12**: for every file and ghost of a generated graveyard the pose is finite, above the ground, with the target inside the bounds padded by the stone's height; `undefined` for an unknown path. **P16**: interpolation reaches both end poses, stays finite, and keeps the camera above the ground between two poses above it.
-  - [ ] 9.3 Examples: the start pose of a tiny graveyard keeps the minimum distance of 20; easing is 0 at 0, 1 at 1 and 0.5 at 0.5.
+- [x] 9. Camera poses (`model/camera-pose.ts`)
+  - [x] 9.1 `startPose`, `buildFlyTargets` (a map of every stone and ghost, which the scene model will hold), `flyToPose(targets, path)`, `interpolatePose`, `easeInOutCubic`. `GHOST_HEIGHT` and `GHOST_FLOAT_BASE` added to `visual-constants.ts` for the ghost's aim point. **A fix found while writing the root-sign test:** `SIGN_NEAR_PER_SIZE` is now 1 (was 0.6). With 0.6 the root sign had already faded out at the starting view of a graveyard more than about 160 units across; with 1 it is readable at any size. The reason is in the comment on the constant and in `design.md`.
+  - [x] 9.2 `camera-pose.property.test.ts`: **P12** (for every file and ghost of a generated graveyard the pose is finite, above the ground, aimed inside the bounds padded by 5, 8 to 40 units from its target, and the stone is well inside the view; targets are exactly the files and ghosts; nothing for unknown paths or folders), **P16** (both end poses reached exactly, finite at any time, camera above the ground, rise at most 30 above the straight line, target on a straight line, horizontal progress never goes backwards), and the last part of **P14**: for graveyards of any shape and size, with a field of view of 45 to 100 degrees and aspect 1 to 2.4, the root's sign is shown, in view, with opacity above 0 at the starting pose.
+  - [x] 9.3 `camera-pose.test.ts`: examples. The start pose of a tiny graveyard keeps the minimum distance of 20, a 400 by 300 graveyard is fitted with 15% to spare, easing is 0, 0.5 and 1 and slow at both ends, a stone is aimed at 55% of its height from in front and above at 3.5 × height + 6, a ghost at the middle of its floating figure, a long flight rises 30 and a 100-unit flight rises 15. The real files: the oikos fresh unused stone and both spatialql ghosts can be flown to; the root's name is shown at the start (opacity above 0.3) for both real files and for 2,000-file graveyards of every shape.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 7_
 
 - [ ] 10. Picking (`model/pick.ts`)

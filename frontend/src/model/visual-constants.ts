@@ -38,6 +38,14 @@ export const GHOST_OPACITY = 0.45;
 export const GHOST_FLOAT_AMPLITUDE = 0.15;
 export const GHOST_FLOAT_SPEED = 0.6;
 
+/** The size of a ghost's figure, and how high above the ground it floats at rest. The camera aims at its middle. */
+export const GHOST_HEIGHT = 1.6;
+export const GHOST_FLOAT_BASE = 0.5;
+
+/** The ground a ghost's figure covers, along x and along z. */
+export const GHOST_W = 1.0;
+export const GHOST_D = 0.6;
+
 // ---- Plot floors ----
 
 /** The darkest a plot's floor gets, as a share of the root's: 0.7 is 30% darker. Subtle on purpose. */

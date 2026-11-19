@@ -183,14 +183,14 @@ interface VisibleSign { path: string; label: string; opacity: number }
 
 buildSignSources(layout: Layout, repoName: string): SignSource[]
   // label: repo name for the root, else the last path segment. y = SIGN_HEIGHT (1.4).
-  // near = 14 + 0.6 × max(w, d) of the plot;  far = 2.2 × near
+  // near = 14 + 1.0 × max(w, d) of the plot;  far = 2.2 × near
 visibleSigns(sources: SignSource[], view: CameraView, limit = 30): VisibleSign[]
   // opacity = 1 when distance <= near, 0 when >= far, smooth between (smoothstep, so it never rises with distance)
   // dropped: opacity < 0.02, behind the camera, or outside a cone slightly wider than the view
   // nearest first (ties by path), at most `limit`
 ```
 
-Because `near` and `far` grow with the plot, the root sign (a plot as large as the whole graveyard) is readable from the starting view, and a leaf folder's sign appears only once the camera is within about 20 units (Req 10.3). A test checks that the root's opacity at the starting pose is above 0.
+Because `near` and `far` grow with the plot, the root sign (a plot as large as the whole graveyard) is readable from the starting view, and a leaf folder's sign appears only once the camera is within about 40 units of it (Req 10.3). The factor of 1 on the plot's size is what keeps the root's name readable in a large graveyard: the starting camera is about 1.5 times the root's longer side from the root's sign, and the sign has faded out only at 2.2 × (14 + that side); with a factor of 0.6 the sign would already be gone from the starting view of a graveyard more than about 160 units across. A test checks that the root's opacity at the starting pose is above 0, for graveyards of any size.
 
 ### `legend.ts`, `stats.ts` (Req 9)
 
@@ -206,7 +206,8 @@ The legend text is a template filled with the numbers of `meta.thresholds`, sing
 ```ts
 interface CameraPose { position: Vec3; target: Vec3 }
 startPose(bounds: Rect, fovY: number): CameraPose
-flyToPose(model: SceneModel, path: string): CameraPose | undefined   // undefined when path is neither a file nor a ghost
+buildFlyTargets(layout: Layout): Map<string, FlyTarget>                        // every stone and ghost by path: kind, x, z, height
+flyToPose(targets: ReadonlyMap<string, FlyTarget>, path: string): CameraPose | undefined   // undefined when path is neither a file nor a ghost
 interpolatePose(a: CameraPose, b: CameraPose, t: number): CameraPose // easeInOutCubic; adds a small rise in the middle of long flights
 easeInOutCubic(t: number): number
 ```

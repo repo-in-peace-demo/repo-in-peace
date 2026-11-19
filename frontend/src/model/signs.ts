@@ -11,9 +11,14 @@ import { distance, dot, normalize, sub, vec3, type Vec3 } from './vec3';
 /** How high above the ground the text is anchored: the face of the plaque. */
 export const SIGN_HEIGHT = 1.4;
 
-/** A sign is fully readable within `SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE × (the longer side of its plot)` units. */
+/**
+ * A sign is fully readable within `SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE × (the longer side of its plot)` units.
+ * The factor is 1 so that the root's sign, whose plot is the whole graveyard, can be read from the starting view of a
+ * graveyard of any size: the starting camera is about 1.5 times the root's longer side away from its sign, and the
+ * sign has faded out only at 2.2 × (14 + that side). A smaller factor would lose the root's name in a large graveyard.
+ */
 export const SIGN_NEAR_BASE = 14;
-export const SIGN_NEAR_PER_SIZE = 0.6;
+export const SIGN_NEAR_PER_SIZE = 1;
 
 /** A sign has faded out completely at this many times its near distance. */
 export const SIGN_FAR_FACTOR = 2.2;
