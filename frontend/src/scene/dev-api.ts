@@ -15,6 +15,10 @@ export interface RepoInPeaceDevApi {
   clearSelection: typeof clearSelection;
   /** Where the camera is and what it looks at, right now. */
   getPose: () => CameraPose;
+  /** The page position (in pixels) of the middle of the stone or ghost with this path, or `null` when it is behind the camera or unknown. */
+  getScreenPoint: (path: string) => { x: number; y: number } | null;
+  /** The page position (in pixels) of a point of the scene, or `null` when it is behind the camera. */
+  projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null;
 }
 
 declare global {
@@ -24,8 +28,16 @@ declare global {
 }
 
 /** Puts the handles on `window`. Returns the function that takes them off again. */
-export function installDevApi(getPose: () => CameraPose): () => void {
-  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose };
+export function installDevApi(
+  getPose: () => CameraPose,
+  projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null,
+  centreOf: (path: string) => { x: number; y: number; z: number } | null,
+): () => void {
+  const getScreenPoint = (path: string): { x: number; y: number } | null => {
+    const centre = centreOf(path);
+    return centre === null ? null : projectPoint(centre.x, centre.y, centre.z);
+  };
+  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint };
   window.repoInPeace = api;
   return () => {
     if (window.repoInPeace === api) delete window.repoInPeace;

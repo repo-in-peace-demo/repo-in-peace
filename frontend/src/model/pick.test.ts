@@ -114,6 +114,16 @@ describe('pickNearest', () => {
     expect(pick(g, fromFront(0, 3))).toBeUndefined(); // above it
   });
 
+  it('hits a ghost where it floats, and not in the empty space between it and the ground', () => {
+    // `fromFront` looks horizontally, at the given height, through the ghost's x and z.
+    const g = buildPickTargets([], [ghost('gone.ts', 0, 0)]);
+    const base = GHOST_FLOAT_BASE;
+    expect(pick(g, fromFront(0, base + GHOST_HEIGHT / 2))).toBe('gone.ts'); // the middle of the body you see
+    expect(pick(g, fromFront(0, base + 0.05))).toBe('gone.ts'); // just above its lower edge
+    expect(pick(g, fromFront(0, base - GHOST_FLOAT_AMPLITUDE - 0.05))).toBeUndefined(); // the gap underneath
+    expect(pick(g, fromFront(0, 0.1))).toBeUndefined(); // at the ground
+  });
+
   it('finds a ghost behind a stone only when the stone is not in the way', () => {
     const both = buildPickTargets([stone('a.ts', 0, 5, 3)], [ghost('gone.ts', 0, 0)]);
     expect(pick(both, fromFront(0, 1))).toBe('a.ts');

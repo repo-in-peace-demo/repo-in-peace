@@ -159,10 +159,14 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev`: Home, R and the button fly back to the overview; ? and the button show and hide the help; typing in a field would not trigger them (no field exists yet).
   - _Requirements: 9_
 
-- [ ] 18. Picking, hover and selection
-  - [ ] 18.1 `scene/Picker.tsx`: canvas pointer listeners, at most one pick per frame, hover on change only, click (under 5 px and 500 ms) selects or clears, Escape clears. The meshes are not raycast.
-  - [ ] 18.2 `ui/HoverLabel.tsx` (file name and dimmed folder path, "ghost" prefix, follows the pointer), a **plain** highlight (an instance colour change for hover and selected), `scene/SelectionRing.tsx`.
-  - [ ] 18.3 A selection made by calling `select(...)` from outside the scene updates the highlight and ring.
+- [x] 18. Picking, hover and selection
+  - [x] 18.1 Pure parts with tests: `model/pointer-gesture.ts` (click under 5 px and 500 ms with the primary button; drag detection, sticky; other pointers ignored), `model/selection-actions.ts` (a hit selects, empty ground clears, Escape is the same action as empty ground), `model/hover-label.ts`, `store/hover-store.ts`.
+  - [x] 18.2 `scene/Picker.tsx`: canvas pointer listeners, at most one pick per frame and none while the pointer is idle, hover cleared while a drag is going on, click selects or clears, Escape clears (not while typing). The meshes are not raycast.
+  - [x] 18.3 `ui/HoverLabel.tsx` (file name and dimmed folder path, "ghost" prefix, follows the pointer, kept on screen), a **plain** highlight (`scene/highlight.ts`: an instance colour change for hover and selected), `scene/SelectionRing.tsx`.
+  - [x] 18.4 A selection made by calling `select(...)` from outside the scene updates the highlight and ring (both follow the store).
+  - [x] 18.6 Ghost ring and selection look (from the ghost review): the ring is at the object's base height (`model/selection-ring.ts`, `model/ghost-motion.ts`; for a ghost the height its mesh uses, updated every frame), a selected object is never tinted (`highlight.ts`), the ring is magenta and `colors.test.ts` keeps it clear of every effect colour, picking tests cover floating ghosts (`pick.test.ts`, P15 in `pick.property.test.ts`), and two more e2e checks (selected stone body unchanged with the ring at its foot; ghost ring at the ghost's base height, not the ground). `projectPoint(x, y, z)` is added to the dev API.
+  - [x] 18.5 `e2e/selection.spec.ts` (Playwright, the same setup as 16c): hover name and folder, ghost prefix, click selects, empty-ground click and Escape clear with the camera unmoved, a drag never changes the selection, other buttons do nothing, label hidden during a drag and back after, and a selection from outside changes the pixels and clearing restores them. `getScreenPoint(path)` is added to the dev API.
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` with both files and check by hand: hovering a stone shows the label and a pale highlight; the label disappears as soon as you orbit or pan and returns when you move the pointer after letting go; a click selects (white stone and a ring); a drag, however it ends over a stone, leaves the selection alone; a click on empty ground and Escape both clear it and the camera does not move; right-click does not select; `window.repoInPeace.select({ kind: 'file', path: '<a path>' })` in the console highlights it and shows the ring, and `window.repoInPeace.clearSelection()` removes both; a ghost shows `ghost` before its name; the oikos file `app/components/voice/index.ts` shows the folder `app/components/voice`; a file in the root shows `/`.
   - _Requirements: 8_
 
 - [ ] 19. Signs
@@ -180,6 +184,7 @@ Status key: `[x]` done, `[ ]` not started.
 ## Part 3: Effects and atmosphere
 
 - [ ] 21. Stones with effects
+  - [ ] 21.0 Selection never tints a stone: `aHighlight` 1 (selected) draws a rim in the selection ring's colour (`SELECTION_RING_COLOR`), not a lighter surface; hover is a pale rim. Add each effect colour to `EFFECT_COLORS` so `colors.test.ts` keeps the ring clear of it.
   - [ ] 21.1 The tombstone geometry (rounded top, attribute `aTop`), and `scene/stone-material.ts`: a `MeshStandardMaterial` patched with `onBeforeCompile` for the arch-preserving height, weathered surface noise, moss rising from the base by `aMoss`, cracks and red glow by `aCrack`, and the pale rim highlight by `aHighlight`.
   - [ ] 21.2 `Stones.tsx` writes `aHeight`, `aMoss`, `aCrack`, `aHighlight`, `aSeed`, and builds each instance matrix with position and lean (rotation about the base, direction from the visual's `leanDirection`). A hover or selection change writes one element.
   - [ ] 21.3 Replace the plain highlight of task 18 with the rim.
@@ -191,6 +196,8 @@ Status key: `[x]` done, `[ ]` not started.
 
 - [ ] 23. Ghosts (`scene/ghost-material.ts`, `Ghosts.tsx`)
   - [ ] 23.1 A translucent sheet-like figure (instanced, `depthWrite` off), floating with `floatAmplitude`, `floatSpeed` and the phase in the vertex shader; the plain box of task 15 is replaced.
+  - [ ] 23.2 Ghost look, so ghosts are unmistakable and not a paler stone: **shape** a wispy sheet or an outline with a rounded top that tapers and fades toward the bottom, no solid base; **float** clearly off the ground with a visible gap underneath, plus the gentle bob; **material** translucent pale cyan with a soft glow and brighter edges (fresnel), standing out against the dark ground and the stones; **footprint** within the ghost's layout cell, so the overlap properties keep passing.
+  - [ ] 23.3 The bob is added to `model/ghost-motion.ts` (`ghostBaseHeight`) and to the vertex shader together. A test checks that the selection ring's height equals the ghost's base height plus `RING_LIFT` at any time (it exists in `ghost-motion.test.ts`), that the base stays above the ground gap, and that the pick box (`buildPickTargets`) covers the whole bob (also tested).
   - _Requirements: 5.5_
 
 - [ ] 24. Atmosphere (`scene/Atmosphere.tsx`, `Ground.tsx`)
@@ -239,10 +246,10 @@ Status key: `[x]` done, `[ ]` not started.
   - Manual checklist, in the browser (`?graveyard=demo.oikosledger` and the default spatialql):
     1. **A fresh but unused stone.** In oikos, `window.repoInPeace.flyTo('app/components/voice/index.ts')` (dev server). It is 19 days old under thresholds 21/45, so it must be **clean and upright, and cracked with a faint red glow**. Hover shows `index.ts` and `app/components/voice`. Click: it is selected, `window.repoInPeace.getSelection()` returns `{ kind: 'file', path: 'app/components/voice/index.ts' }`.
     2. **States.** In oikos find a stone with moss and one leaning and heavily overgrown; compare a stale unused stone and a stale used stone of similar age: their moss must look alike (unused only adds cracks).
-    3. **The two spatialql ghosts.** `flyTo('src/surface-placement.ts')` and `flyTo('src/data/surface-placement.test.ts')`: each is a translucent figure, floating gently, in the plot of its old folder (`src` and `src/data`).
+    3. **The two spatialql ghosts.** `flyTo('src/surface-placement.ts')` and `flyTo('src/data/surface-placement.test.ts')`: each is a translucent figure, floating gently, in the plot of its old folder (`src` and `src/data`). **From the default overview on spatialql both ghosts are identifiable at a glance**, as ghosts and not as lighter gravestones, and select one: its ring is around its base at its float height and follows it as it bobs, never on the ground in front of it.
     4. **Hot.** A stone with a candle (oikos has 7 hot files, for example the `route.ts` files under `app/app/api`) shows a lit candle at its base; stones without one show none.
     5. **Signs.** Fly from the starting view down into a small folder and out again: the root's name is readable at the start; a leaf folder's sign appears only as you get close and fades smoothly as you leave; no more than a handful of signs at once; never any in the empty distance.
-    6. **Selection.** Click a stone, drag to orbit (selection does not change), click empty ground (clears), click again and press Escape (clears).
+    6. **Selection.** Click a stone, drag to orbit (selection does not change), click empty ground (clears), click again and press Escape (clears). **A selected stone never looks like a ghost**: it is not lightened or tinted, and only the magenta ring at its base marks it.
     7. **Camera.** Orbit, pan, zoom, W A S D, Q and E, Shift; the camera never goes below the ground; any input ends a `flyTo`.
     8. **Overlays.** The legend shows the real numbers (21, 45, 5 and 30 for oikos; 14, 30, 5 and 30 for spatialql), the floor entry, and collapses; the counts match: oikos 129 files and 12 unused, spatialql 120 files and 2 ghosts.
     9. **Atmosphere.** Dark sky, moon, stars, fog hiding the far edge, nothing that changes with a file's data.

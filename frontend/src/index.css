@@ -296,3 +296,33 @@ body,
 .swatch-hot { background: #f0c24b; border-radius: 50% 50% 2px 2px; }
 .swatch-ghost { background: rgba(182, 212, 238, 0.45); border-radius: 50% 50% 2px 2px; }
 .swatch-floor { background: #1f2d26; border-radius: 2px; border-color: rgba(255, 255, 255, 0.4); }
+
+/* The hover label follows the pointer (moved with a transform from HoverLabel) and lets clicks through. */
+.hover-label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  max-width: 28rem;
+  padding: 0.3rem 0.55rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 3px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  pointer-events: none;
+  overflow-wrap: anywhere;
+}
+
+.hover-name {
+  color: #fff;
+}
+
+.hover-folder {
+  color: var(--ink-dim);
+}
+
+.hover-ghost {
+  color: #b6d4ee;
+  font-style: italic;
+}

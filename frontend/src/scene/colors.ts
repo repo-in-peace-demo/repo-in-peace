@@ -9,3 +9,23 @@ export const FENCE_COLOR = '#4b5260';
 export const STONE_COLOR = '#8d939e';
 export const GHOST_COLOR = '#b6d4ee';
 export const PLAQUE_COLOR = '#6b5a44';
+
+/**
+ * Feedback colours. A stone under the pointer is tinted pale blue-white. A selected stone is NOT tinted at all (a
+ * lightened stone looks like a ghost): selection is shown by the ring at its base, in a colour no effect uses.
+ */
+export const HOVER_COLOR = '#cfe2ff';
+export const SELECTION_RING_COLOR = '#ff4fd8'; // vivid magenta
+
+/**
+ * The colours the data effects use, as they are in the plain render and the legend swatches: stone grey, moss green,
+ * the red of cracks, candle yellow, ghost cyan-blue. The selection ring must stay clear of all of them (colors.test.ts).
+ * Add the real colours to this list when the effects get their materials (tasks 21 to 23).
+ */
+export const EFFECT_COLORS = {
+  stone: STONE_COLOR,
+  moss: '#5f8f4a',
+  unused: '#e05050',
+  candle: '#f0c24b',
+  ghost: GHOST_COLOR,
+} as const;

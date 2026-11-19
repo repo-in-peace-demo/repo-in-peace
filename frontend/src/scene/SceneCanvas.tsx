@@ -5,7 +5,9 @@ import { CameraRig } from './CameraRig';
 import { BACKGROUND_COLOR } from './colors';
 import { Fences } from './Fences';
 import { Ground, PlotFloors } from './Ground';
+import { Picker } from './Picker';
 import { Plaques } from './Plaques';
+import { SelectionRing } from './SelectionRing';
 import { Ghosts, Stones } from './Stones';
 
 /**
@@ -35,6 +37,8 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Plaques model={model} />
         <Stones model={model} />
         <Ghosts model={model} />
+        <SelectionRing model={model} />
+        <Picker model={model} />
       </Canvas>
     </div>
   );

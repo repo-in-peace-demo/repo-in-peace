@@ -22,6 +22,7 @@ const heading = new THREE.Vector3();
  */
 export function CameraRig({ model }: { model: SceneModel }) {
   const camera = useThree((state) => state.camera);
+  const element = useThree((state) => state.gl.domElement);
   const controls = useRef<Controls>(null);
   const flight = useRef<FlightState>(IDLE);
 
@@ -53,20 +54,32 @@ export function CameraRig({ model }: { model: SceneModel }) {
     let gone = false;
     void import('./dev-api').then(({ installDevApi }) => {
       if (gone) return;
-      remove = installDevApi(() => {
-        const orbit = controls.current;
-        if (!orbit) throw new Error('The camera controls are not ready yet');
-        return {
-          position: vec3(camera.position.x, camera.position.y, camera.position.z),
-          target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
-        };
-      });
+      remove = installDevApi(
+        () => {
+          const orbit = controls.current;
+          if (!orbit) throw new Error('The camera controls are not ready yet');
+          return {
+            position: vec3(camera.position.x, camera.position.y, camera.position.z),
+            target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
+          };
+        },
+        (x, y, z) => {
+          const point = new THREE.Vector3(x, y, z).project(camera);
+          if (point.z > 1) return null; // behind the camera
+          const rect = element.getBoundingClientRect();
+          return { x: rect.left + ((point.x + 1) / 2) * rect.width, y: rect.top + ((1 - point.y) / 2) * rect.height };
+        },
+        (path) => {
+          const box = model.pickTargets.find((t) => t.path === path);
+          return box ? { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 } : null;
+        },
+      );
     });
     return () => {
       gone = true;
       remove?.();
     };
-  }, [camera]);
+  }, [camera, element, model]);
 
   // Let `flyTo` start flights.
   useEffect(

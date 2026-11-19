@@ -129,9 +129,9 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 
 1. WHEN the pointer is over a stone or ghost THE scene SHALL highlight it and show a label with its file name and its folder path, in a text box that follows the pointer.
 2. THE highlight SHALL be feedback only (a pale outline), so it SHALL NOT use the colours of the data effects (moss green, crack red, candle yellow).
-3. WHEN the user clicks a stone or ghost, without dragging, THE scene SHALL mark it as selected with a distinct outline and SHALL publish `{ kind: 'file' | 'ghost', path }` to a small shared store.
-4. A drag to orbit or pan SHALL NOT change the selection.
-5. WHEN the user clicks empty ground or presses Escape THE selection SHALL clear and the store SHALL publish `null`.
+3. WHEN the user clicks a stone or ghost, without dragging, THE scene SHALL mark it as selected with a ring at its base, in a colour that no data effect uses (not the ghost's cyan, the candle's yellow, the crack red or the moss green), and SHALL NOT tint or lighten the selected object, because a lightened stone looks like a ghost. A floating ghost's ring SHALL be at the ghost's base height, following it if it moves, and not on the ground below it. THE scene SHALL publish `{ kind: 'file' | 'ghost', path }` to a small shared store.
+4. A drag to orbit or pan SHALL NOT change the selection, and THE hover label SHALL be hidden while a drag is going on (it comes back with the next pointer move). A click is a press and release of the primary button less than 5 pixels and less than 500 milliseconds apart.
+5. WHEN the user clicks empty ground or presses Escape THE selection SHALL clear and the store SHALL publish `null`. The two SHALL do exactly the same, and neither SHALL move the camera.
 6. THE store SHALL be readable and subscribable from React components and from code outside React, and SHALL hold only the selection. A later spec builds the detail panel from it.
 7. Hovering and selecting SHALL NOT cost anything while the pointer is idle.
 

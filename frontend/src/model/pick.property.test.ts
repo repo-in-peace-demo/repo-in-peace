@@ -7,6 +7,7 @@ import { layout } from './layout';
 import { buildPickTargets, pickNearest, rayBoxDistance, type PickTarget } from './pick';
 import { normalize, sub, vec3, type Vec3 } from './vec3';
 import { stoneVisual } from './visual-params';
+import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT } from './visual-constants';
 
 /**
  * P15: picking. A ray through the middle of a target's box hits that target or something nearer; a ray that misses every box
@@ -69,6 +70,32 @@ describe('P15: picking', () => {
           if (pickedDistance > own + 1e-9) return false;
         }
         return true;
+      }),
+    );
+  });
+
+  it('a ray at the visible body of a floating ghost, at any point of its bob, hits that ghost', () => {
+    fc.assert(
+      fc.property(
+        coord,
+        coord,
+        fc.double({ min: -GHOST_FLOAT_AMPLITUDE, max: GHOST_FLOAT_AMPLITUDE, noNaN: true }),
+        fc.double({ min: 0.05, max: 0.95, noNaN: true }),
+        (x, z, bob, along) => {
+          const targets = buildPickTargets([], [{ path: 'g.ts', x, z }]);
+          const body = vec3(x, GHOST_FLOAT_BASE + bob + along * GHOST_HEIGHT, z); // a point of the ghost you see
+          const origin = vec3(x, body.y + 20, z + 30);
+          return pickNearest(targets, origin, normalize(sub(body, origin)))?.path === 'g.ts';
+        },
+      ),
+    );
+  });
+
+  it('a ray through the empty gap between a floating ghost and the ground does not hit the ghost', () => {
+    fc.assert(
+      fc.property(coord, coord, fc.double({ min: 0.02, max: GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE - 0.02, noNaN: true }), (x, z, height) => {
+        const targets = buildPickTargets([], [{ path: 'g.ts', x, z }]);
+        return pickNearest(targets, vec3(x, height, z + 50), vec3(0, 0, -1)) === undefined;
       }),
     );
   });

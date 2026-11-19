@@ -1,7 +1,7 @@
 # End-to-end smoke test
 
-`camera.spec.ts` drives the real app in headless Chromium and checks that the camera limits hold for every input
-(keys, right-drag and Shift + left-drag pan, orbit, zoom, and Reset view). It is a smoke test, not a full suite.
+`camera.spec.ts` and `selection.spec.ts` drive the real app in headless Chromium and check that the camera limits hold for every input
+(keys, right-drag and Shift + left-drag pan, orbit, zoom, and Reset view) and that hover, click, drag and Escape behave. It is a smoke test, not a full suite.
 
 ## Run it
 

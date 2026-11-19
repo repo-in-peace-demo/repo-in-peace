@@ -3,6 +3,7 @@ import type { Graveyard } from '@shared/graveyard-schema';
 import { buildSceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
 import { ControlsPanel } from './ui/ControlsPanel';
+import { HoverLabel } from './ui/HoverLabel';
 import { Legend } from './ui/Legend';
 import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
@@ -43,6 +44,7 @@ function Scene({ graveyard }: { graveyard: Graveyard }) {
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
       <Legend legend={model.legend} />
       <ControlsPanel />
+      <HoverLabel />
     </>
   );
 }
