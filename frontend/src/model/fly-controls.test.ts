@@ -256,20 +256,39 @@ describe('moveCamera for any input', () => {
 });
 
 describe('cameraLimits', () => {
-  it('gives the root plot plus one radius of margin, the tallest stone, and a ceiling equal to the furthest zoom', () => {
+  it('gives the root plot plus a quarter radius of margin, the tallest stone, and a ceiling equal to the furthest zoom', () => {
     const bounds = { x: 10, z: -20, w: 300, d: 400 };
     const radius = 250; // half of the 500-unit diagonal
+    const margin = 62.5; // a quarter of the radius
     expect(boundsRadius(bounds)).toBeCloseTo(radius, 9);
     const limits = cameraLimits(bounds);
-    expect(WANDER_MARGIN_SHARE).toBe(1);
-    expect(limits.area.x).toBeCloseTo(10 - radius, 9);
-    expect(limits.area.z).toBeCloseTo(-20 - radius, 9);
-    expect(limits.area.w).toBeCloseTo(300 + 2 * radius, 9);
-    expect(limits.area.d).toBeCloseTo(400 + 2 * radius, 9);
+    expect(WANDER_MARGIN_SHARE).toBe(0.25);
+    expect(limits.area.x).toBeCloseTo(10 - margin, 9);
+    expect(limits.area.z).toBeCloseTo(-20 - margin, 9);
+    expect(limits.area.w).toBeCloseTo(300 + 2 * margin, 9);
+    expect(limits.area.d).toBeCloseTo(400 + 2 * margin, 9);
     expect(limits.minCameraHeight).toBe(1);
     expect(limits.maxCameraHeight).toBeCloseTo(750, 9); // 3 × 250
     expect(limits.maxCameraHeight).toBe(maxCameraDistance(radius));
     expect(limits.maxTargetHeight).toBe(MAX_STONE_H);
+  });
+
+  it('lets the look-at point go no further beyond the root plot than WANDER_MARGIN_SHARE of the radius, on every side', () => {
+    fc.assert(
+      fc.property(
+        fc.record({ x: fc.double({ min: -1e3, max: 1e3, noNaN: true }), z: fc.double({ min: -1e3, max: 1e3, noNaN: true }), w: fc.double({ min: 0, max: 1e4, noNaN: true }), d: fc.double({ min: 0, max: 1e4, noNaN: true }) }),
+        (bounds) => {
+          const { area } = cameraLimits(bounds);
+          const margin = WANDER_MARGIN_SHARE * boundsRadius(bounds);
+          const slack = 1e-6 * (1 + margin);
+          return (
+            area.x <= bounds.x && area.z <= bounds.z && area.x + area.w >= bounds.x + bounds.w && area.z + area.d >= bounds.z + bounds.d &&
+            Math.abs(bounds.x - area.x - margin) <= slack && Math.abs(area.x + area.w - (bounds.x + bounds.w) - margin) <= slack &&
+            Math.abs(bounds.z - area.z - margin) <= slack && Math.abs(area.z + area.d - (bounds.z + bounds.d) - margin) <= slack
+          );
+        },
+      ),
+    );
   });
 
   it('keeps a ceiling of 100 for a small graveyard, and never has a ceiling below the floor', () => {

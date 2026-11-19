@@ -115,7 +115,7 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 3. THE camera SHALL stay within stated limits whichever input moves it (keys, mouse orbit, pan, zoom, or the end of a flight), all applied by one rule, `clampPose`:
    1. The camera's height SHALL be at least 1 and at most `max(100, 3 × radius)`, the same value as the furthest zoom. (`radius` is half the diagonal of the root plot.)
    2. The look-at point's height SHALL be between 0 and the tallest stone height. Going up further SHALL raise only the camera, so the view tilts down onto the graveyard.
-   3. The look-at point SHALL stay within the root plot plus one radius on every side, for keys and for panning. When it is stopped, the camera SHALL move by the same amount, so the view slides to a stop and does not jump.
+   3. The look-at point SHALL stay within the root plot plus a quarter of the radius (`WANDER_MARGIN_SHARE` 0.25) on every side, for keys and for panning. When it is stopped, the camera SHALL move by the same amount, so the view slides to a stop and does not jump.
    4. Tilt is limited only near the horizon (0.02 radians short of it); looking straight down is allowed. Zoom is between 3 and `max(100, 3 × radius)` from the look-at point.
 4. THE scene SHALL expose `flyTo(path)`, which smoothly moves the camera to a pose that frames the stone or ghost with that path, looking at it from a distance that depends on its height.
    1. `flyTo` SHALL take about one second and ease in and out.

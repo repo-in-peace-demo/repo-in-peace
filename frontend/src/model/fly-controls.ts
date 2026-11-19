@@ -42,7 +42,7 @@ export const FLY_FAST_FACTOR = 3;
 export const MIN_CAMERA_HEIGHT = 1;
 
 /** The look-at point may wander this far, as a share of the graveyard's radius, beyond the edge of the root plot. */
-export const WANDER_MARGIN_SHARE = 1;
+export const WANDER_MARGIN_SHARE = 0.25;
 
 /** Half the diagonal of the graveyard's bounds: the size that the camera limits and the fly speed are scaled by. */
 export const boundsRadius = (bounds: Rect): number => Math.hypot(bounds.w, bounds.d) / 2;
