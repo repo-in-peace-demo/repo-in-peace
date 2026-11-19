@@ -90,9 +90,10 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 8_
 
-- [ ] 11. Selection store (`store/selection-store.ts`)
-  - [ ] 11.1 `getSelection`, `select`, `clearSelection`, `subscribeSelection`, `useSelection`.
-  - [ ] 11.2 Tests: selecting notifies once; selecting the same value does not notify; clearing publishes `null`; unsubscribing stops notifications; it works with no React involved.
+- [x] 11. Selection store (`store/selection-store.ts`)
+  - [x] 11.1 `getSelection`, `select`, `clearSelection`, `subscribeSelection`, `useSelection` (React's `useSyncExternalStore`). No library. The store keeps its own frozen copy of what it is given, returns the same object until the selection changes, tells listeners with the new state already in place, and keeps telling the others when one listener throws (it reports the error with `console.error`).
+  - [x] 11.2 `selection-store.test.ts`: selecting notifies once; selecting the same stone again, even through a different object, does not; a file and a ghost with the same path are different; clearing publishes `null` and clearing nothing says nothing; unsubscribing stops notifications (twice is harmless; the same function subscribed twice is two subscriptions); a listener can change the selection or unsubscribe itself while being told; the store's copy is not changed by editing the object passed in; `useSelection` renders the current selection (checked with React's server renderer, no browser); and a property test over any sequence of selects and clears: the end state is the last action and listeners are told exactly once for each real change. Every test removes the listeners it adds, so none leaks into the next test.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 8.3 to 8.6_
 
 - [ ] 12. Synthetic graveyard and scene model
