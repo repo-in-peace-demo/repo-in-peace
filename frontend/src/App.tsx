@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { buildSceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
+import { ControlsPanel } from './ui/ControlsPanel';
 import { StatusMessage } from './ui/StatusMessage';
 import { useGraveyardLoad } from './ui/useGraveyardLoad';
 import { hasWebGL } from './ui/webgl';
@@ -34,5 +35,10 @@ export function App() {
 /** Everything the scene needs is worked out once per loaded file, then handed to the drawing code. */
 function Scene({ graveyard }: { graveyard: Graveyard }) {
   const model = useMemo(() => buildSceneModel(graveyard), [graveyard]);
-  return <SceneCanvas model={model} />;
+  return (
+    <>
+      <SceneCanvas model={model} />
+      <ControlsPanel />
+    </>
+  );
 }

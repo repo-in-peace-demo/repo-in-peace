@@ -2,20 +2,23 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildFlyTargets, flyToPose, type CameraPose } from '../model/camera-pose';
 import { layout } from '../model/layout';
 import { graveyardFrom } from '../../test/make-graveyard';
-import { flyTo, registerScene } from './api';
+import { clearSelection, getSelection, select } from '../store/selection-store';
+import { flyTo, registerScene, resetView } from './api';
 
 const g = graveyardFrom({ files: ['src/a.ts', 'src/b.ts', 'x.ts'], ghosts: ['src/gone.ts'] });
 const targets = buildFlyTargets(layout(g));
+const start: CameraPose = { position: { x: 1, y: 50, z: 80 }, target: { x: 0, y: 0, z: 0 } };
 
 // The registration is one shared value, so every test removes what it registered.
 const unregister: Array<() => void> = [];
 const register = (fly: (to: CameraPose) => void = () => {}) => {
-  const remove = registerScene({ targets, fly });
+  const remove = registerScene({ targets, start, fly });
   unregister.push(remove);
   return remove;
 };
 afterEach(() => {
   for (const remove of unregister.splice(0)) remove();
+  clearSelection();
 });
 
 describe('flyTo', () => {
@@ -77,5 +80,38 @@ describe('flyTo', () => {
     const remove = register();
     remove();
     expect(() => remove()).not.toThrow();
+  });
+});
+
+describe('resetView', () => {
+  it('does nothing, and says so, before a scene is on the screen, and leaves the selection alone', () => {
+    select({ kind: 'file', path: 'x.ts' });
+    expect(resetView()).toBe(false);
+    expect(getSelection()).toEqual({ kind: 'file', path: 'x.ts' });
+  });
+
+  it('flies to the starting overview and clears the selection', () => {
+    const fly = vi.fn();
+    register(fly);
+    select({ kind: 'ghost', path: 'src/gone.ts' });
+    expect(resetView()).toBe(true);
+    expect(fly).toHaveBeenCalledTimes(1);
+    expect(fly).toHaveBeenCalledWith(start);
+    expect(getSelection()).toBeNull();
+  });
+
+  it('works with nothing selected, and can be repeated', () => {
+    const fly = vi.fn();
+    register(fly);
+    expect(resetView()).toBe(true);
+    expect(resetView()).toBe(true);
+    expect(fly).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing once the scene has gone', () => {
+    const fly = vi.fn();
+    register(fly)();
+    expect(resetView()).toBe(false);
+    expect(fly).not.toHaveBeenCalled();
   });
 });

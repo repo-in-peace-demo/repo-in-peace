@@ -206,6 +206,22 @@ describe('moveCamera', () => {
     expect(next.target.y).toBeCloseTo(0.5 - 50, 12);
   });
 
+  it('moves the camera the way the keys say, facing negative z: right is +x, forward is -z, for arrows and letters alike', () => {
+    const go = (code: string) => moveCamera(pose, heading, { ...movementFromKeys(keys(code)) }, 10, 1);
+    for (const [arrow, letter, dx, dz] of [
+      ['ArrowRight', 'KeyD', 10, 0],
+      ['ArrowLeft', 'KeyA', -10, 0],
+      ['ArrowUp', 'KeyW', 0, -10],
+      ['ArrowDown', 'KeyS', 0, 10],
+    ] as const) {
+      for (const code of [arrow, letter]) {
+        const moved = sub(go(code).position, pose.position);
+        expect(moved.x, code).toBeCloseTo(dx, 9);
+        expect(moved.z, code).toBeCloseTo(dz, 9);
+      }
+    }
+  });
+
   it('does not change the pose it is given', () => {
     const before = JSON.stringify(pose);
     moveCamera(pose, heading, { forward: 1, right: 1, up: 1 }, 10, 1);

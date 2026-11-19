@@ -50,6 +50,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
     () =>
       registerScene({
         targets: model.flyTargets,
+        start: model.start,
         fly: (to: CameraPose) => {
           const orbit = controls.current;
           if (!orbit) return;

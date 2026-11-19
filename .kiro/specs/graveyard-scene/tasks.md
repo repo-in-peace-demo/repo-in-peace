@@ -147,7 +147,9 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 7.3_
 
 - [ ] 17. Overlays
-  - [ ] 17.1 `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot date, a collapse button), `ui/KeysHelp.tsx`.
+  - [ ] 17.1 `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot date, a collapse button). The keys help is part of the controls panel (task 17b).
+  - [x] 17b Reset view and controls panel: `resetView()` in `scene/api.ts` (clears the selection, flies to the start pose), `model/shortcuts.ts`, `model/controls-help.ts`, `ui/ControlsPanel.tsx` (Req 7.2, 7.6). Tests: `shortcuts.test.ts`, `controls-help.test.ts`, `api.test.ts`, and a test that pins the arrow directions in `fly-controls.test.ts`.
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev`: Home, R and the button fly back to the overview; ? and the button show and hide the help; typing in a field would not trigger them (no field exists yet).
   - _Requirements: 9_
 
 - [ ] 18. Picking, hover and selection

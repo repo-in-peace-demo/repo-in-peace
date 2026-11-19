@@ -111,7 +111,7 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 **User story:** As a viewer, I fly over the graveyard like FSN.
 
 1. THE camera SHALL start framing the whole graveyard from above and in front, whatever its size.
-2. THE user SHALL be able to orbit, pan and zoom with the mouse, and to fly with the keyboard: W A S D or the arrow keys to move, Q and E for down and up, Shift to go faster. The keys SHALL be listed on screen.
+2. THE user SHALL be able to orbit, pan and zoom with the mouse, and to fly with the keyboard: W A S D or the arrow keys to move (right moves the camera right, up moves it forward), Q for down and E for up, Shift to go faster. Every key and mouse action SHALL be listed in a controls panel that is always available, toggled with ? and a button.
 3. THE camera SHALL stay within stated limits whichever input moves it (keys, mouse orbit, pan, zoom, or the end of a flight), all applied by one rule, `clampPose`:
    1. The camera's height SHALL be at least 1 and at most `max(100, 3 × radius)`, the same value as the furthest zoom. (`radius` is half the diagonal of the root plot.)
    2. The look-at point's height SHALL be between 0 and the tallest stone height. Going up further SHALL raise only the camera, so the view tilts down onto the graveyard.
@@ -123,6 +123,7 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
    3. Any mouse or keyboard camera input during the flight SHALL end the flight and give control back.
    4. The target pose SHALL be a pure function of the layout and the path, so it can be tested without rendering.
 5. `flyTo` SHALL be importable from one module that later specs (list view, search) call, and SHALL work for every file and ghost of any data file.
+6. THE user SHALL be able to reset the view with the Home key, the R key, or a "Reset view" button. Reset SHALL fly the camera to the starting overview with the same smooth movement as `flyTo`, and SHALL clear the selection. Home and R SHALL be ignored while typing in an input and when Ctrl, Alt or Meta is held.
 
 ### 8. Hover and selection
 
