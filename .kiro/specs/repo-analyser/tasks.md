@@ -64,11 +64,13 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 9, 10.1_
 
-- [ ] 9. I/O modules
-  - [ ] 9.1 `io/git.ts`: `assertUsableRepo` (not a repo, bare, shallow), `resolveSnapshot`, `repoName`, `listTree`, `readBlobs`, `readLog`. All through `execFile` with argument arrays.
-  - [ ] 9.2 `io/knip.ts`: build the command, handle exit codes (0 and 1 ok, 2 fails), pass `--config` when given, append the "dependencies not installed" advice to every failure message.
-  - [ ] 9.3 `io/write-output.ts`: temp file in the target directory, rename, clean up on error, create parent directories.
-  - [ ] 9.4 Integration tests against temp repos from `make-repo.ts`: shallow clone rejected, non-repo rejected, tree listing skips submodules and symlinks, write is atomic. Knip is replaced by a stub.
+- [x] 9. I/O modules
+  - [x] 9.1 `io/git.ts`: `assertUsableRepo` (not a repo, bare, shallow), `resolveSnapshot`, `repoName`, `listTree`, `readBlobs`, `readLog`. All through `execFile` with argument arrays.
+  - [x] 9.2 `io/knip.ts`: build the command, handle exit codes (0 and 1 ok, 2 fails), pass `--config` when given, append the "dependencies not installed" advice to every failure message.
+  - [x] 9.3 `io/write-output.ts`: temp file in the target directory, rename, clean up on error, create parent directories.
+  - [x] 9.4 Integration tests against temp repos from `make-repo.ts`: shallow clone rejected, non-repo rejected, tree listing skips submodules and symlinks, write is atomic. Knip is replaced by a stub.
+  - Added `src/errors.ts` (`AnalyserError`: failures the CLI reports without a stack trace). No real-Knip smoke test yet; Knip is covered by pure tests of its result handling and by a stub in the pipeline tests.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 1, 3, 6, 9.5_
 
 - [ ] 10. Pipeline and CLI

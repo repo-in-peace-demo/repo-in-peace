@@ -229,9 +229,9 @@ All use `child_process.execFile` with argument arrays. No shell is involved, so 
 | --- | --- | --- |
 | `assertUsableRepo(path)` | `rev-parse --is-inside-work-tree`, `rev-parse --is-shallow-repository`, `rev-parse --show-toplevel` | Req 1.3. Bare repos fail the first check. |
 | `resolveSnapshot(path)` | `log -1 --format=%H%x00%cI HEAD` | SHA and committer date. |
-| `repoName(path)` | `basename` of the top-level directory | Falls back to `origin` URL basename if present, with `.git` stripped. Decided in tasks. |
+| `repoName` | `basename` of the repository root | Returned by `assertUsableRepo` as `RepoInfo { root, name }`. No `origin` lookup: a clone's directory is normally named after the repo. |
 | `listTree(path, sha)` | `ls-tree -r -z <sha>` | Returns `{ path, blobSha }[]`. Skips non-blob entries (submodules). |
-| `readBlobs(path, shas)` | `cat-file --batch` | One process, many blobs. Returns `Map<blobSha, Uint8Array>`. Used for line counting. |
+| `mapBlobs(path, shas, reduce)` | `cat-file --batch` | One process, many blobs, each identical blob read once. Applies `reduce` (for example `countNonBlankLines`) to each blob and returns `Map<blobSha, T>`, so contents are not all held in memory. |
 | `readLog(path, sha)` | `log --topo-order -z --name-status -M --format=<fmt> <sha>` | Returns raw text for the parser. |
 
 The `-M` flag turns on rename detection. Git's default similarity (50%) is used. Rename detection is heuristic, so a heavily rewritten file may show as delete plus add. That is accepted.
@@ -252,7 +252,9 @@ node <analyser>/node_modules/knip/bin/knip.js --directory <clone> --reporter jso
 
 **Configuration (Req 6.7, 6.8).** Knip runs with `--directory <clone>`, so it discovers the clone's own config (`knip.json`, `knip.jsonc`, `.knip.json`, `.knip.jsonc`, `knip.ts`, `knip.js`, `knip.config.ts`, or a `knip` key in `package.json`) with no extra work. When `--knip-config <path>` is given, the CLI resolves it to an absolute path, checks it exists, and passes it as `--config`. Without a config, Knip's defaults can flag test files, scripts, and tool configs as unused, so the graveyard would mark live files dead. The pure function `hasKnipConfig(treePaths, packageJsonText | undefined): boolean` (in `core/knip-config.ts`) checks the snapshot tree for those file names and parses `package.json` for a `knip` key. When it returns false and no flag was given, the pipeline writes a warning to stderr. The README documents this and recommends adding a `knip.json` to the target clone, or passing `--knip-config`.
 
-Exit code handling follows Knip's documented codes: `0` and `1` both mean it ran (1 means issues were found). Exit `2`, a spawn failure, or empty stdout is a failure. The parser then validates the stdout, and an unparseable result is also a failure (Req 6.4). On failure the error message includes Knip's stderr and always ends with the same advice, whatever the cause (Req 6.5): "The most likely cause is that the repository's dependencies are not installed in the clone. Install them yourself (for example `npm install` inside the clone), then run the analyser again. The analyser never installs anything."
+Exit code handling follows Knip's documented codes: `0` and `1` both mean it ran (1 means issues were found). Exit `2`, a spawn failure, or empty stdout is a failure.
+
+The module is split so the decision logic is pure: `runKnipProcess` runs Knip and returns `{ exitCode, stdout, stderr, spawnError? }` without ever rejecting, and `readKnipResult` turns that into the set of unused files or throws. The pipeline takes `runKnipProcess` as an injectable dependency, which is how integration tests substitute a stub. The Knip script is found by walking up from the analyser's own directory to `node_modules/knip` (not `require.resolve`, which a package's `exports` field can block) and is run with the current Node binary. The parser then validates the stdout, and an unparseable result is also a failure (Req 6.4). On failure the error message includes Knip's stderr and always ends with the same advice, whatever the cause (Req 6.5): "The most likely cause is that the repository's dependencies are not installed in the clone. Install them yourself (for example `npm install` inside the clone), then run the analyser again. The analyser never installs anything."
 
 The analyser adds `knip` as a dependency in `analyser/package.json`. Since Knip needs the target repo's dependencies to resolve imports, accuracy depends on the user having installed them. That is the user's step, per Req 6.5.
 
