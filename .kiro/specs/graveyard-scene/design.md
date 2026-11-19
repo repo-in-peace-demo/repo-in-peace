@@ -354,7 +354,7 @@ All overlays are page elements over the canvas, with `pointer-events: none` exce
 - **Stats**: top left. Repository name, snapshot date and short SHA, then the counts.
 - **Hover label**: follows the pointer. The file name in full contrast and its folder path dimmed; a ghost is prefixed "ghost". It is a text node, never HTML from the data, so a file named `<script>` is shown as text.
 - **Signs** (`SignLayer`): a fixed pool of 30 `div`s. When the camera has moved, the layer calls `visibleSigns`, projects each chosen sign's 3D point to screen with the camera, and sets each pooled element's text, position and opacity. Elements not needed are hidden, none are created or removed (Req 11.5). Text uses the browser's monospace stack.
-- **Keys help**: bottom left, one line.
+- **Controls**: bottom left. A "Reset view" button, a "?" button and the controls help it opens (`ui/ControlsPanel.tsx`, from `model/controls-help.ts`). Home and R reset the view; ? toggles the help.
 - **Status**: centred. "Loading", the schema-version message, the validation message, the bad-name message, or the no-WebGL message. All text only.
 - **Perf stats** (development, `?stats` or any `?synthetic`): frames per second, the 95th-percentile frame time over the last 300 frames, and `renderer.info` draw calls and triangles. This is how Req 11.3 is checked by hand.
 

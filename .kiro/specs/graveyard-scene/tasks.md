@@ -152,8 +152,9 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm install -D @playwright/test && npx playwright install chromium && npm run typecheck && npm run e2e`
   - _Requirements: 7.3, 7.6_
 
-- [ ] 17. Overlays
-  - [ ] 17.1 `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot date, a collapse button). The keys help is part of the controls panel (task 17b).
+- [x] 17. Overlays
+  - [x] 17.1 `model/overlay-text.ts` (`statsHeading`, `statsRows`, `shortSha`; `overlay-text.test.ts`), `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot line, a collapse button). Both are wired into `App`. The keys help is part of the controls panel (task 17b).
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` with both files: stats top left, legend top right with all 7 entries and the snapshot line, the legend collapses and expands, nothing overlaps the Reset view buttons at the bottom left, and a drag that starts over a panel still orbits (the panels let clicks through, except the legend heading).
   - [x] 17b Reset view and controls panel: `resetView()` in `scene/api.ts` (clears the selection, flies to the start pose), `model/shortcuts.ts`, `model/controls-help.ts`, `ui/ControlsPanel.tsx` (Req 7.2, 7.6). Tests: `shortcuts.test.ts`, `controls-help.test.ts`, `api.test.ts`, and a test that pins the arrow directions in `fly-controls.test.ts`.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev`: Home, R and the button fly back to the overview; ? and the button show and hide the help; typing in a field would not trigger them (no field exists yet).
   - _Requirements: 9_
@@ -197,6 +198,7 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 6_
 
 - [ ] 25. Density review and tuning
+  - [ ] 25.0 Known empty strips found at checkpoint B, left as they are on purpose: oikos_ledger has a strip about 10 units wide and 80 tall beside the `app/app`, `app/components` and `app/lib` plots (below the 7-stone block and `app/types`), and spatialql's root has a strip about 9 by 43 beside `src` (the 2-stone root block sits beside `src` because that gives the shorter longer side, 46.6 against about 51). Both come from the discrete packing choice plus `ITEM_GAP` and `FENCE_BAND`. Look at them again after tuning the constants, and only change the packer if they still look bare.
   - [ ] 25.1 With both test files, look at the density in the browser. A graveyard should feel crowded rather than sparse: if it looks empty, tighten `MAX_STONE_H`, `MAX_LEAN_DEG` (and so `LEAN_REACH`), `CELL_GAP`, `ITEM_GAP` and `FENCE_BAND` in `layout-constants.ts`, in one pass. The reservation for the largest lean stays constant.
   - [ ] 25.2 After any change **all properties must still pass** (the constant relationship test of 5.2 included). Record the final values and the reason in `design.md`.
   - [ ] 25.3 **Run:** `cd frontend && npm test`; then look at both files and the `?synthetic=2000` view again once task 26 is done.

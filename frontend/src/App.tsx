@@ -3,6 +3,8 @@ import type { Graveyard } from '@shared/graveyard-schema';
 import { buildSceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
 import { ControlsPanel } from './ui/ControlsPanel';
+import { Legend } from './ui/Legend';
+import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
 import { useGraveyardLoad } from './ui/useGraveyardLoad';
 import { hasWebGL } from './ui/webgl';
@@ -38,6 +40,8 @@ function Scene({ graveyard }: { graveyard: Graveyard }) {
   return (
     <>
       <SceneCanvas model={model} />
+      <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
+      <Legend legend={model.legend} />
       <ControlsPanel />
     </>
   );

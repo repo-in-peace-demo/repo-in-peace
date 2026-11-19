@@ -151,3 +151,148 @@ body,
   margin: 0;
   color: var(--ink-dim);
 }
+
+/* Statistics, top left. Text only: clicks go through to the scene, except the heading button. */
+.stats {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  min-width: 12rem;
+  max-width: 18rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+#stats-body {
+  padding: 0 1rem 0.75rem;
+}
+
+.stats-name {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.stats-detail {
+  margin: 0 0 0.6rem;
+  color: var(--ink-dim);
+}
+
+.stats dl {
+  margin: 0;
+}
+
+.stats-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.stats-row dt {
+  flex: 0 0 4.5rem;
+}
+
+.stats-row dd {
+  flex: 0 0 3rem;
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-hint {
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+}
+
+/* The heading button of a collapsible panel (statistics, legend). */
+.panel-toggle {
+  pointer-events: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.panel-toggle:hover,
+.panel-toggle:focus-visible {
+  color: #fff;
+}
+
+/* Legend, top right. Only the heading button takes clicks. */
+.legend {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 21rem;
+  max-width: calc(100vw - 2rem);
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+#legend-body {
+  padding: 0 1rem 0.8rem;
+}
+
+.legend-snapshot {
+  margin: 0 0 0.6rem;
+  color: var(--ink-dim);
+}
+
+.legend ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.legend li strong {
+  display: block;
+  font-weight: 600;
+}
+
+.legend-text {
+  color: var(--ink-dim);
+}
+
+.swatch {
+  flex: 0 0 0.9rem;
+  height: 1.1rem;
+  margin-top: 0.1rem;
+  border-radius: 3px 3px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.swatch-fresh { background: #8d939e; }
+.swatch-moss { background: linear-gradient(to top, #5f8f4a 55%, #8d939e 55%); }
+.swatch-ancient { background: linear-gradient(to top, #3f6b33 85%, #6e747e 85%); transform: rotate(-8deg); }
+.swatch-unused { background: #8d939e; box-shadow: 0 0 6px 1px rgba(224, 80, 80, 0.7); border-color: #c0504d; }
+.swatch-hot { background: #f0c24b; border-radius: 50% 50% 2px 2px; }
+.swatch-ghost { background: rgba(182, 212, 238, 0.45); border-radius: 50% 50% 2px 2px; }
+.swatch-floor { background: #1f2d26; border-radius: 2px; border-color: rgba(255, 255, 255, 0.4); }
