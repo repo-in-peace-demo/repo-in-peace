@@ -9,7 +9,7 @@ The requirements left five questions open. This design takes the proposed answer
 1. Renames are followed. A path removed by a rename is not a ghost.
 2. `--analysed-at` overrides the analysis timestamp. The clock is read once, in `cli.ts`.
 3. A Knip failure aborts the run. Every Knip error message ends with the likely cause and fix: dependencies are probably not installed in the clone, and the user installs them and re-runs.
-4. The hot threshold is 5 commits in the 30 days before the snapshot (`HOT_COMMIT_THRESHOLD`).
+4. The decay thresholds are configurable (see "Decay thresholds" below). The defaults are the values first approved: stale after 90 days, ancient after 360, hot at 5 commits in 30 days, and a decay cap of 720 days (2 × ancient-after).
 5. Merge commits are ignored for per-file change detection. Plain `git log` (no `-m`) shows no file changes for merges, so this needs no special code. Known limitation: edits made only inside a merge (conflict resolutions) are not seen. Branch commits still carry the real changes. The analyser README documents this.
 6. Current vs ghost is decided from the snapshot tree, not history order. A ghost's last existing commit is the first parent of its most recent deleting commit.
 7. Knip uses the clone's own configuration, with an optional `--knip-config` override and a stderr warning when no config exists.
@@ -58,7 +58,7 @@ Dependency direction: `cli` → `pipeline` → (`io/*`, `core/*`) → `shared`. 
 ## Shared schema (`shared/graveyard-schema.ts`)
 
 ```ts
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2; // 2: meta.thresholds added
 
 export type DecayState = 'fresh' | 'stale' | 'ancient';
 
@@ -68,6 +68,15 @@ export interface RepoMeta {
   snapshotDate: string;     // ISO 8601 UTC, e.g. 2026-03-01T12:00:00.000Z
   analysedAt: string;       // ISO 8601 UTC
   schemaVersion: number;
+  thresholds: Thresholds;   // the decay thresholds this file was made with
+}
+
+export interface Thresholds {
+  staleAfterDays: number;   // fresh below this many days; default 90
+  ancientAfterDays: number; // ancient above this many days; default 360; greater than staleAfterDays
+  decayCapDays: number;     // age stops adding to the score here; always 2 * ancientAfterDays (720 by default)
+  hotCommits: number;       // hot at this many commits or more in the hot window; default 5
+  hotWindowDays: number;    // length of the hot window before the snapshot; default 30
 }
 
 export interface Folder { path: string; parent: string | null } // root: path "", parent null
@@ -78,7 +87,7 @@ export interface FileEntry {
   linesOfCode: number;      // non-blank lines
   lastCommitDate: string;
   lastCommitAuthor: string;
-  commitsLast30Days: number;
+  commitsLast30Days: number; // commits in the last meta.thresholds.hotWindowDays days (name kept for compatibility)
   unused: boolean;
   decayScore: number;       // 0..1, rounded to 4 decimals
   decayState: DecayState;
@@ -115,27 +124,41 @@ Key order in the types above is the output key order (Req 9.2). Folder `parent` 
 
 ```ts
 export const MS_PER_DAY = 86_400_000;
-export const FRESH_MAX_DAYS = 90;        // fresh: ageDays < 90
-export const ANCIENT_MIN_DAYS = 360;     // ancient: ageDays > 360
-export const AGE_CAP_DAYS = 720;         // age component stops growing here
-export const AGE_WEIGHT = 0.4;
-export const UNUSED_WEIGHT = 0.6;
-export const HOT_WINDOW_DAYS = 30;
-export const HOT_COMMIT_THRESHOLD = 5;
+export const AGE_WEIGHT = 0.4;           // fixed
+export const UNUSED_WEIGHT = 0.6;        // fixed
+export const DECAY_CAP_FACTOR = 2;       // decayCapDays = 2 * ancientAfterDays
+
+// core/thresholds.ts
+export const DEFAULT_THRESHOLDS: Thresholds = {
+  staleAfterDays: 90, ancientAfterDays: 360, decayCapDays: 720, hotCommits: 5, hotWindowDays: 30,
+};
 
 ageDays(lastCommitMs: number, snapshotMs: number): number
   // Math.max(0, Math.floor((snapshotMs - lastCommitMs) / MS_PER_DAY))
-decayState(ageDays: number): DecayState
-decayScore(ageDays: number, unused: boolean): number
-  // round4( AGE_WEIGHT * min(ageDays, AGE_CAP_DAYS) / AGE_CAP_DAYS + (unused ? UNUSED_WEIGHT : 0) )
-isHot(commitsLast30Days: number): boolean   // >= HOT_COMMIT_THRESHOLD
+decayState(ageDays: number, t: Thresholds): DecayState
+  // ageDays < t.staleAfterDays: fresh;  <= t.ancientAfterDays: stale;  otherwise ancient
+decayScore(ageDays: number, unused: boolean, t: Thresholds): number
+  // round4( AGE_WEIGHT * min(ageDays, t.decayCapDays) / t.decayCapDays + (unused ? UNUSED_WEIGHT : 0) )
+isHot(commitsInWindow: number, t: Thresholds): boolean   // >= t.hotCommits
 ```
 
+The functions take the thresholds as an explicit argument with no default, so a call that forgets them is a type error instead of silently using the defaults.
+
 Why these numbers:
-- A used file scores from 0 to 0.4. An unused file scores from 0.6 to 1.0. Even a brand-new unused file (0.6) outranks the oldest used file (0.4), which satisfies Req 7.2 with room to spare.
-- `AGE_WEIGHT / AGE_CAP_DAYS` is about 0.00056 per day, so rounding to 4 decimals still increases the score every day of age until the cap. Req 7.4 (strictly increasing through the stale range) holds. Ancient files keep rising until 720 days, so a three-year-old file looks no worse than a two-year-old one. The cap keeps the score in range and stops one very old file from compressing the rest of the scale.
+- A used file scores from 0 to 0.4. An unused file scores from 0.6 to 1.0. Even a brand-new unused file (0.6) outranks the oldest used file (0.4), which satisfies Req 7.2 for any thresholds, because the weights are fixed.
+- With the defaults, `AGE_WEIGHT / decayCapDays` is about 0.00056 per day, so rounding to 4 decimals still increases the score every day of age until the cap. Req 7.4 holds whenever the cap is at most 2000 days (a step of at least 0.0002). For a larger cap the score is still non-decreasing but can repeat on adjacent days, because of the rounding. The cap keeps the score in range and stops one very old file from compressing the rest of the scale.
 - Rounding to 4 decimals keeps JSON stable and short. `Math.round` of a non-decreasing function is non-decreasing, so P1 is unaffected.
-- The state boundaries use whole days against fixed counts (Req 7.1): 89 is fresh, 90 and 360 are stale, 361 is ancient.
+- The state boundaries use whole days (Req 7.1). With the defaults: 89 is fresh, 90 and 360 are stale, 361 is ancient. The two edges are not symmetric: a file is stale *from* `staleAfterDays` (inclusive) and ancient only *after* `ancientAfterDays` (exclusive). That keeps the defaults identical to the original fixed rule.
+
+### Decay thresholds (Req 1.9, 1.10, 7)
+
+`core/thresholds.ts` holds `DEFAULT_THRESHOLDS`, `thresholdsFrom({ staleAfterDays, ancientAfterDays, hotCommits, hotWindowDays })` (which fills in `decayCapDays = 2 * ancientAfterDays`), and `parseThresholdFlags(raw)`, which takes the four flag values as strings (each possibly absent), applies the defaults, and returns the thresholds or a message. It checks, in this order, and stops at the first problem:
+1. Each given value is a positive whole number (`/^[1-9]\d*$/`, and small enough that twice the value is a safe integer). Message: `--stale-after must be a positive whole number of days, like 90 (got "abc")`.
+2. `ancientAfterDays > staleAfterDays`, counting a default for an omitted flag. Message: `--ancient-after (50) must be greater than --stale-after (90, the default)`.
+
+The CLI reports these as usage errors (exit code 2, with the usage text), before the clone is read. The pipeline takes a `thresholds` option (default `DEFAULT_THRESHOLDS`), passes `hotWindowDays` to `analyseHistory` and the whole object to `assembleGraveyard`, which writes it to `meta.thresholds`. `shared/graveyard-schema.ts` validates the object (positive whole numbers, `ancientAfterDays > staleAfterDays`, `decayCapDays === 2 * ancientAfterDays`).
+
+The data file is self-describing: the same snapshot analysed with different flags gives different `decayState`, `decayScore`, `hot` and `commitsLast30Days` values, and `meta.thresholds` says why.
 
 The frontend maps stale-range scores to moss amount and ancient-range scores to lean. That mapping is not this spec's concern.
 
@@ -212,7 +235,7 @@ Reference: Knip JSON reporter and exit codes at knip.dev/features/reporters and 
 
 ### `assemble.ts` and `serialise.ts` (Req 9)
 
-`assembleGraveyard(input)` takes plain data (meta fields, current file records, ghosts, unused set) and returns a `Graveyard`. It computes each file's `ageDays`, state, score, and hot flag, derives folders, sorts everything by path, and never reads a clock.
+`assembleGraveyard(input)` takes plain data (meta fields, the thresholds, current file records, ghosts, unused set) and returns a `Graveyard`. It computes each file's `ageDays`, state, score, and hot flag, derives folders, sorts everything by path, and never reads a clock.
 
 Sorting uses code-point order: `a < b ? -1 : a > b ? 1 : 0`, not `localeCompare`, which depends on the machine's locale.
 
@@ -288,10 +311,12 @@ Steps 1 to 7 happen before any write, so every failure path leaves no output fil
 
 ```
 repo-in-peace-analyse <repo-path> [--out <file>] [--analysed-at <ISO timestamp>] [--knip-config <file>]
+    [--knip-dir <folder>]... [--stale-after <days>] [--ancient-after <days>] [--hot-commits <n>] [--hot-window <days>]
 ```
 
 - Argument parsing uses Node's built-in `util.parseArgs`. No extra dependency.
 - `--analysed-at` is validated as an ISO timestamp, then normalised to UTC.
+- The four threshold flags are validated by `parseThresholdFlags` (see "Decay thresholds"); an invalid value is a usage error.
 - `--knip-config` must name an existing file, or the run exits 1 before Knip starts.
 - The output path must be outside the clone. The default output goes to the current directory, which is often the clone itself, and writing there would add an untracked file to a repository the analyser promises not to modify (Req 1.5). The check resolves symlinks. The error tells the user to choose another place with `--out`.
 - Default output name: `<repo-name>.graveyard.json` in the current directory, where repo name has characters outside `[A-Za-z0-9._-]` replaced with `-`.
@@ -324,10 +349,14 @@ Pure functions get unit tests and fast-check property tests. I/O modules get int
 | P3 | No ghost path is also a current file. | Generate random commit histories (sequences of add/modify/delete/rename over a small path pool, including re-adds and commits whose dates are out of order, as after a merge). Build the current set independently (replaying the operations, as the tree would hold it) and pass it in as `currentPaths`. Assert disjointness, uniqueness of ghost paths, and that every ghost passes `isTrackedSourcePath`. The property is true by construction because ghosts are filtered against the tree; the test guards that nothing reintroduces a history-order rule. |
 | P4 | Every file's folder is in the folder list, and the hierarchy is acyclic. | Generate arbitrary path lists (nested, root-level, odd names). Run `deriveFolders` and `assembleGraveyard`. Assert each file's `folder` is in the list, each non-root folder's parent is in the list, each parent chain reaches the root within `depth` steps with no repeats, and exactly one root exists. |
 | P5 | Every ghost's last existing commit (the first parent of its most recent deleting commit) contains that file. | Integration. Generate a random scripted history, build a real temp repo, run the git module and `analyseHistory`. For each ghost assert that `git ls-tree <lastExistingSha> -- <path>` returns the path (the required assertion), that `lastExistingSha` is the first parent of `deletedInSha` per `git rev-parse <deletedInSha>^1`, and that its blob content equals the content from the last commit that wrote it. Few runs (for example 25) because each builds a repo. |
+| P6 | With default thresholds the output equals the pre-change output. | Two checks. (a) The pipeline runs on a fixed repository (`test/golden-repo.ts`, covering fresh, stale and ancient files, the edges at 89, 90, 360 and 361 days, unused and hot files, a rename and a ghost). Its output, with `meta.thresholds` removed, `schemaVersion` set to 1 and the random repo name masked, must equal `test/golden/default-thresholds.json`, which the analyser wrote before this change. (b) For random ages, unused flags and commit counts, the new `decayState`, `decayScore` and `isHot` called with the defaults equal a frozen copy of the old fixed-constant formulas kept in the test. |
+| P7 | Decay state agrees with the thresholds. | For random valid thresholds and ages: `fresh` exactly when `age < staleAfterDays`, `stale` exactly when `staleAfterDays <= age <= ancientAfterDays`, `ancient` exactly when `age > ancientAfterDays`; the state only moves forward with age. On whole assembled outputs: every file's state, recomputed from its dates and `meta.thresholds` by an independent formula in the test, matches. |
 
 Supporting property tests (not in the required five): the state boundaries match Req 7.1 for any `ageDays`; `countNonBlankLines` equals the number of lines that match `/\S/` for any generated text with LF or CRLF endings; `isTrackedSourcePath` is false for any path containing an excluded directory segment, and gives the same answer for a file and its ghost; rename-following gives the same `commitsLast30Days` whether or not the file was renamed within the window.
 
 The pure-side generators for commit histories live in `test/arbitraries.ts` and are shared by P2, P3 and P5, so all three describe the same model of a repo. The history model replays operations to compute expected current paths, which gives the oracle for P3 without using the code under test.
+
+P1 to P5 (and the end-to-end run) draw random valid thresholds as well as random histories, with the defaults included often: `thresholdsArb` in `test/arbitraries.ts`. The oracle in `replay` takes the hot window as a parameter, so the 30-day counts are checked for any window.
 
 ### Example tests worth having
 

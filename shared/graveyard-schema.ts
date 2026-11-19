@@ -1,5 +1,5 @@
 /**
- * Graveyard data file schema, version 1.
+ * Graveyard data file schema, version 2.
  *
  * The analyser writes this file and the frontend reads it. This is the only
  * place the schema is defined. Change it only here, and bump SCHEMA_VERSION
@@ -8,11 +8,26 @@
  * Key order in the interfaces below is the key order in the written JSON.
  */
 
-export const SCHEMA_VERSION = 1;
+/** 2: `meta.thresholds` added (decay thresholds became configurable). */
+export const SCHEMA_VERSION = 2;
 
 export type DecayState = 'fresh' | 'stale' | 'ancient';
 
 export const DECAY_STATES: readonly DecayState[] = ['fresh', 'stale', 'ancient'];
+
+/** The numbers that turn age and commit counts into a decay state, score and hot flag. Recorded so readers can show the real values. */
+export interface Thresholds {
+  /** A file is fresh below this many days since its last commit. Default 90. */
+  staleAfterDays: number;
+  /** A file is ancient above this many days (stale from `staleAfterDays` up to and including this). Default 360. Greater than `staleAfterDays`. */
+  ancientAfterDays: number;
+  /** The age part of the decay score stops growing at this age. Always 2 x `ancientAfterDays` (720 by default). */
+  decayCapDays: number;
+  /** A file is hot with this many commits or more in the hot window. Default 5. */
+  hotCommits: number;
+  /** Length of the hot window, in days before the snapshot date. Default 30. */
+  hotWindowDays: number;
+}
 
 export interface RepoMeta {
   /** Repository name, taken from the clone. */
@@ -24,6 +39,8 @@ export interface RepoMeta {
   /** When the analyser ran, ISO 8601 UTC. The only value not derived from the snapshot. */
   analysedAt: string;
   schemaVersion: number;
+  /** The decay thresholds the analyser ran with. */
+  thresholds: Thresholds;
 }
 
 export interface Folder {
@@ -41,7 +58,10 @@ export interface FileEntry {
   linesOfCode: number;
   lastCommitDate: string;
   lastCommitAuthor: string;
-  /** Commits in the 30 days before the snapshot date. */
+  /**
+   * Commits in the hot window before the snapshot date: `meta.thresholds.hotWindowDays` days, 30 by default.
+   * The name is kept from version 1 for compatibility.
+   */
   commitsLast30Days: number;
   /** Knip lists this file as unused. */
   unused: boolean;
@@ -110,6 +130,28 @@ function checkMeta(meta: unknown, fail: Fail): void {
   if (!isIsoUtc(meta['analysedAt'])) fail('meta.analysedAt must be an ISO 8601 UTC date');
   if (meta['schemaVersion'] !== SCHEMA_VERSION) {
     fail(`meta.schemaVersion must be ${SCHEMA_VERSION}`);
+  }
+  checkThresholds(meta['thresholds'], fail);
+}
+
+function checkThresholds(thresholds: unknown, fail: Fail): void {
+  if (!isRecord(thresholds)) return fail('meta.thresholds must be an object');
+  const names = ['staleAfterDays', 'ancientAfterDays', 'decayCapDays', 'hotCommits', 'hotWindowDays'] as const;
+  let allCounts = true;
+  for (const name of names) {
+    if (!isPositiveInteger(thresholds[name])) {
+      fail(`meta.thresholds.${name} must be a positive whole number`);
+      allCounts = false;
+    }
+  }
+  if (!allCounts) return;
+
+  const { staleAfterDays, ancientAfterDays, decayCapDays } = thresholds as Record<(typeof names)[number], number>;
+  if (ancientAfterDays <= staleAfterDays) {
+    fail('meta.thresholds.ancientAfterDays must be greater than staleAfterDays');
+  }
+  if (decayCapDays !== 2 * ancientAfterDays) {
+    fail('meta.thresholds.decayCapDays must be 2 x ancientAfterDays');
   }
 }
 
@@ -248,6 +290,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isSha(value: unknown): boolean {
   return typeof value === 'string' && SHA_PATTERN.test(value);
+}
+
+function isPositiveInteger(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1;
 }
 
 function isCount(value: unknown): boolean {

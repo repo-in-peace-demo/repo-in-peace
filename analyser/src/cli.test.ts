@@ -90,6 +90,53 @@ describe('main: exit codes and messages', () => {
     expect(text()).toContain(USAGE);
   });
 
+  it.each([
+    ['--stale-after', 'abc'],
+    ['--hot-window', '0'],
+  ])('exits 2 before reading the clone when %s is %s', async (flag, value) => {
+    const cwd = tempDir();
+    const { cliEnv, text } = env(cwd);
+    const knip = knipStub();
+    expect(await main([repo.dir, '--out', 'g.json', flag, value], cliEnv, knip)).toBe(2);
+    expect(text()).toContain(`Error: ${flag} must be a positive whole number`);
+    expect(text()).not.toContain('Analysing'); // nothing was read
+    expect(knip.runKnip).not.toHaveBeenCalled();
+    expect(existsSync(join(cwd, 'g.json'))).toBe(false);
+  });
+
+  it('exits 2 with a clear message when --ancient-after is not greater than --stale-after', async () => {
+    const { cliEnv, text } = env(tempDir());
+    expect(await main([repo.dir, '--stale-after', '200', '--ancient-after', '100'], cliEnv, knipStub())).toBe(2);
+    expect(text()).toContain('Error: --ancient-after (100) must be greater than --stale-after (200).');
+  });
+
+  it('passes the thresholds to the output file', async () => {
+    const cwd = tempDir();
+    const { cliEnv } = env(cwd);
+    const code = await main(
+      [repo.dir, '--out', 'g.json', '--stale-after', '30', '--ancient-after', '200', '--hot-commits', '3', '--hot-window', '14'],
+      cliEnv,
+      knipStub(),
+    );
+    expect(code).toBe(0);
+    const meta = JSON.parse(readFileSync(join(cwd, 'g.json'), 'utf8')).meta;
+    expect(meta.schemaVersion).toBe(2);
+    expect(meta.thresholds).toEqual({ staleAfterDays: 30, ancientAfterDays: 200, decayCapDays: 400, hotCommits: 3, hotWindowDays: 14 });
+  });
+
+  it('writes the default thresholds when no threshold flag is given', async () => {
+    const cwd = tempDir();
+    const { cliEnv } = env(cwd);
+    await main([repo.dir, '--out', 'g.json'], cliEnv, knipStub());
+    expect(JSON.parse(readFileSync(join(cwd, 'g.json'), 'utf8')).meta.thresholds).toEqual({
+      staleAfterDays: 90,
+      ancientAfterDays: 360,
+      decayCapDays: 720,
+      hotCommits: 5,
+      hotWindowDays: 30,
+    });
+  });
+
   it('exits 1 with a one-line message and no stack trace when the path is not a repository', async () => {
     const { cliEnv, text } = env(tempDir());
     const code = await main([tempDir()], cliEnv, knipStub());

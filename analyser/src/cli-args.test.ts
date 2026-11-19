@@ -97,6 +97,68 @@ describe('parseCliArgs --knip-dir', () => {
   });
 });
 
+describe('parseCliArgs decay threshold flags', () => {
+  it('leaves thresholds out of the options when no threshold flag is given, so the defaults apply', () => {
+    const result = parse('repo');
+    expect(result.kind === 'run' && 'thresholds' in result.options).toBe(false);
+  });
+
+  it('reads all four flags and works out the decay cap', () => {
+    expect(
+      parse('repo', '--stale-after', '30', '--ancient-after', '200', '--hot-commits', '3', '--hot-window', '14'),
+    ).toMatchObject({
+      kind: 'run',
+      options: {
+        thresholds: { staleAfterDays: 30, ancientAfterDays: 200, decayCapDays: 400, hotCommits: 3, hotWindowDays: 14 },
+      },
+    });
+  });
+
+  it('fills in the defaults for the flags that are not given', () => {
+    expect(parse('repo', '--hot-commits', '10')).toMatchObject({
+      options: { thresholds: { staleAfterDays: 90, ancientAfterDays: 360, decayCapDays: 720, hotCommits: 10, hotWindowDays: 30 } },
+    });
+  });
+
+  it('accepts --flag=value', () => {
+    expect(parse('repo', '--stale-after=7', '--ancient-after=70')).toMatchObject({
+      options: { thresholds: { staleAfterDays: 7, ancientAfterDays: 70, decayCapDays: 140 } },
+    });
+  });
+
+  it.each([
+    [['--stale-after', 'soon'], '--stale-after must be a positive whole number'],
+    [['--ancient-after', '0'], '--ancient-after must be a positive whole number'],
+    [['--hot-commits', '-1'], '--hot-commits must be a positive whole number'],
+    [['--hot-window', '2.5'], '--hot-window must be a positive whole number'],
+    [['--stale-after', '100', '--ancient-after', '100'], '--ancient-after (100) must be greater than --stale-after (100).'],
+    [['--ancient-after', '50'], '--ancient-after (50) must be greater than --stale-after (90, the default).'],
+    [['--stale-after', '400'], '--stale-after (400) must be less than --ancient-after (360, the default).'],
+  ])('rejects %j with a message that names the flag', (flags, expected) => {
+    const result = parse('repo', ...flags);
+    expect(result.kind).toBe('usage-error');
+    if (result.kind === 'usage-error') expect(result.message).toContain(expected);
+  });
+
+  it('needs a value after each flag', () => {
+    for (const flag of ['--stale-after', '--ancient-after', '--hot-commits', '--hot-window']) {
+      expect(parse('repo', flag).kind).toBe('usage-error');
+    }
+  });
+
+  it('does not read the clock for the thresholds, and still reads it once for the analysis time', () => {
+    const now = vi.fn(() => NOW);
+    parseCliArgs(['repo', '--stale-after', '5', '--ancient-after', '9'], now);
+    expect(now).toHaveBeenCalledTimes(1);
+  });
+
+  it('documents each flag with its default in the usage text', () => {
+    for (const text of ['--stale-after <days>', '--ancient-after <days>', '--hot-commits <n>', '--hot-window <days>', 'Default 90', 'Default 360', 'Default 5', 'Default 30']) {
+      expect(USAGE).toContain(text);
+    }
+  });
+});
+
 describe('normaliseAnalysedAt', () => {
   it.each([
     ['2026-03-01T12:00:00Z', '2026-03-01T12:00:00.000Z'],

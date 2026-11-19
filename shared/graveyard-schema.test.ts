@@ -12,6 +12,13 @@ function validGraveyard(): Graveyard {
       snapshotDate: '2026-03-01T12:00:00.000Z',
       analysedAt: '2026-03-02T09:30:00.000Z',
       schemaVersion: SCHEMA_VERSION,
+      thresholds: {
+        staleAfterDays: 90,
+        ancientAfterDays: 360,
+        decayCapDays: 720,
+        hotCommits: 5,
+        hotWindowDays: 30,
+      },
     },
     folders: [
       { path: '', parent: null },
@@ -114,6 +121,48 @@ describe('validateGraveyard', () => {
     ])('rejects the date %s', (date) => {
       expect(errorsAfter((g) => (g.meta.snapshotDate = date))).toEqual([
         'meta.snapshotDate must be an ISO 8601 UTC date',
+      ]);
+    });
+  });
+
+  describe('thresholds', () => {
+    it('is part of the metadata, and the schema version is 2', () => {
+      expect(SCHEMA_VERSION).toBe(2);
+      expect(errorsAfter((g) => Reflect.deleteProperty(g.meta, 'thresholds'))).toEqual(['meta.thresholds must be an object']);
+    });
+
+    it('accepts other valid thresholds', () => {
+      expect(
+        errorsAfter((g) => {
+          g.meta.thresholds = { staleAfterDays: 7, ancientAfterDays: 30, decayCapDays: 60, hotCommits: 1, hotWindowDays: 1 };
+        }),
+      ).toEqual([]);
+    });
+
+    it.each(['staleAfterDays', 'ancientAfterDays', 'decayCapDays', 'hotCommits', 'hotWindowDays'] as const)(
+      'rejects a zero, negative, fractional or missing %s',
+      (name) => {
+        for (const bad of [0, -3, 2.5, Number.NaN, '90', undefined]) {
+          const errors = errorsAfter((g) => Reflect.set(g.meta.thresholds, name, bad));
+          expect(errors).toContain(`meta.thresholds.${name} must be a positive whole number`);
+        }
+      },
+    );
+
+    it('rejects ancientAfterDays that is not greater than staleAfterDays', () => {
+      const equal = errorsAfter((g) => {
+        g.meta.thresholds = { staleAfterDays: 100, ancientAfterDays: 100, decayCapDays: 200, hotCommits: 5, hotWindowDays: 30 };
+      });
+      expect(equal).toEqual(['meta.thresholds.ancientAfterDays must be greater than staleAfterDays']);
+      const lower = errorsAfter((g) => {
+        g.meta.thresholds = { staleAfterDays: 100, ancientAfterDays: 50, decayCapDays: 100, hotCommits: 5, hotWindowDays: 30 };
+      });
+      expect(lower).toEqual(['meta.thresholds.ancientAfterDays must be greater than staleAfterDays']);
+    });
+
+    it('rejects a decay cap that is not twice ancientAfterDays', () => {
+      expect(errorsAfter((g) => (g.meta.thresholds.decayCapDays = 721))).toEqual([
+        'meta.thresholds.decayCapDays must be 2 x ancientAfterDays',
       ]);
     });
   });

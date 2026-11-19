@@ -4,9 +4,10 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { validateGraveyard, type Ghost, type Graveyard } from '../../shared/graveyard-schema';
+import { validateGraveyard, type Ghost, type Graveyard, type Thresholds } from '../../shared/graveyard-schema';
 import {
   PATH_POOL,
+  thresholdsArb,
   episodeChoiceArb,
   fitEpisode,
   replay,
@@ -14,6 +15,7 @@ import {
   wholeSecondScenarioArb,
 } from '../test/arbitraries';
 import { makeRepo } from '../test/make-repo';
+import { MS_PER_DAY } from './core/decay';
 import { countNonBlankLines, isTrackedSourcePath } from './core/files';
 import { compareCodePoint } from './core/sort';
 import type { KnipProcessResult } from './io/knip';
@@ -38,10 +40,10 @@ const knipResult = (unused: readonly string[]): KnipProcessResult => ({
   stderr: '',
 });
 
-async function analyse(repoDir: string, outFile: string, unused: readonly string[]): Promise<string> {
+async function analyse(repoDir: string, outFile: string, unused: readonly string[], thresholds: Thresholds): Promise<string> {
   const deps: PipelineDeps = { log: () => {}, runKnip: async () => knipResult(unused) };
   const { outPath } = await runPipeline(
-    { repoPath: repoDir, outPath: outFile, analysedAt: ANALYSED_AT, cwd: tmpdir() },
+    { repoPath: repoDir, outPath: outFile, analysedAt: ANALYSED_AT, cwd: tmpdir(), thresholds },
     deps,
   );
   return readFileSync(outPath, 'utf8');
@@ -74,10 +76,11 @@ describe('end to end on random real repositories', () => {
           wholeSecondScenarioArb,
           episodeChoiceArb,
           fc.subarray<string>([...PATH_POOL]),
-          async (script, choice, unusedPaths) => {
+          thresholdsArb,
+          async (script, choice, unusedPaths, thresholds) => {
             const episode = fitEpisode(choice, script.length);
             const snapshotMs = script[script.length - 1]!.date;
-            const model = replay(script, snapshotMs);
+            const model = replay(script, snapshotMs, thresholds.hotWindowDays);
             const plan = toRepoPlan(script, model, episode);
             const built = makeRepo(plan.steps);
             const outDir = mkdtempSync(join(tmpdir(), 'rip-e2e-'));
@@ -90,12 +93,28 @@ describe('end to end on random real repositories', () => {
               if ([...model.lastRemoval.keys()].some((p) => model.present.has(p))) seen.reAdds++;
 
               // P2 end to end: two runs on the same snapshot give the same bytes.
-              const first = await analyse(built.dir, join(outDir, 'a.json'), unusedPaths);
-              const second = await analyse(built.dir, join(outDir, 'b.json'), unusedPaths);
+              const first = await analyse(built.dir, join(outDir, 'a.json'), unusedPaths, thresholds);
+              const second = await analyse(built.dir, join(outDir, 'b.json'), unusedPaths, thresholds);
               expect(second).toBe(first);
 
               const g = JSON.parse(first) as Graveyard;
               expect(validateGraveyard(g)).toEqual({ ok: true });
+
+              // The thresholds are recorded, and every file's decay agrees with them (P7), by formulas written out here.
+              expect(g.meta.thresholds).toEqual(thresholds);
+              for (const file of g.files) {
+                const age = Math.max(0, Math.floor((snapshotMs - Date.parse(file.lastCommitDate)) / MS_PER_DAY));
+                const state = age < thresholds.staleAfterDays ? 'fresh' : age <= thresholds.ancientAfterDays ? 'stale' : 'ancient';
+                const score =
+                  Math.round(
+                    (0.4 * (Math.min(age, thresholds.decayCapDays) / thresholds.decayCapDays) + (file.unused ? 0.6 : 0)) * 10_000,
+                  ) / 10_000;
+                expect({ state: file.decayState, score: file.decayScore, hot: file.hot }).toEqual({
+                  state,
+                  score,
+                  hot: file.commitsLast30Days >= thresholds.hotCommits,
+                });
+              }
 
               const mainSha = (i: number): string => built.shas[plan.mainShaIndex[i]!]!;
               expect(g.meta.snapshotSha).toBe(mainSha(script.length - 1));

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import fc from 'fast-check';
 import type { Change, CommitRecord } from '../src/core/commit-record';
-import { HOT_WINDOW_DAYS, MS_PER_DAY } from '../src/core/decay';
+import type { Thresholds } from '../../shared/graveyard-schema';
+import { MS_PER_DAY } from '../src/core/decay';
+import { DEFAULT_THRESHOLDS, thresholdsFrom } from '../src/core/thresholds';
 import type { Op, Step } from './make-repo';
 
 /**
@@ -76,6 +78,44 @@ export const wholeSecondScenarioArb: fc.Arbitrary<ScriptCommit[]> = scenarioArb.
   script.map((commit) => ({ ...commit, date: Math.floor(commit.date / 1000) * 1000 })),
 );
 
+/**
+ * Random valid thresholds, about one time in five the defaults. The ranges straddle the ages
+ * that the generated histories produce (up to about 405 days), so every state turns up.
+ */
+export const thresholdsArb: fc.Arbitrary<Thresholds> = fc.oneof(
+  { weight: 1, arbitrary: fc.constant(DEFAULT_THRESHOLDS) },
+  {
+    weight: 4,
+    arbitrary: fc
+      .record({
+        stale: fc.integer({ min: 1, max: 400 }),
+        gap: fc.integer({ min: 1, max: 600 }),
+        hotCommits: fc.integer({ min: 1, max: 8 }),
+        hotWindow: fc.integer({ min: 1, max: 120 }),
+      })
+      .map(({ stale, gap, hotCommits, hotWindow }) =>
+        thresholdsFrom({
+          staleAfterDays: stale,
+          ancientAfterDays: stale + gap,
+          hotCommits,
+          hotWindowDays: hotWindow,
+        }),
+      ),
+  },
+);
+
+/** Valid thresholds over a much wider range, for the pure decay functions, which take any age. */
+export const wideThresholdsArb: fc.Arbitrary<Thresholds> = fc
+  .record({
+    stale: fc.integer({ min: 1, max: 5000 }),
+    gap: fc.integer({ min: 1, max: 5000 }),
+    hotCommits: fc.integer({ min: 1, max: 100 }),
+    hotWindow: fc.integer({ min: 1, max: 3650 }),
+  })
+  .map(({ stale, gap, hotCommits, hotWindow }) =>
+    thresholdsFrom({ staleAfterDays: stale, ancientAfterDays: stale + gap, hotCommits, hotWindowDays: hotWindow }),
+  );
+
 export interface Removal {
   kind: 'delete' | 'rename';
   /** Index of the commit, oldest first. */
@@ -121,8 +161,15 @@ export function contentFor(identity: number, version: number): string {
   return text;
 }
 
-/** @param snapshotMs the snapshot date, which sets the 30-day window of the expected counts. */
-export function replay(script: readonly ScriptCommit[], snapshotMs: number = SNAPSHOT_MS): Replayed {
+/**
+ * @param snapshotMs the snapshot date, which sets the end of the window of the expected counts.
+ * @param hotWindowDays the length of that window.
+ */
+export function replay(
+  script: readonly ScriptCommit[],
+  snapshotMs: number = SNAPSHOT_MS,
+  hotWindowDays: number = DEFAULT_THRESHOLDS.hotWindowDays,
+): Replayed {
   const identityAt = new Map<string, number>(); // path -> identity of the file living there
   const versionOf = new Map<number, number>(); // identity -> number of edits so far
   const touches = new Map<number, number[]>(); // identity -> indexes of commits that touched it
@@ -218,7 +265,7 @@ export function replay(script: readonly ScriptCommit[], snapshotMs: number = SNA
     });
   });
 
-  const windowStart = snapshotMs - HOT_WINDOW_DAYS * MS_PER_DAY;
+  const windowStart = snapshotMs - hotWindowDays * MS_PER_DAY;
   const expectedHistory = new Map<string, ExpectedFileHistory>();
   for (const [path, identity] of identityAt) {
     const indexes = touches.get(identity) ?? [];

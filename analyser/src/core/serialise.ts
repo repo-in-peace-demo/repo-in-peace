@@ -14,6 +14,13 @@ export function toJson(graveyard: Graveyard): string {
       snapshotDate: meta.snapshotDate,
       analysedAt: meta.analysedAt,
       schemaVersion: meta.schemaVersion,
+      thresholds: {
+        staleAfterDays: meta.thresholds.staleAfterDays,
+        ancientAfterDays: meta.thresholds.ancientAfterDays,
+        decayCapDays: meta.thresholds.decayCapDays,
+        hotCommits: meta.thresholds.hotCommits,
+        hotWindowDays: meta.thresholds.hotWindowDays,
+      },
     },
     folders: folders.map((f) => ({ path: f.path, parent: f.parent })),
     files: files.map((f) => ({

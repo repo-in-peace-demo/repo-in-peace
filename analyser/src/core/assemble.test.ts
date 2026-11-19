@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateGraveyard } from '../../../shared/graveyard-schema';
 import { AssembleError, assembleGraveyard, type AssembleInput } from './assemble';
 import type { FileHistory } from './history';
+import { DEFAULT_THRESHOLDS, thresholdsFrom } from './thresholds';
 
 const SHA_A = 'a'.repeat(40);
 const SHA_B = 'b'.repeat(40);
@@ -17,6 +18,7 @@ function sampleInput(): AssembleInput {
     snapshotSha: SHA_A,
     snapshotDate: '2026-03-01T12:00:00.000Z',
     analysedAt: '2026-03-02T15:00:00+05:30',
+    thresholds: DEFAULT_THRESHOLDS,
     files: [
       { path: 'src/old.ts', linesOfCode: 100 },
       { path: 'index.ts', linesOfCode: 12 },
@@ -44,7 +46,8 @@ describe('assembleGraveyard', () => {
       snapshotSha: SHA_A,
       snapshotDate: '2026-03-01T12:00:00.000Z',
       analysedAt: '2026-03-02T09:30:00.000Z',
-      schemaVersion: 1,
+      schemaVersion: 2,
+      thresholds: { staleAfterDays: 90, ancientAfterDays: 360, decayCapDays: 720, hotCommits: 5, hotWindowDays: 30 },
     });
   });
 
@@ -127,6 +130,24 @@ describe('assembleGraveyard', () => {
     expect(later.folders).toEqual(g.folders);
     expect(later.ghosts).toEqual(g.ghosts);
     expect(later.meta.analysedAt).toBe('2030-01-01T00:00:00.000Z');
+  });
+
+  it('scores with the thresholds it is given, and records them in the metadata', () => {
+    // Ages at the snapshot: index.ts 2 days, src/lib/mid.ts 151, src/old.ts 481.
+    const t = thresholdsFrom({ staleAfterDays: 1, ancientAfterDays: 150, hotCommits: 7, hotWindowDays: 14 });
+    const custom = assembleGraveyard({ ...sampleInput(), thresholds: t });
+
+    expect(custom.meta.thresholds).toEqual({ staleAfterDays: 1, ancientAfterDays: 150, decayCapDays: 300, hotCommits: 7, hotWindowDays: 14 });
+    expect(custom.files.map((f) => f.decayState)).toEqual(['stale', 'ancient', 'ancient']); // 2 days, 151, 481
+    expect(custom.files[1]?.decayScore).toBe(0.2013); // 0.4 * 151 / 300
+    expect(custom.files[2]?.decayScore).toBe(1); // unused, past the 300-day cap: 0.6 + 0.4
+    expect(custom.files[0]?.hot).toBe(false); // 6 recent commits, but 7 are needed
+    expect(validateGraveyard(custom)).toEqual({ ok: true });
+  });
+
+  it('marks a file hot by the configured number of commits', () => {
+    const t = thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 6, hotWindowDays: 30 });
+    expect(assembleGraveyard({ ...sampleInput(), thresholds: t }).files[0]?.hot).toBe(true);
   });
 
   it('does not change its input', () => {

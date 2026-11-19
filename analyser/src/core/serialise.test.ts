@@ -9,7 +9,8 @@ function sample(): Graveyard {
       snapshotSha: 'a'.repeat(40),
       snapshotDate: '2026-03-01T12:00:00.000Z',
       analysedAt: '2026-03-02T09:30:00.000Z',
-      schemaVersion: 1,
+      schemaVersion: 2,
+      thresholds: { staleAfterDays: 90, ancientAfterDays: 360, decayCapDays: 720, hotCommits: 5, hotWindowDays: 30 },
     },
     folders: [
       { path: '', parent: null },
@@ -86,6 +87,18 @@ describe('toJson', () => {
       'hot',
       'eulogy',
     ]);
+  });
+
+  it('writes the metadata keys in schema order, with the thresholds last', () => {
+    const metaBlock = text.slice(text.indexOf('"meta"'), text.indexOf('"folders"'));
+    const keys = [...metaBlock.matchAll(/^ {4}"(\w+)":/gm)].map((m) => m[1]);
+    expect(keys).toEqual(['name', 'snapshotSha', 'snapshotDate', 'analysedAt', 'schemaVersion', 'thresholds']);
+  });
+
+  it('writes the threshold keys in schema order', () => {
+    const block = text.slice(text.indexOf('"thresholds"'), text.indexOf('"folders"'));
+    const keys = [...block.matchAll(/^ {6}"(\w+)":/gm)].map((m) => m[1]);
+    expect(keys).toEqual(['staleAfterDays', 'ancientAfterDays', 'decayCapDays', 'hotCommits', 'hotWindowDays']);
   });
 
   it('writes the root folder parent as null, not omitted', () => {

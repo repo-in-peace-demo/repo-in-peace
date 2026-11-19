@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { validateGraveyard, type Graveyard } from '../../shared/graveyard-schema';
+import { validateGraveyard, type Graveyard, type Thresholds } from '../../shared/graveyard-schema';
 import { AssembleError, assembleGraveyard } from './core/assemble';
 import { countNonBlankLines, isTrackedSourcePath } from './core/files';
 import { HistoryError, analyseHistory } from './core/history';
@@ -8,6 +8,7 @@ import { hasKnipConfig } from './core/knip-config';
 import { describeKnipDir, missingPackageJsonMessage, prefixKnipPaths, relativeToKnipDir } from './core/knip-dirs';
 import { defaultOutputName, isInside } from './core/paths';
 import { toJson } from './core/serialise';
+import { DEFAULT_THRESHOLDS } from './core/thresholds';
 import { AnalyserError } from './errors';
 import { assertUsableRepo, listTree, mapBlobs, readLog, resolveSnapshot } from './io/git';
 import { GitLogParseError, parseGitLog } from './io/git-log-parse';
@@ -33,6 +34,8 @@ export interface PipelineOptions {
    * Default: the clone root only. Each needs a package.json.
    */
   knipDirs?: readonly string[];
+  /** Decay thresholds. Default: DEFAULT_THRESHOLDS. */
+  thresholds?: Thresholds;
   /** Base for relative `outPath` and `knipConfigPath`. */
   cwd: string;
 }
@@ -56,6 +59,7 @@ export async function runPipeline(
   deps: PipelineDeps = defaultDeps,
 ): Promise<PipelineResult> {
   const { log } = deps;
+  const thresholds = options.thresholds ?? DEFAULT_THRESHOLDS;
 
   // Cheap checks first, before any slow work.
   const knipConfigPath = options.knipConfigPath === undefined ? undefined : resolve(options.cwd, options.knipConfigPath);
@@ -75,6 +79,12 @@ export async function runPipeline(
 
   const snapshot = await resolveSnapshot(repo.root);
   log(`Analysing ${repo.name} at ${snapshot.sha.slice(0, 7)} (${snapshot.date})`);
+  if (JSON.stringify(thresholds) !== JSON.stringify(DEFAULT_THRESHOLDS)) {
+    log(
+      `Decay thresholds: stale after ${thresholds.staleAfterDays} days, ancient after ${thresholds.ancientAfterDays}, ` +
+        `hot at ${thresholds.hotCommits} commits in ${thresholds.hotWindowDays} days`,
+    );
+  }
 
   // What git tracks at the snapshot. Source files are the part the graveyard shows.
   const tree = await listTree(repo.root, snapshot.sha);
@@ -125,6 +135,7 @@ export async function runPipeline(
       commits,
       currentPaths: new Set(sourceFiles.map((f) => f.path)),
       snapshotMs: Date.parse(snapshot.date),
+      hotWindowDays: thresholds.hotWindowDays,
     }),
   );
   log(`Read ${commits.length} commits; ${history.ghosts.length} deleted files found`);
@@ -135,6 +146,7 @@ export async function runPipeline(
       snapshotSha: snapshot.sha,
       snapshotDate: snapshot.date,
       analysedAt: options.analysedAt,
+      thresholds,
       files: sourceFiles.map((f) => ({ path: f.path, linesOfCode: linesByBlob.get(f.blobSha) ?? 0 })),
       history: history.perFile,
       unused,

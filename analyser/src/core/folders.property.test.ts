@@ -8,6 +8,7 @@ import {
 } from '../../../shared/graveyard-schema';
 import { deriveFolders, folderOf } from './folders';
 import { compareCodePoint } from './sort';
+import { DEFAULT_THRESHOLDS } from './thresholds';
 
 // Directory and file names include spaces, dots, non-ASCII and names that look like
 // path pieces, to catch splitting mistakes.
@@ -121,6 +122,7 @@ describe('P4: every file has a folder in the list, and the hierarchy has no cycl
             snapshotDate: '2026-01-01T00:00:00.000Z',
             analysedAt: '2026-01-02T00:00:00.000Z',
             schemaVersion: SCHEMA_VERSION,
+            thresholds: DEFAULT_THRESHOLDS,
           },
           folders: deriveFolders(paths),
           files,

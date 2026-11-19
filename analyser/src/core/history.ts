@@ -1,5 +1,5 @@
 import type { CommitRecord } from './commit-record';
-import { HOT_WINDOW_DAYS, MS_PER_DAY } from './decay';
+import { MS_PER_DAY } from './decay';
 import { isTrackedSourcePath } from './files';
 
 /**
@@ -16,6 +16,8 @@ export interface HistoryInput {
   /** Tracked source files in the snapshot tree, after the path filters. */
   currentPaths: ReadonlySet<string>;
   snapshotMs: number;
+  /** Length of the hot window: commits count when dated after `snapshotMs` minus this many days. */
+  hotWindowDays: number;
 }
 
 export interface FileHistory {
@@ -54,8 +56,8 @@ interface Accumulator {
 }
 
 export function analyseHistory(input: HistoryInput): HistoryResult {
-  const { commits, currentPaths, snapshotMs } = input;
-  const windowStartMs = snapshotMs - HOT_WINDOW_DAYS * MS_PER_DAY;
+  const { commits, currentPaths, snapshotMs, hotWindowDays } = input;
+  const windowStartMs = snapshotMs - hotWindowDays * MS_PER_DAY;
 
   // Walking from newest to oldest, `tracked` maps a path name as it was just after
   // the commit being read to the current file it belongs to. Renames move the key

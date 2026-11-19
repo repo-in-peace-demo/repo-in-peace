@@ -89,7 +89,16 @@ Status key: `[x]` done, `[ ]` not started.
   - Mutation check: breaking the last-existing-commit rule, and removing rename following, each made the test fail with a small counterexample.
   - _Requirements: 8.4, 9.1_
 
-- [ ] 12. README and checkpoint
-  - [ ] 12.1 `analyser/README.md`: usage and flags; the decay rules and the hot threshold constant; the Knip configuration advice (use the repo's `knip.json` or `--knip-config`, why, and the warning); known limitations (merge-commit-only edits such as conflict resolutions are missed, rename detection is heuristic, any `build`/`out` directory is excluded); the dependency-install requirement.
-  - [ ] 12.2 Checkpoint. **Run:** `cd analyser && npm run typecheck && npm test`. Fix failures before moving on.
+- [x] 12. README and checkpoint
+  - [x] 12.1 `analyser/README.md`: usage and flags; the decay rules and the hot threshold constant; the Knip configuration advice (use the repo's `knip.json` or `--knip-config`, why, and the warning); known limitations (merge-commit-only edits such as conflict resolutions are missed, rename detection is heuristic, any `build`/`out` directory is excluded); the dependency-install requirement.
+  - [x] 12.2 Checkpoint. **Run:** `cd analyser && npm run typecheck && npm test`. Fix failures before moving on.
   - _Requirements: 6.8, 7.5_
+
+- [x] 13. Configurable decay thresholds (a later request)
+  - [x] 13.1 Spec: Requirements 1.9, 1.10, 2.2, 2.4, 2.7, 7 (state, score, cap, hot, validation, recording), properties P6 and P7; design: schema version 2, `Thresholds`, `core/thresholds.ts`, decay functions take the thresholds as a required argument.
+  - [x] 13.2 `shared/graveyard-schema.ts`: `SCHEMA_VERSION` 2, `meta.thresholds`, validator rules (positive whole numbers, `ancientAfterDays > staleAfterDays`, `decayCapDays = 2 x ancientAfterDays`).
+  - [x] 13.3 `core/thresholds.ts` (`DEFAULT_THRESHOLDS`, `thresholdsFrom`, `parseThresholdFlags`); `decay.ts`, `history.ts`, `assemble.ts`, `serialise.ts`, `pipeline.ts`, `cli-args.ts` take or write the thresholds; flags `--stale-after`, `--ancient-after`, `--hot-commits`, `--hot-window`, validated before the clone is read (usage error, exit 2). Negative numbers reach our own check instead of Node's vague message.
+  - [x] 13.4 Tests: generators pick random valid thresholds (`thresholdsArb`, `wideThresholdsArb`) and the model takes the hot window; P1 to P5 hold for any valid thresholds; **P6** golden file `test/golden/default-thresholds.json` (written by the analyser before the change, from `test/golden-repo.ts`) plus a frozen copy of the old formulas; **P7** state agrees with the thresholds, for pure inputs, assembled outputs and end-to-end runs.
+  - [x] 13.5 `analyser/README.md`: flags, defaults, decay rules, "the demo uses the defaults", Knip advice and security note, known limitations.
+  - Decisions to review: (a) the edges keep the original asymmetry (stale from the limit, ancient only after it), because the request required default output to be unchanged; the request's property text read as if ancient started at the limit, which would change age 360 from stale to ancient. (b) `commitsLast30Days` keeps its name, because the same request said only the meta fields and schema version may differ; it now counts the hot window. (c) For a decay cap above 2000 days, 4-decimal rounding can repeat a score on adjacent days; it never decreases.
+  - Verified: `npx tsc --noEmit` clean; `npx vitest run` 538 tests in 27 files, three runs in a row; mutation checks (hot window hard-coded to 30, decay cap hard-coded to 720) each fail the tests.

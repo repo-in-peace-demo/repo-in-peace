@@ -3,6 +3,7 @@ import {
   type FileEntry,
   type Ghost,
   type Graveyard,
+  type Thresholds,
 } from '../../../shared/graveyard-schema';
 import { ageDays, decayScore, decayState, isHot } from './decay';
 import { deriveFolders, folderOf } from './folders';
@@ -21,6 +22,8 @@ export interface AssembleInput {
   snapshotDate: string;
   /** Any ISO 8601 form; written as UTC. */
   analysedAt: string;
+  /** The decay thresholds to score with. Written to `meta.thresholds`. */
+  thresholds: Thresholds;
   /** Current files from the snapshot tree, after the path filters. */
   files: ReadonlyArray<{ path: string; linesOfCode: number }>;
   /** From analyseHistory. Must have an entry for every file. */
@@ -57,9 +60,9 @@ export function assembleGraveyard(input: AssembleInput): Graveyard {
         lastCommitAuthor: history.lastCommitAuthor,
         commitsLast30Days: history.commitsLast30Days,
         unused,
-        decayScore: decayScore(age, unused),
-        decayState: decayState(age),
-        hot: isHot(history.commitsLast30Days),
+        decayScore: decayScore(age, unused, input.thresholds),
+        decayState: decayState(age, input.thresholds),
+        hot: isHot(history.commitsLast30Days, input.thresholds),
         eulogy: '',
       };
     })
@@ -82,6 +85,7 @@ export function assembleGraveyard(input: AssembleInput): Graveyard {
       snapshotDate: new Date(snapshotMs).toISOString(),
       analysedAt: new Date(analysedMs).toISOString(),
       schemaVersion: SCHEMA_VERSION,
+      thresholds: { ...input.thresholds },
     },
     folders: deriveFolders(files.map((f) => f.path)),
     files,

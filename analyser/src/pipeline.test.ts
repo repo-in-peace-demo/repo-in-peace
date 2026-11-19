@@ -1,10 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { validateGraveyard, type Graveyard } from '../../shared/graveyard-schema';
+import { GOLDEN_ANALYSED_AT, GOLDEN_UNUSED, goldenSteps } from '../test/golden-repo';
 import { makeRepo, type BuiltRepo, type Step } from '../test/make-repo';
+import { thresholdsFrom } from './core/thresholds';
 import { AnalyserError } from './errors';
 import { KNIP_ADVICE, KNIP_DIR_ADVICE, type KnipProcessResult, type KnipRunOptions } from './io/knip';
 import { runPipeline, type PipelineDeps, type PipelineOptions } from './pipeline';
@@ -132,7 +135,8 @@ describe('runPipeline on a real repository', () => {
       snapshotSha: demo.shas.at(-1),
       snapshotDate: '2026-02-20T10:00:00.000Z',
       analysedAt: ANALYSED_AT,
-      schemaVersion: 1,
+      schemaVersion: 2,
+      thresholds: { staleAfterDays: 90, ancientAfterDays: 360, decayCapDays: 720, hotCommits: 5, hotWindowDays: 30 },
     });
   });
 
@@ -518,5 +522,152 @@ describe('Knip folders (--knip-dir)', () => {
     const error = await errorOf(runPipeline(optionsFor(polyglot, tempDir(), { knipDirs: ['app'] }), failing.deps));
     expect(error.message).toContain(KNIP_DIR_ADVICE);
     expect(error.message).not.toContain(KNIP_ADVICE);
+  });
+});
+
+// ---- Decay thresholds ----
+
+describe('P6: with the default thresholds the output is what the analyser wrote before thresholds were configurable', () => {
+  const goldenPath = fileURLToPath(new URL('../test/golden/default-thresholds.json', import.meta.url));
+  const golden = readFileSync(goldenPath, 'utf8');
+  const goldenRepo = build(goldenSteps);
+  const unusedStub = harness(knipOk(...GOLDEN_UNUSED));
+
+  const run = async (extra: Partial<PipelineOptions> = {}) => {
+    const out = tempDir();
+    const result = await runPipeline(
+      { repoPath: goldenRepo.dir, outPath: join(out, 'g.json'), analysedAt: GOLDEN_ANALYSED_AT, cwd: out, ...extra },
+      unusedStub.deps,
+    );
+    return { text: readFileSync(result.outPath, 'utf8'), graveyard: result.graveyard };
+  };
+
+  /** What version 1 wrote: no thresholds in the metadata, schema version 1, and the temporary directory's name masked. */
+  const asVersion1 = (text: string): string => {
+    const g = JSON.parse(text) as Graveyard;
+    const meta = g.meta as unknown as Record<string, unknown>;
+    delete meta['thresholds'];
+    meta['schemaVersion'] = 1;
+    meta['name'] = 'REPO';
+    return `${JSON.stringify(g, null, 2)}\n`;
+  };
+
+  it('is byte for byte the golden file, once the new metadata fields are taken out', async () => {
+    expect(asVersion1((await run()).text)).toBe(golden);
+  });
+
+  it('is the same when the default values are passed explicitly', async () => {
+    const explicit = thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 5, hotWindowDays: 30 });
+    expect(asVersion1((await run({ thresholds: explicit })).text)).toBe(golden);
+  });
+
+  it('is a golden file that covers every state, unused and hot files, a rename and a ghost', () => {
+    const g = JSON.parse(golden) as Graveyard;
+    expect(new Set(g.files.map((f) => f.decayState))).toEqual(new Set(['fresh', 'stale', 'ancient']));
+    expect(g.files.some((f) => f.unused)).toBe(true);
+    expect(g.files.some((f) => f.hot)).toBe(true);
+    expect(g.files.map((f) => f.path)).toContain('src/moved.ts');
+    expect(g.ghosts.map((x) => x.path)).toEqual(['ghost.ts']);
+    // The edges: 89 days is fresh, 90 and 360 are stale, 361 is ancient.
+    const state = (path: string) => g.files.find((f) => f.path === path)?.decayState;
+    expect([state('src/at89.ts'), state('src/at90.ts'), state('src/at360.ts'), state('src/at361.ts')]).toEqual([
+      'fresh',
+      'stale',
+      'stale',
+      'ancient',
+    ]);
+  });
+
+  it('writes the thresholds and schema version 2 into the metadata', async () => {
+    const { graveyard } = await run();
+    expect(graveyard.meta.schemaVersion).toBe(2);
+    expect(graveyard.meta.thresholds).toEqual({
+      staleAfterDays: 90,
+      ancientAfterDays: 360,
+      decayCapDays: 720,
+      hotCommits: 5,
+      hotWindowDays: 30,
+    });
+  });
+
+  it('does not log a thresholds line when the defaults are used', async () => {
+    const quiet = harness(knipOk());
+    await runPipeline({ repoPath: goldenRepo.dir, outPath: join(tempDir(), 'g.json'), analysedAt: GOLDEN_ANALYSED_AT, cwd: tempDir() }, quiet.deps);
+    expect(quiet.logs.some((m) => m.startsWith('Decay thresholds'))).toBe(false);
+  });
+});
+
+describe('custom decay thresholds through the whole pipeline', () => {
+  const goldenRepo = build(goldenSteps);
+  const analyseWith = async (thresholds: PipelineOptions['thresholds']) => {
+    const h = harness(knipOk(...GOLDEN_UNUSED));
+    const out = tempDir();
+    const { graveyard } = await runPipeline(
+      { repoPath: goldenRepo.dir, outPath: join(out, 'g.json'), analysedAt: GOLDEN_ANALYSED_AT, cwd: out, thresholds },
+      h.deps,
+    );
+    return { graveyard, logs: h.logs };
+  };
+  const byPath = (g: Graveyard, path: string) => g.files.find((f) => f.path === path)!;
+
+  it('moves the edges between the states, and records the thresholds', async () => {
+    // Ages: at89 89, at90 90, at360 360, at361 361, mid 148, old 415, a 0.
+    const t = thresholdsFrom({ staleAfterDays: 100, ancientAfterDays: 300, hotCommits: 5, hotWindowDays: 30 });
+    const { graveyard: g } = await analyseWith(t);
+    expect(g.meta.thresholds).toEqual(t);
+    expect(g.files.map((f) => [f.path, f.decayState])).toEqual([
+      ['src/a.ts', 'fresh'],
+      ['src/at360.ts', 'ancient'], // 360 > 300
+      ['src/at361.ts', 'ancient'],
+      ['src/at89.ts', 'fresh'],
+      ['src/at90.ts', 'fresh'], // 90 < 100
+      ['src/mid.ts', 'stale'], // 148
+      ['src/mid2.ts', 'stale'],
+      ['src/moved.ts', 'fresh'],
+      ['src/old.ts', 'ancient'],
+    ]);
+  });
+
+  it('applies the edges exactly: stale from staleAfterDays, ancient only after ancientAfterDays', async () => {
+    const t = thresholdsFrom({ staleAfterDays: 89, ancientAfterDays: 90, hotCommits: 5, hotWindowDays: 30 });
+    const { graveyard: g } = await analyseWith(t);
+    expect(byPath(g, 'src/at89.ts').decayState).toBe('stale'); // 89 is the first stale day
+    expect(byPath(g, 'src/at90.ts').decayState).toBe('stale'); // 90 is the last stale day
+    expect(byPath(g, 'src/mid.ts').decayState).toBe('ancient'); // 148
+  });
+
+  it('caps the age score at twice ancientAfterDays', async () => {
+    const t = thresholdsFrom({ staleAfterDays: 30, ancientAfterDays: 100, hotCommits: 5, hotWindowDays: 30 }); // cap 200
+    const { graveyard: g } = await analyseWith(t);
+    expect(byPath(g, 'src/at360.ts').decayScore).toBe(0.4); // 360 days, past the cap, not unused
+    expect(byPath(g, 'src/at361.ts').decayScore).toBe(0.4);
+    expect(byPath(g, 'src/at89.ts').decayScore).toBe(0.178); // 0.4 * 89 / 200
+    expect(byPath(g, 'src/old.ts').decayScore).toBe(1); // unused, past the cap: 0.6 + 0.4
+  });
+
+  it('counts recent commits in the configured window and marks hot by the configured count', async () => {
+    // src/a.ts was edited on Feb 16 to 20 at 09:00; the snapshot is Feb 20 at 10:00.
+    const wide = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 6, hotWindowDays: 60 }));
+    expect(byPath(wide.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 5, hot: false }); // 5 < 6
+
+    const narrow = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 2, hotWindowDays: 2 }));
+    expect(byPath(narrow.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 2, hot: true }); // Feb 19 and 20
+
+    const tiny = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 2, hotWindowDays: 1 }));
+    expect(byPath(tiny.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 1, hot: false }); // Feb 20 only
+  });
+
+  it('leaves everything that is not decay unchanged', async () => {
+    const base = (await analyseWith(undefined)).graveyard;
+    const other = (await analyseWith(thresholdsFrom({ staleAfterDays: 10, ancientAfterDays: 20, hotCommits: 5, hotWindowDays: 30 }))).graveyard;
+    const strip = (g: Graveyard) => g.files.map(({ decayScore: _a, decayState: _b, ...rest }) => rest);
+    expect(strip(other)).toEqual(strip(base));
+    expect(other.folders).toEqual(base.folders);
+    expect(other.ghosts).toEqual(base.ghosts);
+  });
+
+  it('logs the thresholds when they are not the defaults', async () => {
+    const { logs } = await analyseWith(thresholdsFrom({ staleAfterDays: 30, ancientAfterDays: 200, hotCommits: 3, hotWindowDays: 14 }));
+    expect(logs).toContain('Decay thresholds: stale after 30 days, ancient after 200, hot at 3 commits in 14 days');
   });
 });

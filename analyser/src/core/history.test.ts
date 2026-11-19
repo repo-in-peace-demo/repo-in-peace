@@ -33,7 +33,10 @@ const del = (path: string): Change => ({ kind: 'delete', path });
 const rename = (oldPath: string, path: string): Change => ({ kind: 'rename', oldPath, path });
 
 const run = (commits: CommitRecord[], ...current: string[]) =>
-  analyseHistory({ commits, currentPaths: new Set(current), snapshotMs: S });
+  analyseHistory({ commits, currentPaths: new Set(current), snapshotMs: S, hotWindowDays: 30 });
+
+const runWithWindow = (hotWindowDays: number, commits: CommitRecord[], ...current: string[]) =>
+  analyseHistory({ commits, currentPaths: new Set(current), snapshotMs: S, hotWindowDays });
 
 describe('last commit and the 30-day count', () => {
   it('takes the date and author of the latest commit that touched the file', () => {
@@ -67,6 +70,39 @@ describe('last commit and the 30-day count', () => {
       'a.ts',
     );
     expect(perFile.get('a.ts')?.commitsLast30Days).toBe(4);
+  });
+
+  it('counts commits inside a shorter hot window only', () => {
+    const commits = linear(
+      { at: ago(60), changes: [add('a.ts')] },
+      { at: ago(10), changes: [modify('a.ts')] },
+      { at: ago(7) + 1, changes: [modify('a.ts')] }, // 1 ms inside a 7-day window
+      { at: ago(7), changes: [modify('a.ts')] }, // exactly 7 days before: outside
+      { at: ago(2), changes: [modify('a.ts')] },
+    );
+    expect(runWithWindow(7, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(2);
+    expect(runWithWindow(8, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(3);
+    expect(runWithWindow(30, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(4);
+  });
+
+  it('counts commits inside a longer hot window', () => {
+    const commits = linear(
+      { at: ago(300), changes: [add('a.ts')] },
+      { at: ago(100), changes: [modify('a.ts')] },
+      { at: ago(50), changes: [modify('a.ts')] },
+    );
+    expect(runWithWindow(120, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(2);
+    expect(runWithWindow(365, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(3);
+  });
+
+  it('does not change the last commit when the window changes', () => {
+    const commits = linear({ at: ago(100), changes: [add('a.ts')] }, { at: ago(50), author: 'Bob', changes: [modify('a.ts')] });
+    for (const window of [1, 30, 400]) {
+      expect(runWithWindow(window, commits, 'a.ts').perFile.get('a.ts')).toMatchObject({
+        lastCommitDate: iso(ago(50)),
+        lastCommitAuthor: 'Bob',
+      });
+    }
   });
 
   it('still reports a commit dated after the snapshot as the last commit', () => {
