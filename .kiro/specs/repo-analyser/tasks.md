@@ -28,10 +28,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 7_
 
-- [ ] 4. File rules (`core/files.ts`)
-  - [ ] 4.1 `isTrackedSourcePath`: extension list, excluded directory segments (`node_modules`, `dist`, `build`, `coverage`, `.next`, `out`), declaration files.
-  - [ ] 4.2 `countNonBlankLines`: UTF-8, LF and CRLF, whitespace-only lines are blank.
-  - [ ] 4.3 Unit and property tests: excluded segment anywhere gives false; non-blank count equals the number of lines matching `/\S/`.
+- [x] 4. File rules (`core/files.ts`)
+  - [x] 4.1 `isTrackedSourcePath`: extension list, excluded directory segments (`node_modules`, `dist`, `build`, `coverage`, `.next`, `out`), declaration files.
+  - [x] 4.2 `countNonBlankLines`: UTF-8, LF and CRLF, whitespace-only lines are blank.
+  - [x] 4.3 Unit and property tests: excluded segment anywhere gives false; non-blank count equals the number of lines matching `/\S/`.
+  - **Run:** `cd analyser && npm run typecheck && npm test`
   - _Requirements: 3_
 
 - [ ] 5. Folders (`core/folders.ts`)
