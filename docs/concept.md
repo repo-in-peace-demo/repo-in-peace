@@ -129,7 +129,7 @@ All audio and fonts original or CC0; no film clips.
 
 ## Timeline to Dec 4
 
-The build starts Nov 10, once SPECS is submitted, and aims to be feature complete by Nov 28.
+The build starts Nov 19, once SPECS is submitted, and aims to be feature complete by Nov 28.
 
 &#91;embedded content: Build plan · 5 phases, 2 gates\]
 
