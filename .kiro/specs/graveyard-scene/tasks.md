@@ -96,13 +96,14 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 8.3 to 8.6_
 
-- [ ] 12. Synthetic graveyard and scene model
+- [x] 12. Synthetic graveyard and scene model
   - [x] 12.1 `model/synthetic.ts` and its tests: done in task 5.1, because the layout properties are built on it.
-  - [ ] 12.2 `model/scene-model.ts` (`buildSceneModel`) and a test that its lookup has exactly one entry per file and ghost.
-  - [ ] 12.3 Speed guards: a 2,000-file synthetic graveyard lays out in under 1 second; a 300-level chain lays out without error.
+  - [x] 12.2 `model/scene-model.ts` (`buildSceneModel`): layout, a stone and a ghost model for every file and ghost (with their look), a floor for every plot, the lookup by path, statistics, legend, sign sources, pick boxes, fly targets and the starting pose, all once. `DEFAULT_FOV_Y` (50) added to `camera-pose.ts`. `scene-model.test.ts`: the lookup has exactly one entry per file and ghost and each points at the right item (also for generated graveyards of every shape); stones and ghosts are in the layout's order with their own layout and look; one pick box, fly target, sign and floor for what it should; the same model every time and for shuffled input; the real files can all be found, flown to and picked; the oikos fresh unused stone is clean, upright and cracked; the spatialql ghosts have their look; an empty graveyard; the data file is not changed.
+  - [x] 12.3 Speed guards in `scene-model.test.ts`, which catch a slowdown that grows with the square of the size and not a few milliseconds: 2,000 files of every shape lay out in under 1 second and the whole model builds in under 2; a chain of 1,000 folders builds without running out of stack; 300 picks among 2,000 stones and 500 sign selections take under a second.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 11.2, 11.3, 11.6_
 
-- [ ] 13. **Checkpoint A: the model is complete**
+- [x] 13. **Checkpoint A: the model is complete**. The whole suite (`npm run typecheck && npm test`) passed after task 12.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - Look for: all tests pass, including the two real-data tests. Send me any failure; fast-check prints a small counterexample that usually shows the bug.
 

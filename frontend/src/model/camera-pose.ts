@@ -16,6 +16,9 @@ export interface CameraPose {
 
 // ---- The starting view ----
 
+/** The vertical field of view of the scene's camera, in degrees. The starting view is fitted to it. */
+export const DEFAULT_FOV_Y = 50;
+
 /** The camera starts in front of and above the graveyard, along this direction from its centre. */
 const START_DIRECTION = normalize(vec3(0, 0.6, 1));
 

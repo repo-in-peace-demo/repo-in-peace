@@ -237,14 +237,16 @@ interface SceneModel {
   layout: Layout
   stones: Array<{ file: FileEntry; layout: StoneLayout; visual: StoneVisual }>
   ghosts: Array<{ ghost: Ghost; layout: GhostLayout; visual: GhostVisual }>
+  floors: Array<{ plot: PlotLayout; shade: number }>   // one per plot, shade = plotFloorShade(depth)
   lookup: Map<string, { kind: 'file' | 'ghost'; index: number }>
   stats: Stats
-  legend: LegendEntry[]
+  legend: Legend
   signSources: SignSource[]
   pickTargets: PickTarget[]
+  flyTargets: Map<string, FlyTarget>
   start: CameraPose
 }
-buildSceneModel(graveyard: Graveyard): SceneModel
+buildSceneModel(graveyard: Graveyard, fovY = DEFAULT_FOV_Y): SceneModel     // DEFAULT_FOV_Y = 50, in camera-pose.ts
 ```
 
 It is built once per loaded file inside `useMemo`. It is the only thing the scene components receive.
