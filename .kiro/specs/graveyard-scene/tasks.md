@@ -169,8 +169,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` with both files and check by hand: hovering a stone shows the label and a pale highlight; the label disappears as soon as you orbit or pan and returns when you move the pointer after letting go; a click selects (white stone and a ring); a drag, however it ends over a stone, leaves the selection alone; a click on empty ground and Escape both clear it and the camera does not move; right-click does not select; `window.repoInPeace.select({ kind: 'file', path: '<a path>' })` in the console highlights it and shows the ring, and `window.repoInPeace.clearSelection()` removes both; a ghost shows `ghost` before its name; the oikos file `app/components/voice/index.ts` shows the folder `app/components/voice`; a file in the root shows `/`.
   - _Requirements: 8_
 
-- [ ] 19. Signs
-  - [ ] 19.1 `ui/SignLayer.tsx`: a fixed pool of 30 elements; updated only when the camera moved; text, position and opacity from `visibleSigns`; projected with the camera; hidden when unused.
+- [x] 19. Signs
+  - [x] 19.1 Pure parts with tests: `model/sign-placement.ts` (`placeSigns`: slots 0 to n-1 with no gaps, at most the pool size, a sign that cannot be projected is skipped) and `model/view-signature.ts` (`sameView`: the camera, lens and scene size unchanged means nothing to do).
+  - [x] 19.2 `ui/SignLayer.tsx`: a fixed pool of 30 empty elements, created once. `scene/SignDriver.tsx` (inside the canvas): each frame compares the view with the last one and returns at once if it is the same; otherwise `visibleSigns`, projects each anchor with the camera, and writes text (as text, never markup), position and opacity into the pool, touching only what changed; unused elements are hidden. In development builds it counts its updates in `data-updates` for the browser test.
+  - [x] 19.3 `e2e/signs.spec.ts`: the signs on the page equal `visibleSigns` for the camera's pose (same labels, same order, opacity within 0.02) at the start, flying into `src/data` and back, and backing away; the 30 elements are the same elements after moving; nothing is recomputed while the camera is still and it is recomputed when it moves; a sign lets clicks through.
+  - **Run:** `cd frontend && npm run typecheck && npm test && npm run e2e`, then `npm run dev` with both files: the root name is readable from the start and fades as you back away; a small folder's name appears only when you fly close and fades as you leave; no more than a handful at once; none in the empty distance.
   - _Requirements: 10, 11.5_
 
 - [ ] 20. **Checkpoint B: the layout on real data**

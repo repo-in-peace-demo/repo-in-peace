@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber';
+import { useRef } from 'react';
 import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
 import { CameraRig } from './CameraRig';
@@ -8,6 +9,8 @@ import { Ground, PlotFloors } from './Ground';
 import { Picker } from './Picker';
 import { Plaques } from './Plaques';
 import { SelectionRing } from './SelectionRing';
+import { SignDriver } from './SignDriver';
+import { SignLayer } from '../ui/SignLayer';
 import { Ghosts, Stones } from './Stones';
 
 /**
@@ -18,6 +21,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
   const { w, d } = model.layout.bounds;
   const radius = Math.hypot(w, d) / 2;
   const { position } = model.start;
+  const signs = useRef<HTMLDivElement>(null);
 
   return (
     <div className="scene">
@@ -39,7 +43,9 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Ghosts model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />
+        <SignDriver model={model} container={signs} />
       </Canvas>
+      <SignLayer containerRef={signs} />
     </div>
   );
 }
