@@ -1,7 +1,7 @@
 import { STONE_D, STONE_W } from './layout-constants';
 import { compareCodePoint } from './sort';
 import type { Vec3 } from './vec3';
-import { GHOST_D, GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT, GHOST_W } from './visual-constants';
+import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT, GHOST_PICK_HALF } from './visual-constants';
 
 /**
  * Which stone or ghost is under the pointer. Pure: a ray from the camera through the pointer is tested against one
@@ -62,14 +62,14 @@ export function buildPickTargets(stones: readonly PickStone[], ghosts: readonly 
       kind: 'ghost',
       path: ghost.path,
       min: {
-        x: ghost.x - GHOST_W / 2 - PICK_PADDING,
+        x: ghost.x - GHOST_PICK_HALF - PICK_PADDING,
         y: GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE,
-        z: ghost.z - GHOST_D / 2 - PICK_PADDING,
+        z: ghost.z - GHOST_PICK_HALF - PICK_PADDING,
       },
       max: {
-        x: ghost.x + GHOST_W / 2 + PICK_PADDING,
+        x: ghost.x + GHOST_PICK_HALF + PICK_PADDING,
         y: GHOST_FLOAT_BASE + GHOST_HEIGHT + GHOST_FLOAT_AMPLITUDE,
-        z: ghost.z + GHOST_D / 2 + PICK_PADDING,
+        z: ghost.z + GHOST_PICK_HALF + PICK_PADDING,
       },
     });
   }

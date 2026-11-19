@@ -1,6 +1,7 @@
 import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
-import { freezeAnimation, freezeAnimationAt, resumeAnimation } from './animation-clock';
+import { freezeAnimation, freezeAnimationAt, isReducedMotion, resumeAnimation } from './animation-clock';
+import { atlasDebug } from './ghost-tag-atlas';
 import { flyTo, resetView } from './api';
 
 /**
@@ -19,6 +20,10 @@ export interface RepoInPeaceDevApi {
   /** Holds every animation at this time in seconds (a ghost's bob, a flame's flicker), to see the scene at a chosen moment. */
   setAnimationTime: (seconds: number) => void;
   resumeAnimation: () => void;
+  /** Whether the animation clock is standing still because the system asks for reduced motion. */
+  isReducedMotion: () => boolean;
+  /** For each ghost-tag text, how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
+  getGhostTagAtlas: () => Record<string, number>;
   /** Where the camera is and what it looks at, right now. */
   getPose: () => CameraPose;
   /** The page position (in pixels) of the middle of the stone or ghost with this path, or `null` when it is behind the camera or unknown. */
@@ -43,7 +48,7 @@ export function installDevApi(
     const centre = centreOf(path);
     return centre === null ? null : projectPoint(centre.x, centre.y, centre.z);
   };
-  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation };
+  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }) };
   window.repoInPeace = api;
   return () => {
     if (window.repoInPeace === api) delete window.repoInPeace;

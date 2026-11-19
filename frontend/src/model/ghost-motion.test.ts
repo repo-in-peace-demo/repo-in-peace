@@ -25,7 +25,7 @@ describe('ghostBaseHeight', () => {
   });
 
   it('keeps a clear gap under the ghost at every time: at least the base minus the amplitude, which is well off the ground', () => {
-    expect(GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE).toBeGreaterThanOrEqual(0.5);
+    expect(GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE).toBeGreaterThanOrEqual(0.4); // never closer to the ground than 0.4
     fc.assert(
       fc.property(fc.string({ minLength: 1 }), fc.double({ min: 0, max: 1e5, noNaN: true }), (path, seconds) => {
         return ghostBaseHeight(visual(path), seconds) >= GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE - 1e-12;

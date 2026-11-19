@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
 import { CameraRig } from './CameraRig';
 import { Candles } from './Candles';
 import { BACKGROUND_COLOR } from './colors';
 import { Fences } from './Fences';
+import { watchReducedMotion } from './reduced-motion';
 import { Ground, PlotFloors } from './Ground';
 import { Picker } from './Picker';
 import { Plaques } from './Plaques';
@@ -24,6 +25,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
   const radius = Math.hypot(w, d) / 2;
   const { position } = model.start;
   const signs = useRef<HTMLDivElement>(null);
+  useEffect(() => watchReducedMotion(), []); // reduced motion stops the animation
 
   return (
     <div className="scene">

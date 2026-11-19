@@ -1,55 +1,97 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { ghostTagText, tagAtlasTexts } from '../model/ghost-tag';
 import { GHOST_PROFILE } from '../model/ghost-shape';
 import type { SceneModel } from '../model/scene-model';
 import { animationTime } from './animation-clock';
 import { makeGhostMaterial } from './ghost-material';
+import { makePoolMaterial, POOL_LIFT, POOL_RADIUS } from './ghost-pool-material';
+import { makeTagAtlas } from './ghost-tag-atlas';
+import { makeTagGeometry, makeTagMaterial } from './ghost-tag-material';
 import { useRimHighlight } from './highlight';
 import { noRaycast, placement } from './instances';
 
 /**
- * The ghosts: a translucent pale-cyan figure with a rounded head that tapers away to a wisp at the bottom, floating well
- * above the ground and bobbing gently, one instanced mesh and one draw call. It is turned on a lathe from `GHOST_PROFILE`, so
- * it is round and fits inside its cell. The float and the bob are in the vertex shader (and in `ghostBaseHeight`, which the
- * selection ring reads), so an instance only needs its place on the ground and its phase.
+ * The ghosts, three instanced meshes (three draw calls however many ghosts there are):
+ *  - the figure: a pale-cyan translucent sheet ghost with a rounded head, a hem cut like curly braces, two eye holes on the side
+ *    that faces +z, bright edges, floating about a third of its height off the ground and bobbing;
+ *  - the toe tag: a small glowing card on a thread, with the type of the deleted file (`.ts`), that hangs from the ghost, sways
+ *    with it and fades its text out with distance, leaving a glint;
+ *  - the glow pool: a faint cyan light on the ground right under the ghost, which shows from a distance how high it floats.
+ * The float, the bob and the sway are in the vertex shaders, from the same formula as `ghostBaseHeight`, which the selection
+ * ring reads. An instance only needs its place on the ground, its phase and, for the tag, the cell of its text.
  */
 export function Ghosts({ model }: { model: SceneModel }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
+  const body = useRef<THREE.InstancedMesh>(null);
+  const tags = useRef<THREE.InstancedMesh>(null);
+  const pools = useRef<THREE.InstancedMesh>(null);
   const ghosts = model.ghosts;
 
   const assets = useMemo(() => {
-    const geometry = new THREE.LatheGeometry(
+    const phases = Float32Array.from(ghosts, (g) => g.visual.phase);
+    const phase = () => new THREE.InstancedBufferAttribute(phases, 1);
+
+    const bodyGeometry = new THREE.LatheGeometry(
       GHOST_PROFILE.map(([radius, height]) => new THREE.Vector2(radius, height)),
-      28,
+      96,
     );
-    geometry.setAttribute('aPhase', new THREE.InstancedBufferAttribute(Float32Array.from(ghosts, (g) => g.visual.phase), 1));
+    bodyGeometry.setAttribute('aPhase', phase());
     const highlight = new THREE.InstancedBufferAttribute(new Float32Array(ghosts.length), 1);
     highlight.setUsage(THREE.DynamicDrawUsage);
-    geometry.setAttribute('aHighlight', highlight);
-    const { material, uniforms } = makeGhostMaterial();
-    return { geometry, material, uniforms, highlight };
+    bodyGeometry.setAttribute('aHighlight', highlight);
+    const bodyMaterial = makeGhostMaterial();
+
+    const texts = tagAtlasTexts(ghosts.map((g) => g.ghost.path));
+    const atlas = makeTagAtlas(texts);
+    const tagGeometry = makeTagGeometry();
+    tagGeometry.setAttribute('aPhase', phase());
+    tagGeometry.setAttribute('aCell', new THREE.InstancedBufferAttribute(Float32Array.from(ghosts, (g) => texts.indexOf(ghostTagText(g.ghost.path))), 1));
+    const tagMaterial = makeTagMaterial(atlas);
+
+    const poolGeometry = new THREE.PlaneGeometry(2 * POOL_RADIUS, 2 * POOL_RADIUS);
+    poolGeometry.rotateX(-Math.PI / 2);
+    poolGeometry.translate(0, POOL_LIFT, 0);
+    poolGeometry.setAttribute('aPhase', phase());
+    const poolMaterial = makePoolMaterial();
+
+    return { bodyGeometry, bodyMaterial, highlight, tagGeometry, tagMaterial, atlas, poolGeometry, poolMaterial };
   }, [ghosts]);
   useEffect(
     () => () => {
-      assets.geometry.dispose();
-      assets.material.dispose();
+      assets.bodyGeometry.dispose();
+      assets.bodyMaterial.material.dispose();
+      assets.tagGeometry.dispose();
+      assets.tagMaterial.material.dispose();
+      assets.atlas.dispose();
+      assets.poolGeometry.dispose();
+      assets.poolMaterial.material.dispose();
     },
     [assets],
   );
 
   useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) return;
-    ghosts.forEach(({ layout }, i) => mesh.setMatrixAt(i, placement(layout.x, 0, layout.z, 1, 1, 1)));
-    mesh.instanceMatrix.needsUpdate = true;
+    for (const mesh of [body.current, tags.current, pools.current]) {
+      if (!mesh) continue;
+      ghosts.forEach(({ layout }, i) => mesh.setMatrixAt(i, placement(layout.x, 0, layout.z, 1, 1, 1)));
+      mesh.instanceMatrix.needsUpdate = true;
+    }
   }, [ghosts]);
 
   useRimHighlight(assets.highlight, model, 'ghost');
   useFrame(({ clock }) => {
-    assets.uniforms.uTime.value = animationTime(clock.elapsedTime);
+    const t = animationTime(clock.elapsedTime);
+    assets.bodyMaterial.uniforms.uTime.value = t;
+    assets.tagMaterial.uniforms.uTime.value = t;
+    assets.poolMaterial.uniforms.uTime.value = t;
   });
 
   if (ghosts.length === 0) return null;
-  return <instancedMesh ref={ref} args={[assets.geometry, assets.material, ghosts.length]} frustumCulled={false} raycast={noRaycast} renderOrder={4} />;
+  return (
+    <>
+      <instancedMesh ref={pools} args={[assets.poolGeometry, assets.poolMaterial.material, ghosts.length]} frustumCulled={false} raycast={noRaycast} renderOrder={3} />
+      <instancedMesh ref={body} args={[assets.bodyGeometry, assets.bodyMaterial.material, ghosts.length]} frustumCulled={false} raycast={noRaycast} renderOrder={4} />
+      <instancedMesh ref={tags} args={[assets.tagGeometry, assets.tagMaterial.material, ghosts.length]} frustumCulled={false} raycast={noRaycast} renderOrder={5} />
+    </>
+  );
 }

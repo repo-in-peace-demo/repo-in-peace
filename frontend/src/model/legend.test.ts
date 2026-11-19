@@ -26,7 +26,7 @@ describe('buildLegend with thresholds 21 / 45 / 5 commits in 30 days (the oikos_
     expect(textOf(legend, 'ancient')).toBe('Untouched more than 45 days.');
     expect(textOf(legend, 'unused')).toBe('Knip reports the file unused. This can happen with any of the above.');
     expect(textOf(legend, 'hot')).toBe('5 or more commits in the 30 days before the snapshot.');
-    expect(textOf(legend, 'ghost')).toBe('A file that was deleted.');
+    expect(textOf(legend, 'ghost')).toBe("A file that was deleted. Its tag shows the deleted file's type.");
     expect(textOf(legend, 'floor')).toBe('A folder nested deeper.');
   });
 

@@ -63,7 +63,7 @@ export function buildLegend(meta: RepoMeta): Legend {
       {
         id: 'ghost',
         title: 'Translucent floating figure',
-        text: 'A file that was deleted.',
+        text: "A file that was deleted. Its tag shows the deleted file's type.",
       },
       {
         id: 'floor',

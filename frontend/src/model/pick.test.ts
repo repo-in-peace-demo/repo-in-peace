@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PICK_PADDING, buildPickTargets, pickNearest, rayBoxDistance, type PickTarget } from './pick';
 import { STONE_D, STONE_W } from './layout-constants';
 import { vec3 } from './vec3';
-import { GHOST_D, GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT, GHOST_W } from './visual-constants';
+import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT, GHOST_PICK_HALF } from './visual-constants';
 
 const stone = (path: string, x: number, z: number, height = 2, leanDegrees = 0) => ({ path, x, z, height, leanDegrees });
 const ghost = (path: string, x: number, z: number) => ({ path, x, z });
@@ -40,8 +40,8 @@ describe('buildPickTargets', () => {
     expect(t!.kind).toBe('ghost');
     expect(t!.min.y).toBeCloseTo(GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE, 12);
     expect(t!.max.y).toBeCloseTo(GHOST_FLOAT_BASE + GHOST_HEIGHT + GHOST_FLOAT_AMPLITUDE, 12);
-    expect(t!.max.x - t!.min.x).toBeCloseTo(GHOST_W + 2 * PICK_PADDING, 12);
-    expect(t!.max.z - t!.min.z).toBeCloseTo(GHOST_D + 2 * PICK_PADDING, 12);
+    expect(t!.max.x - t!.min.x).toBeCloseTo(2 * GHOST_PICK_HALF + 2 * PICK_PADDING, 12); // wide enough to hold the file tag as well
+    expect(t!.max.z - t!.min.z).toBeCloseTo(2 * GHOST_PICK_HALF + 2 * PICK_PADDING, 12);
   });
 
   it('makes one box for every stone and ghost, with its path', () => {

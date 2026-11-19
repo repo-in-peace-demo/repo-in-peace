@@ -35,19 +35,27 @@ export const GLOW = 0.35;
 export const GHOST_OPACITY = 0.45;
 
 /** How far a ghost bobs up and down, and how fast (radians a second). */
-export const GHOST_FLOAT_AMPLITUDE = 0.15;
+export const GHOST_FLOAT_AMPLITUDE = 0.25;
 export const GHOST_FLOAT_SPEED = 0.6;
 
 /**
- * The size of a ghost's figure, and how high above the ground its lowest point floats at rest: with the bob, the gap under it
- * is always at least GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE, so it clearly floats. The camera aims at its middle.
+ * The size of a ghost's figure, roughly that of a typical stone, and how high above the ground its lowest point floats at
+ * rest: about a third of its height, so the gap under it can be seen from the default view. With the bob the gap changes
+ * between GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE and GHOST_FLOAT_BASE + GHOST_FLOAT_AMPLITUDE, by enough to notice.
+ * The camera aims at the middle of the figure.
  */
-export const GHOST_HEIGHT = 1.6;
+export const GHOST_HEIGHT = 2.0;
 export const GHOST_FLOAT_BASE = 0.7;
 
-/** The ground a ghost's figure covers, along x and along z: a round figure, so the same both ways. It is inside its cell (2.4 by 1.8). */
-export const GHOST_W = 1.0;
-export const GHOST_D = 1.0;
+/** The ground a ghost's figure covers, along x and along z: a round figure with its curled tips and its sway, so the same both ways. It is inside its cell (2.4 by 1.8). */
+export const GHOST_W = 1.3;
+export const GHOST_D = 1.3;
+
+/**
+ * The picking box of a ghost reaches this far from its middle on every side: far enough to include its file tag, which hangs
+ * at the front right of the figure. The tag is part of the ghost for picking. Still inside the stone cell.
+ */
+export const GHOST_PICK_HALF = 0.75;
 
 // ---- Plot floors ----
 
