@@ -281,7 +281,7 @@ About 30 lines, no dependency, usable outside React. It holds only the selection
 flyTo(path: string): boolean       // true when the path is a file or ghost and a flight started
 ```
 
-The scene registers itself with this module when it has a model and a camera; before that, and for an unknown path, `flyTo` returns `false` and does nothing. It starts the flight by writing the target pose into `flight.ts`; `CameraRig` runs it. In development builds `window.repoInPeace = { flyTo, getSelection, select, clearSelection }` is available to try it from the browser console.
+The scene registers itself with this module when it has a model and a camera; before that, and for an unknown path, `flyTo` returns `false` and does nothing. It starts the flight by writing the target pose into `flight.ts`; `CameraRig` runs it. In development builds `window.repoInPeace = { flyTo, resetView, getSelection, select, clearSelection, getPose }` (from `scene/dev-api.ts`, imported dynamically behind `import.meta.env.DEV`) is available to try it from the browser console.
 
 ## Rendering (`scene/`)
 

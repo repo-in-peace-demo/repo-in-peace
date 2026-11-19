@@ -45,6 +45,29 @@ export function CameraRig({ model }: { model: SceneModel }) {
     }
   }, [camera, model]);
 
+  // Development builds only: `window.repoInPeace`, for the console and the end-to-end test. The dynamic import keeps
+  // the module out of a production build.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let remove: (() => void) | undefined;
+    let gone = false;
+    void import('./dev-api').then(({ installDevApi }) => {
+      if (gone) return;
+      remove = installDevApi(() => {
+        const orbit = controls.current;
+        if (!orbit) throw new Error('The camera controls are not ready yet');
+        return {
+          position: vec3(camera.position.x, camera.position.y, camera.position.z),
+          target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
+        };
+      });
+    });
+    return () => {
+      gone = true;
+      remove?.();
+    };
+  }, [camera]);
+
   // Let `flyTo` start flights.
   useEffect(
     () =>

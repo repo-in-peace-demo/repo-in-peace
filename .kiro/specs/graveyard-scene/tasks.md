@@ -146,6 +146,12 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then check in the browser: E climbs to a ceiling and the view tilts down; Q stops at the floor; right-drag pan stops at the edge and slides; orbit and zoom cannot put the camera under height 1.
   - _Requirements: 7.3_
 
+- [x] 16c. End-to-end smoke test of the camera limits (Playwright)
+  - [x] 16c.1 `scene/dev-api.ts` (`window.repoInPeace`: `flyTo`, `resetView`, `getSelection`, `select`, `clearSelection`, `getPose`; dev only, dynamic import in `CameraRig`). This is the start of task 26's dev extras; task 26 adds the perf overlay and `?synthetic` and runs the `dist` grep for all of it.
+  - [x] 16c.2 `playwright.config.ts`, `e2e/camera.spec.ts` (six checks: Q floor, E ceiling and tallest-stone cap, Shift + right arrow bound, right-drag and Shift + left-drag bound with no jump on the next key, near-horizontal orbit plus full zoom-in, Home with selection cleared), `e2e/README.md` (setup, software WebGL flags). Task 27's README must link to it.
+  - **Run:** `cd frontend && npm install -D @playwright/test && npx playwright install chromium && npm run typecheck && npm run e2e`
+  - _Requirements: 7.3, 7.6_
+
 - [ ] 17. Overlays
   - [ ] 17.1 `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot date, a collapse button). The keys help is part of the controls panel (task 17b).
   - [x] 17b Reset view and controls panel: `resetView()` in `scene/api.ts` (clears the selection, flies to the start pose), `model/shortcuts.ts`, `model/controls-help.ts`, `ui/ControlsPanel.tsx` (Req 7.2, 7.6). Tests: `shortcuts.test.ts`, `controls-help.test.ts`, `api.test.ts`, and a test that pins the arrow directions in `fly-controls.test.ts`.
