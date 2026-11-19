@@ -69,10 +69,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 10_
 
-- [ ] 8. Legend and statistics (`model/legend.ts`, `stats.ts`)
-  - [ ] 8.1 `buildLegend` (entries: fresh, moss, ancient, unused, hot, ghost, floor) and `computeStats`.
-  - [ ] 8.2 **P11**: the legend text contains the real numbers (staleAfter, ancientAfter, hotCommits, hotWindow, and the snapshot date) and the floor entry; fresh + stale + ancient = files; unused, hot and ghosts match a direct count.
-  - [ ] 8.3 Examples: thresholds 21/45/5/30 give "21 or more days", "more than 45 days", "5 or more commits in the 30 days"; thresholds 1/2/1/1 read in the singular ("1 day", "1 commit"); the floor entry reads "Darker ground: a folder nested deeper."
+- [x] 8. Legend and statistics (`model/legend.ts`, `stats.ts`)
+  - [x] 8.1 `buildLegend` (returns `{ snapshotLine, entries }`; entries fresh, moss, ancient, unused, hot, ghost, floor; `snapshotDay` gives the YYYY-MM-DD) and `computeStats` (files, folders, ghosts, fresh, stale, ancient, unused, hot).
+  - [x] 8.2 **P11**: in `legend.test.ts`, each threshold number is read back out of the entry that explains it and equals the data file's (staleAfter in the clean-stone and moss entries, ancientAfter in the ancient entry, hotCommits and hotWindow in the candle entry); exactly the seven entries, each once, with words; the ground-tint entry says deeper folders are darker; changing the thresholds changes only the entries that carry a number; the snapshot day appears. In `stats.test.ts`: fresh + stale + ancient = files; unused, hot, ghosts and folders match a direct count; independent of the order of the files.
+  - [x] 8.3 Examples: thresholds 21/45/5/30 give the exact texts ("Untouched 21 or more days. More moss the longer it has been untouched.", "Untouched more than 45 days.", "5 or more commits in the 30 days before the snapshot."); 1/2/1/1 read in the singular ("under 1 day", "in the 1 day before"); the real files' counts (oikos: 129 files, 68 folders, 0 ghosts, 12 unused, 7 hot; spatialql: 120 files, 3 folders, 2 ghosts, 2 unused, 24 hot).
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 9_
 
 - [ ] 9. Camera poses (`model/camera-pose.ts`)

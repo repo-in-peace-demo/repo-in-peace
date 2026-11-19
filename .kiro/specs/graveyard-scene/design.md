@@ -195,7 +195,7 @@ Because `near` and `far` grow with the plot, the root sign (a plot as large as t
 ### `legend.ts`, `stats.ts` (Req 9)
 
 ```ts
-buildLegend(meta: RepoMeta): LegendEntry[]       // { id, title, text }; ids: fresh, moss, ancient, unused, hot, ghost, floor
+buildLegend(meta: RepoMeta): Legend              // { snapshotLine, entries: LegendEntry[] }; entry { id, title, text }; ids: fresh, moss, ancient, unused, hot, ghost, floor
 computeStats(g: Graveyard): Stats                // files, folders, fresh, stale, ancient, unused, hot, ghosts
 ```
 
