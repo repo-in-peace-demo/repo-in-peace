@@ -22,7 +22,7 @@ Status key: `[x]` done, `[ ]` not started.
     Fiber is pinned to 9 on purpose (see task 27). If npm reports a peer-dependency conflict, send me the message.
   - _Requirements: 12_
 
-- [ ] 2. Hash, age and sort (`model/hash.ts`, `age.ts`, `sort.ts`). Code written; stays open until the Run command below passes
+- [x] 2. Hash, age and sort (`model/hash.ts`, `age.ts`, `sort.ts`)
   - [x] 2.1 `fnv1a32`, `mix32` (the MurmurHash3 finalizer, added so similar paths do not get similar values), `hash01(text, salt?)`; the published FNV test vectors, an independent BigInt implementation of both steps, and properties that the result is in `[0, 1)`, the same every call, and spread over the range.
   - [x] 2.2 `ageDays`, tested against its definition (whole days, rounded down, never negative, 0 for a date after the snapshot), with the oikos example of 19 days.
   - [x] 2.3 `compareCodePoint` and its properties (zero only for equal strings, antisymmetric, transitive, astral characters ordered by code point).
@@ -30,10 +30,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 5.7, 12.1_
 
-- [ ] 3. Loading checks (`model/graveyard-load.ts`)
-  - [ ] 3.1 `parseGraveyardName`, `graveyardUrl`, `checkGraveyardData` as in the design.
-  - [ ] 3.2 Examples: the default name; `demo.oikosledger`; rejected: empty, 101 characters, `../x`, `a/b`, `a b`, `%2e%2e`; a version-1 file gives the version message naming 1 and 2; missing `meta` gives `not-a-graveyard`; a broken folder reference gives `invalid` with details.
-  - [ ] 3.3 **P13**: the name check agrees with the regular expression for arbitrary strings; any `meta.schemaVersion` other than 2 gives `wrong-version`.
+- [x] 3. Loading checks (`model/graveyard-load.ts`)
+  - [x] 3.1 `parseGraveyardName`, `graveyardUrl`, `checkGraveyardData` as in the design.
+  - [x] 3.2 Examples: the default name; `demo.oikosledger`; rejected: empty, 101 characters, `../secret`, `a/b`, `/etc/passwd`, a backslash, a space, a URL, a null character, non-ASCII, markup; a version-1 file gives the version message naming 1 and 2; missing `meta` gives `not-a-graveyard`; a broken folder reference gives `invalid` with details; at most 5 problems shown. Note: the name `..` is allowed by the rule (letters, digits, dots, underscores, hyphens) and is harmless, because the file is then `...graveyard.json` inside `graveyards/`; a test records this. The real files `demo.oikosledger` and `demo.spatialql` are checked and their counts asserted (129 files; 120 files and the two ghosts).
+  - [x] 3.3 **P13**: the name check agrees with the regular expression for arbitrary strings, and an accepted name never contains a slash; any `meta.schemaVersion` other than 2 gives `wrong-version`; the check returns a result for any JSON value.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
 - [ ] 4. Stone height (`model/tombstone-height.ts`)
