@@ -112,7 +112,7 @@ describe('end to end on random real repositories', () => {
                 expect({ state: file.decayState, score: file.decayScore, hot: file.hot }).toEqual({
                   state,
                   score,
-                  hot: file.commitsLast30Days >= thresholds.hotCommits,
+                  hot: file.recentCommits >= thresholds.hotCommits,
                 });
               }
 
@@ -129,7 +129,7 @@ describe('end to end on random real repositories', () => {
                 expect({
                   lastCommitDate: file.lastCommitDate,
                   lastCommitAuthor: file.lastCommitAuthor,
-                  commitsLast30Days: file.commitsLast30Days,
+                  recentCommits: file.recentCommits,
                 }).toEqual(model.expectedHistory.get(file.path));
                 expect(file.unused).toBe(unusedPaths.includes(file.path));
                 expect(file.linesOfCode).toBe(

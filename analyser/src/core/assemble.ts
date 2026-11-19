@@ -58,11 +58,11 @@ export function assembleGraveyard(input: AssembleInput): Graveyard {
         linesOfCode: file.linesOfCode,
         lastCommitDate: history.lastCommitDate,
         lastCommitAuthor: history.lastCommitAuthor,
-        commitsLast30Days: history.commitsLast30Days,
+        recentCommits: history.recentCommits,
         unused,
         decayScore: decayScore(age, unused, input.thresholds),
         decayState: decayState(age, input.thresholds),
-        hot: isHot(history.commitsLast30Days, input.thresholds),
+        hot: isHot(history.recentCommits, input.thresholds),
         eulogy: '',
       };
     })

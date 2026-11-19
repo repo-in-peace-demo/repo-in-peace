@@ -125,7 +125,7 @@ export interface Removal {
 export interface ExpectedFileHistory {
   lastCommitDate: string;
   lastCommitAuthor: string;
-  commitsLast30Days: number;
+  recentCommits: number;
 }
 
 export interface Replayed {
@@ -276,7 +276,7 @@ export function replay(
     expectedHistory.set(path, {
       lastCommitDate: new Date(script[best]!.date).toISOString(),
       lastCommitAuthor: script[best]!.author,
-      commitsLast30Days: indexes.filter((i) => {
+      recentCommits: indexes.filter((i) => {
         const date = script[i]!.date;
         return date > windowStart && date <= snapshotMs;
       }).length,

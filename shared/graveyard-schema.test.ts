@@ -32,7 +32,7 @@ function validGraveyard(): Graveyard {
         linesOfCode: 120,
         lastCommitDate: '2024-11-05T08:00:00.000Z',
         lastCommitAuthor: 'Ann Author',
-        commitsLast30Days: 0,
+        recentCommits: 0,
         unused: true,
         decayScore: 0.8,
         decayState: 'ancient',
@@ -45,7 +45,7 @@ function validGraveyard(): Graveyard {
         linesOfCode: 12,
         lastCommitDate: '2026-02-27T08:00:00.000Z',
         lastCommitAuthor: 'Bob',
-        commitsLast30Days: 6,
+        recentCommits: 6,
         unused: false,
         decayScore: 0.0021,
         decayState: 'fresh',
@@ -232,7 +232,7 @@ describe('validateGraveyard', () => {
     });
 
     it('rejects a negative commit count', () => {
-      expect(errorsAfter((g) => (g.files[0]!.commitsLast30Days = -1)).length).toBe(1);
+      expect(errorsAfter((g) => (g.files[0]!.recentCommits = -1)).length).toBe(1);
     });
 
     it('rejects non-boolean flags', () => {

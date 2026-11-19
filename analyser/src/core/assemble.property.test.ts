@@ -166,7 +166,7 @@ describe('thresholds in the assembled output', () => {
           const expectedState = age < t.staleAfterDays ? 'fresh' : age <= t.ancientAfterDays ? 'stale' : 'ancient';
           const expectedScore =
             Math.round((0.4 * (Math.min(age, t.decayCapDays) / t.decayCapDays) + (f.unused ? 0.6 : 0)) * 10_000) / 10_000;
-          return f.decayState === expectedState && f.decayScore === expectedScore && f.hot === f.commitsLast30Days >= t.hotCommits;
+          return f.decayState === expectedState && f.decayScore === expectedScore && f.hot === f.recentCommits >= t.hotCommits;
         });
       }),
     );
@@ -182,7 +182,7 @@ describe('thresholds in the assembled output', () => {
           return (
             f.decayState === (age < 90 ? 'fresh' : age <= 360 ? 'stale' : 'ancient') &&
             f.decayScore === Math.round((0.4 * (Math.min(age, 720) / 720) + (f.unused ? 0.6 : 0)) * 10_000) / 10_000 &&
-            f.hot === f.commitsLast30Days >= 5
+            f.hot === f.recentCommits >= 5
           );
         });
       }),

@@ -30,7 +30,7 @@ The schema lives once in `shared/` and is versioned. Scoring and data shaping ar
 6. WHERE an optional `--analysed-at <ISO timestamp>` is given THE analyser SHALL use it as the analysis timestamp. OTHERWISE it SHALL use the current clock, read once at the command-line edge and passed into the pure pipeline.
 7. WHERE an optional `--knip-config <path>` is given THE analyser SHALL use it as Knip's configuration file (see Requirement 6).
 8. WHERE `--knip-dir <folder>` is given, once or several times, THE analyser SHALL run Knip in each named folder of the clone instead of the clone root (see Requirement 6).
-9. THE analyser SHALL accept `--stale-after <days>` (default 90), `--ancient-after <days>` (default 360), `--hot-commits <n>` (default 5), and `--hot-window <days>` (default 30), which set the decay thresholds (see Requirement 7). WHEN none is given THE analyser SHALL use the defaults, and its output SHALL be the same as before these options existed, apart from the new metadata fields and the schema version.
+9. THE analyser SHALL accept `--stale-after <days>` (default 90), `--ancient-after <days>` (default 360), `--hot-commits <n>` (default 5), and `--hot-window <days>` (default 30), which set the decay thresholds (see Requirement 7). WHEN none is given THE analyser SHALL use the defaults, and its output SHALL be the same as before these options existed, apart from the new metadata fields, the schema version, and the rename of `commitsLast30Days` to `recentCommits` (same values).
 10. IF any of these four values is not a positive whole number, or `--ancient-after` is not greater than `--stale-after` (counting a default for an omitted one), THEN THE analyser SHALL exit non-zero before reading the clone, with a message that names the flag, the value it got, and what is required, and SHALL NOT write an output file.
 
 ### 2. Shared schema
@@ -40,7 +40,7 @@ The schema lives once in `shared/` and is versioned. Scoring and data shaping ar
 1. THE schema types and a `SCHEMA_VERSION` constant SHALL be defined in one module under `shared/`, and the analyser SHALL import them from there.
 2. THE graveyard data file SHALL contain repo metadata: repo name, snapshot commit SHA, snapshot date, analysis timestamp, schema version (2), and the decay thresholds used (`thresholds`: `staleAfterDays`, `ancientAfterDays`, `decayCapDays`, `hotCommits`, `hotWindowDays`), so a reader can show the real values.
 3. THE graveyard data file SHALL contain a list of folders, each with its path and parent path (the repo root has no parent).
-4. THE graveyard data file SHALL contain a list of current files, each with: path, folder, lines of code, last commit date, last commit author, commits in the hot window before the snapshot (`commitsLast30Days`: the name is kept for compatibility, and the window is `meta.thresholds.hotWindowDays`, 30 by default), unused flag, decay score, decay state (`fresh` | `stale` | `ancient`), hot flag, and an eulogy field set to an empty string.
+4. THE graveyard data file SHALL contain a list of current files, each with: path, folder, lines of code, last commit date, last commit author, commits in the hot window before the snapshot (`recentCommits`; the window is `meta.thresholds.hotWindowDays`, 30 by default), unused flag, decay score, decay state (`fresh` | `stale` | `ancient`), hot flag, and an eulogy field set to an empty string.
 5. THE graveyard data file SHALL contain a list of ghosts, each with: path, deleting commit SHA, deletion date, deleting author, and last existing commit SHA.
 6. All dates SHALL be ISO 8601 strings in UTC.
 7. THE shared module SHALL provide a validation function that checks an unknown value against the schema, so the analyser can verify its own output before writing. It SHALL reject thresholds that are not positive whole numbers, an `ancientAfterDays` not greater than `staleAfterDays`, and a `decayCapDays` that is not 2 × `ancientAfterDays`.
@@ -140,15 +140,15 @@ Each property gets a fast-check property test.
 | P3 | No ghost path also appears among the current files. | Req 8.1, 8.4, 8.5 |
 | P4 | Every file's folder exists in the folder list, and the folder hierarchy has no cycles. | Req 4 |
 | P5 | Every ghost's last existing commit (the first parent of its most recent deleting commit) contains that file. | Req 8.4 |
-| P6 | With default thresholds, the output equals what the analyser wrote before thresholds were configurable, apart from `meta.thresholds` and the schema version. | Req 1.9 |
-| P7 | For any valid thresholds, a file's decay state agrees with its age: `fresh` below `staleAfterDays`, `stale` from `staleAfterDays` up to and including `ancientAfterDays`, `ancient` above it. | Req 7.1 |
+| P6 | With default thresholds, the output equals what the analyser wrote before thresholds were configurable, apart from `meta.thresholds`, the schema version, and the field `commitsLast30Days` being renamed `recentCommits` with the same values. | Req 1.9 |
+| P7 | For any valid thresholds, a file's decay state agrees with its age: `fresh` below `staleAfterDays`, `stale` from `staleAfterDays` up to and including `ancientAfterDays`, `ancient` only above it (so a file exactly `ancientAfterDays` old is still stale). | Req 7.1 |
 
 Notes on how they are tested:
 
 - **P1, P3, P4** run on pure functions with generated inputs.
 - **P2** runs the pure assembly over generated history records, and also once end to end against a small fixture repo built in a temp directory.
 - **P5** runs against generated git histories built in temp repos: the test commits random add/modify/delete sequences, runs the analyser's git module, and checks with `git cat-file` / `git ls-tree` that each ghost's last existing commit holds the file and that its content matches the file's last content.
-- **P6** compares the pipeline's output on a fixed repository with `test/golden/default-thresholds.json`, written by the analyser before this change, and checks the new decay functions against a frozen copy of the old formulas for random inputs. **P7** runs on the pure functions and on whole assembled outputs.
+- **P6** compares the pipeline's output on a fixed repository with `test/golden/default-thresholds.json`, written by the analyser before this change (with the one field renamed from `commitsLast30Days` to `recentCommits`; the values are unchanged), and checks the new decay functions against a frozen copy of the old formulas for random inputs. **P7** runs on the pure functions and on whole assembled outputs.
 - Properties P1 to P5 run with random valid thresholds as well as random histories.
 - Supporting properties (not in the required five, added because they follow directly from the rules): decay state boundaries match Requirement 7.1 for any `ageDays`; `unused = true` never lowers the score.
 

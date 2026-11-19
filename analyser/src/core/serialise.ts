@@ -29,7 +29,7 @@ export function toJson(graveyard: Graveyard): string {
       linesOfCode: f.linesOfCode,
       lastCommitDate: f.lastCommitDate,
       lastCommitAuthor: f.lastCommitAuthor,
-      commitsLast30Days: f.commitsLast30Days,
+      recentCommits: f.recentCommits,
       unused: f.unused,
       decayScore: f.decayScore,
       decayState: f.decayState,

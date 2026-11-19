@@ -108,7 +108,7 @@ describe('P4: every file has a folder in the list, and the hierarchy has no cycl
           linesOfCode: 1,
           lastCommitDate: '2026-01-01T00:00:00.000Z',
           lastCommitAuthor: 'Ann',
-          commitsLast30Days: 0,
+          recentCommits: 0,
           unused: false,
           decayScore: 0,
           decayState: 'fresh',

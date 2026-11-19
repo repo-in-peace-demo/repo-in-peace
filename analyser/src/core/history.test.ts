@@ -50,7 +50,7 @@ describe('last commit and the 30-day count', () => {
     expect(perFile.get('a.ts')).toEqual({
       lastCommitDate: iso(ago(50)),
       lastCommitAuthor: 'Bob',
-      commitsLast30Days: 0,
+      recentCommits: 0,
     });
   });
 
@@ -69,7 +69,7 @@ describe('last commit and the 30-day count', () => {
       ),
       'a.ts',
     );
-    expect(perFile.get('a.ts')?.commitsLast30Days).toBe(4);
+    expect(perFile.get('a.ts')?.recentCommits).toBe(4);
   });
 
   it('counts commits inside a shorter hot window only', () => {
@@ -80,9 +80,9 @@ describe('last commit and the 30-day count', () => {
       { at: ago(7), changes: [modify('a.ts')] }, // exactly 7 days before: outside
       { at: ago(2), changes: [modify('a.ts')] },
     );
-    expect(runWithWindow(7, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(2);
-    expect(runWithWindow(8, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(3);
-    expect(runWithWindow(30, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(4);
+    expect(runWithWindow(7, commits, 'a.ts').perFile.get('a.ts')?.recentCommits).toBe(2);
+    expect(runWithWindow(8, commits, 'a.ts').perFile.get('a.ts')?.recentCommits).toBe(3);
+    expect(runWithWindow(30, commits, 'a.ts').perFile.get('a.ts')?.recentCommits).toBe(4);
   });
 
   it('counts commits inside a longer hot window', () => {
@@ -91,8 +91,8 @@ describe('last commit and the 30-day count', () => {
       { at: ago(100), changes: [modify('a.ts')] },
       { at: ago(50), changes: [modify('a.ts')] },
     );
-    expect(runWithWindow(120, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(2);
-    expect(runWithWindow(365, commits, 'a.ts').perFile.get('a.ts')?.commitsLast30Days).toBe(3);
+    expect(runWithWindow(120, commits, 'a.ts').perFile.get('a.ts')?.recentCommits).toBe(2);
+    expect(runWithWindow(365, commits, 'a.ts').perFile.get('a.ts')?.recentCommits).toBe(3);
   });
 
   it('does not change the last commit when the window changes', () => {
@@ -121,7 +121,7 @@ describe('last commit and the 30-day count', () => {
       linear({ at: ago(5), changes: [add('a.ts'), modify('a.ts')] }),
       'a.ts',
     );
-    expect(perFile.get('a.ts')?.commitsLast30Days).toBe(1);
+    expect(perFile.get('a.ts')?.recentCommits).toBe(1);
   });
 
   it('ignores commits with no changes, such as merges', () => {
@@ -134,7 +134,7 @@ describe('last commit and the 30-day count', () => {
       changes: [],
     };
     const { perFile } = run([merge, ...base], 'a.ts');
-    expect(perFile.get('a.ts')).toMatchObject({ lastCommitDate: iso(ago(5)), commitsLast30Days: 1 });
+    expect(perFile.get('a.ts')).toMatchObject({ lastCommitDate: iso(ago(5)), recentCommits: 1 });
   });
 
   it('uses the latest date, not the log position, when branch commits are out of date order', () => {
@@ -148,7 +148,7 @@ describe('last commit and the 30-day count', () => {
     expect(perFile.get('a.ts')).toEqual({
       lastCommitDate: iso(ago(5)),
       lastCommitAuthor: 'Cy',
-      commitsLast30Days: 2,
+      recentCommits: 2,
     });
   });
 
@@ -177,7 +177,7 @@ describe('renames', () => {
       ),
       'b.ts',
     );
-    expect(perFile.get('b.ts')).toMatchObject({ lastCommitDate: iso(ago(10)), commitsLast30Days: 3 });
+    expect(perFile.get('b.ts')).toMatchObject({ lastCommitDate: iso(ago(10)), recentCommits: 3 });
     expect(ghosts).toEqual([]); // a.ts moved, it did not die
   });
 
@@ -190,7 +190,7 @@ describe('renames', () => {
       ),
       'b.ts',
     );
-    expect(perFile.get('b.ts')).toMatchObject({ lastCommitDate: iso(ago(5)), commitsLast30Days: 1 });
+    expect(perFile.get('b.ts')).toMatchObject({ lastCommitDate: iso(ago(5)), recentCommits: 1 });
   });
 
   it('follows a chain of renames', () => {
@@ -202,7 +202,7 @@ describe('renames', () => {
       ),
       'c.ts',
     );
-    expect(perFile.get('c.ts')?.commitsLast30Days).toBe(3);
+    expect(perFile.get('c.ts')?.recentCommits).toBe(3);
   });
 
   it('keeps both files right when a commit renames a.ts and creates a new a.ts', () => {
@@ -214,8 +214,8 @@ describe('renames', () => {
       'a.ts',
       'b.ts',
     );
-    expect(perFile.get('b.ts')?.commitsLast30Days).toBe(2); // the original add, then the rename
-    expect(perFile.get('a.ts')?.commitsLast30Days).toBe(1); // only the new file's add
+    expect(perFile.get('b.ts')?.recentCommits).toBe(2); // the original add, then the rename
+    expect(perFile.get('a.ts')?.recentCommits).toBe(1); // only the new file's add
     expect(ghosts).toEqual([]);
   });
 
@@ -227,7 +227,7 @@ describe('renames', () => {
       ),
       'src/readme.ts',
     );
-    expect(perFile.get('src/readme.ts')?.commitsLast30Days).toBe(2);
+    expect(perFile.get('src/readme.ts')?.recentCommits).toBe(2);
   });
 });
 
@@ -273,7 +273,7 @@ describe('ghosts', () => {
     );
     expect(ghosts).toEqual([]);
     // Only the new life of the file counts, not the one before the deletion.
-    expect(perFile.get('a.ts')).toMatchObject({ commitsLast30Days: 1, lastCommitAuthor: 'Cy' });
+    expect(perFile.get('a.ts')).toMatchObject({ recentCommits: 1, lastCommitAuthor: 'Cy' });
   });
 
   it('uses the most recent deletion when a path was deleted more than once', () => {
@@ -314,7 +314,7 @@ describe('ghosts', () => {
       'q.ts',
     );
     expect(ghosts).toEqual([]);
-    expect(perFile.get('q.ts')?.commitsLast30Days).toBe(2); // the second add and the rename
+    expect(perFile.get('q.ts')?.recentCommits).toBe(2); // the second add and the rename
   });
 
   it('never makes ghosts of paths the graveyard would not show alive', () => {

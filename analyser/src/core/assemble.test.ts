@@ -8,8 +8,8 @@ const SHA_A = 'a'.repeat(40);
 const SHA_B = 'b'.repeat(40);
 const SHA_C = 'c'.repeat(40);
 
-function history(lastCommitDate: string, commitsLast30Days = 0, lastCommitAuthor = 'Ann'): FileHistory {
-  return { lastCommitDate, lastCommitAuthor, commitsLast30Days };
+function history(lastCommitDate: string, recentCommits = 0, lastCommitAuthor = 'Ann'): FileHistory {
+  return { lastCommitDate, lastCommitAuthor, recentCommits };
 }
 
 function sampleInput(): AssembleInput {
@@ -62,7 +62,7 @@ describe('assembleGraveyard', () => {
       linesOfCode: 12,
       lastCommitDate: '2026-02-27T08:00:00.000Z',
       lastCommitAuthor: 'Ann',
-      commitsLast30Days: 6,
+      recentCommits: 6,
       unused: false,
       decayScore: 0.0011,
       decayState: 'fresh',

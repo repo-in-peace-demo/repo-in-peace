@@ -23,7 +23,7 @@ export interface HistoryInput {
 export interface FileHistory {
   lastCommitDate: string;
   lastCommitAuthor: string;
-  commitsLast30Days: number;
+  recentCommits: number;
 }
 
 export interface RawGhost {
@@ -148,7 +148,7 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
     perFile.set(path, {
       lastCommitDate: entry.lastDate,
       lastCommitAuthor: entry.lastAuthor,
-      commitsLast30Days: entry.count,
+      recentCommits: entry.count,
     });
   }
 

@@ -59,9 +59,9 @@ The file records what it was made with:
   "thresholds": { "staleAfterDays": 90, "ancientAfterDays": 360, "decayCapDays": 720, "hotCommits": 5, "hotWindowDays": 30 } }
 ```
 
-`commitsLast30Days` on each file counts commits in the hot window, which is 30 days unless you change `--hot-window`. The field keeps its name for compatibility.
+`recentCommits` on each file counts commits in the hot window before the snapshot, which is 30 days unless you change `--hot-window`. (Schema version 1 called it `commitsLast30Days`.)
 
-With very large limits (a decay cap above 2000 days) the 4-decimal rounding means the score can repeat on adjacent days. It never decreases.
+At very large thresholds (a decay cap above 2000 days, that is `--ancient-after` above 1000), neighbouring days can share a score, because scores are rounded to 4 decimals. A score never decreases as a file ages.
 
 ## Knip and unused files
 

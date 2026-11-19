@@ -172,7 +172,7 @@ describe('runPipeline on a real repository', () => {
     expect(graveyard.files.find((f) => f.path === 'src/a.ts')).toMatchObject({
       decayState: 'fresh',
       hot: true,
-      commitsLast30Days: 5,
+      recentCommits: 5,
       lastCommitAuthor: 'Cy',
       unused: false,
     });
@@ -181,7 +181,7 @@ describe('runPipeline on a real repository', () => {
   it('follows the rename, so the moved file keeps its history', async () => {
     const { graveyard } = await result;
     expect(graveyard.files.find((f) => f.path === 'src/moved.ts')).toMatchObject({
-      commitsLast30Days: 1, // the rename; the original add is outside the 30 days
+      recentCommits: 1, // the rename; the original add is outside the 30 days
       lastCommitAuthor: 'Di',
       decayState: 'fresh',
     });
@@ -648,13 +648,13 @@ describe('custom decay thresholds through the whole pipeline', () => {
   it('counts recent commits in the configured window and marks hot by the configured count', async () => {
     // src/a.ts was edited on Feb 16 to 20 at 09:00; the snapshot is Feb 20 at 10:00.
     const wide = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 6, hotWindowDays: 60 }));
-    expect(byPath(wide.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 5, hot: false }); // 5 < 6
+    expect(byPath(wide.graveyard, 'src/a.ts')).toMatchObject({ recentCommits: 5, hot: false }); // 5 < 6
 
     const narrow = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 2, hotWindowDays: 2 }));
-    expect(byPath(narrow.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 2, hot: true }); // Feb 19 and 20
+    expect(byPath(narrow.graveyard, 'src/a.ts')).toMatchObject({ recentCommits: 2, hot: true }); // Feb 19 and 20
 
     const tiny = await analyseWith(thresholdsFrom({ staleAfterDays: 90, ancientAfterDays: 360, hotCommits: 2, hotWindowDays: 1 }));
-    expect(byPath(tiny.graveyard, 'src/a.ts')).toMatchObject({ commitsLast30Days: 1, hot: false }); // Feb 20 only
+    expect(byPath(tiny.graveyard, 'src/a.ts')).toMatchObject({ recentCommits: 1, hot: false }); // Feb 20 only
   });
 
   it('leaves everything that is not decay unchanged', async () => {

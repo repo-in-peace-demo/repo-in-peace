@@ -60,9 +60,9 @@ export interface FileEntry {
   lastCommitAuthor: string;
   /**
    * Commits in the hot window before the snapshot date: `meta.thresholds.hotWindowDays` days, 30 by default.
-   * The name is kept from version 1 for compatibility.
+   * (Version 1 called this `commitsLast30Days`; the window was fixed at 30 days.)
    */
-  commitsLast30Days: number;
+  recentCommits: number;
   /** Knip lists this file as unused. */
   unused: boolean;
   /** 0 to 1, rounded to 4 decimals. */
@@ -234,8 +234,8 @@ function checkFiles(files: unknown, folderPaths: Set<string>, fail: Fail): Set<s
     if (!isCount(file['linesOfCode'])) fail(`${at}.linesOfCode must be a whole number, 0 or more`);
     if (!isIsoUtc(file['lastCommitDate'])) fail(`${at}.lastCommitDate must be an ISO 8601 UTC date`);
     if (typeof file['lastCommitAuthor'] !== 'string') fail(`${at}.lastCommitAuthor must be a string`);
-    if (!isCount(file['commitsLast30Days'])) {
-      fail(`${at}.commitsLast30Days must be a whole number, 0 or more`);
+    if (!isCount(file['recentCommits'])) {
+      fail(`${at}.recentCommits must be a whole number, 0 or more`);
     }
     if (typeof file['unused'] !== 'boolean') fail(`${at}.unused must be a boolean`);
 
