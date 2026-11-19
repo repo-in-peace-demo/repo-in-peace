@@ -82,9 +82,11 @@ Status key: `[x]` done, `[ ]` not started.
   - Verified: `npx tsc --noEmit` clean; `npx vitest run` 451 tests in 25 files pass; smoke test `npm run analyse -- /Users/sl/projects/oikos_ledger --knip-dir app --out /tmp/demo.graveyard.json` wrote 129 files, 68 folders, 0 ghosts, 12 unused, 7 hot, every file fresh (the repo's history is only June to August 2026).
   - _Requirements: 1, 6.7 to 6.10, 9_
 
-- [ ] 11. End-to-end property tests
-  - [ ] 11.1 **P2 end-to-end**: build a fixture repo, run the pipeline twice with the same `--analysed-at` and a stub Knip, compare bytes.
-  - [ ] 11.2 **P5 property test**: generated scripted histories (including branches and merges) become real temp repos; for every ghost, `git ls-tree <lastExistingSha> -- <path>` returns the path (the required assertion); `lastExistingSha` equals `git rev-parse <deletedInSha>^1`; the blob content equals the last content written. About 25 runs.
+- [x] 11. End-to-end property tests
+  - [x] 11.1 **P2 end-to-end**: build a fixture repo, run the pipeline twice with the same `--analysed-at` and a stub Knip, compare bytes.
+  - [x] 11.2 **P5 property test**: generated scripted histories (including branches and merges) become real temp repos; for every ghost, `git ls-tree <lastExistingSha> -- <path>` returns the path (the required assertion); `lastExistingSha` equals `git rev-parse <deletedInSha>^1`; the blob content equals the last content written. About 25 runs.
+  - Built as one test, `src/e2e.property.test.ts`, 25 runs, each a real temporary git repository made from a random history: renames, deletes, re-adds, out-of-order commit dates, and (about two runs in three) a side branch merged back with a merge commit. Each run checks: the output bytes are identical on a rerun (P2); the schema validator passes; files, last commit, 30-day counts, unused flags and non-blank line counts match the independent model; ghosts match the model; no ghost is a current file (P3); and each ghost is sound according to git alone (P5): `git ls-tree <lastExistingSha>` holds the path, `lastExistingSha` equals `<deletedInSha>^1`, the deleting commit's diff is a `D` of that path, the path is absent from its tree and from HEAD, and `git show` of the last existing commit equals the last content written, byte for byte. A coverage test fails if the generator stops producing ghosts, renames, side branches or re-adds. Support added to `test/arbitraries.ts`: file contents and operations per commit, `toRepoPlan`, and `SideEpisode`.
+  - Mutation check: breaking the last-existing-commit rule, and removing rename following, each made the test fail with a small counterexample.
   - _Requirements: 8.4, 9.1_
 
 - [ ] 12. README and checkpoint
