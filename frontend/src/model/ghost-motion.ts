@@ -2,16 +2,13 @@ import { GHOST_FLOAT_BASE } from './visual-constants';
 import type { GhostVisual } from './visual-params';
 
 /**
- * Where a ghost is, in height, at a given time. One function, read by everything that needs to know: the ghost
- * mesh, the selection ring, and (through its range) the picking box. Whatever moves the ghost is changed here,
- * and the ring follows it every frame.
- *
- * Today ghosts do not bob: the plain box of task 15 is static, so this returns the float base. Task 23 adds the
- * bob (`floatAmplitude × sin(floatSpeed × seconds + phase)`, which stays within the box that `buildPickTargets` makes)
- * and changes this function and the vertex shader together.
+ * Where a ghost is, in height, at a given time: it floats gently, `floatAmplitude × sin(floatSpeed × seconds + phase)` up
+ * and down around its float base. One function, read by everything that needs to know: the selection ring (every frame),
+ * the picking box (through its range, which covers the whole bob), and the ghost's vertex shader, which repeats this
+ * formula in GLSL (`scene/ghost-material.ts`; a browser test compares the ring with the drawn ghost).
  *
  * @returns the height of the ghost's lowest point above the ground
  */
-export function ghostBaseHeight(_visual: GhostVisual, _seconds: number): number {
-  return GHOST_FLOAT_BASE;
+export function ghostBaseHeight(visual: GhostVisual, seconds: number): number {
+  return GHOST_FLOAT_BASE + visual.floatAmplitude * Math.sin(visual.floatSpeed * seconds + visual.phase);
 }

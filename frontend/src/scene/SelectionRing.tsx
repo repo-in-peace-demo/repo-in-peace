@@ -4,6 +4,7 @@ import type { Mesh } from 'three';
 import type { SceneModel } from '../model/scene-model';
 import { selectionRingHeight } from '../model/selection-ring';
 import { useSelection } from '../store/selection-store';
+import { animationTime } from './animation-clock';
 import { SELECTION_RING_COLOR } from './colors';
 import { noRaycast } from './instances';
 
@@ -27,7 +28,7 @@ export function SelectionRing({ model }: { model: SceneModel }) {
   const at = !valid ? undefined : entry.kind === 'file' ? model.stones[entry.index]!.layout : model.ghosts[entry.index]!.layout;
 
   useFrame(({ clock }) => {
-    if (ref.current && at) ref.current.position.set(at.x, selectionRingHeight(ghost?.visual, clock.elapsedTime), at.z);
+    if (ref.current && at) ref.current.position.set(at.x, selectionRingHeight(ghost?.visual, animationTime(clock.elapsedTime)), at.z);
   });
 
   if (!at) return null;

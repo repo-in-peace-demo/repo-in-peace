@@ -7,7 +7,7 @@ export const GROUND_COLOR = '#0a0e13';
 export const FLOOR_COLOR = '#1f2d26';
 export const FENCE_COLOR = '#4b5260';
 export const STONE_COLOR = '#8d939e';
-export const GHOST_COLOR = '#b6d4ee';
+export const GHOST_COLOR = '#8fe8f0'; // pale cyan: the one colour that means "deleted"
 export const PLAQUE_COLOR = '#6b5a44';
 
 /**

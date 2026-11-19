@@ -2,11 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
-import { ghostBaseHeight } from '../model/ghost-motion';
-import { GHOST_D, GHOST_HEIGHT, GHOST_OPACITY, GHOST_W } from '../model/visual-constants';
 import { leanQuaternion, stoneAttributes } from '../model/stone-attributes';
-import { GHOST_COLOR } from './colors';
-import { useHighlight, useRimHighlight } from './highlight';
+import { useRimHighlight } from './highlight';
 import { animationTime } from './animation-clock';
 import { makeStoneMaterial } from './stone-material';
 import { makeTombstoneGeometry } from './tombstone-geometry';
@@ -63,29 +60,4 @@ export function Stones({ model }: { model: SceneModel }) {
 
   if (stones.length === 0) return null;
   return <instancedMesh ref={ref} args={[assets.geometry, assets.material, stones.length]} frustumCulled={false} raycast={noRaycast} />;
-}
-
-/** Plain ghosts: a translucent pale box floating where each deleted file stood, so their places can be checked. */
-export function Ghosts({ model }: { model: SceneModel }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
-  const ghosts = model.ghosts;
-
-  useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) return;
-    // The height comes from the same function as the selection ring's, so the two cannot drift apart.
-    ghosts.forEach(({ layout, visual }, i) => {
-      mesh.setMatrixAt(i, placement(layout.x, ghostBaseHeight(visual, 0) + GHOST_HEIGHT / 2, layout.z, GHOST_W, GHOST_HEIGHT, GHOST_D));
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-  }, [ghosts]);
-  useHighlight(ref, model, 'ghost', GHOST_COLOR);
-
-  if (ghosts.length === 0) return null;
-  return (
-    <instancedMesh ref={ref} args={[undefined, undefined, ghosts.length]} frustumCulled={false} raycast={noRaycast}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#ffffff" transparent opacity={GHOST_OPACITY} depthWrite={false} />
-    </instancedMesh>
-  );
 }

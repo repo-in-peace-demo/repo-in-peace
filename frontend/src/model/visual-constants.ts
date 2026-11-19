@@ -38,13 +38,16 @@ export const GHOST_OPACITY = 0.45;
 export const GHOST_FLOAT_AMPLITUDE = 0.15;
 export const GHOST_FLOAT_SPEED = 0.6;
 
-/** The size of a ghost's figure, and how high above the ground it floats at rest. The camera aims at its middle. */
+/**
+ * The size of a ghost's figure, and how high above the ground its lowest point floats at rest: with the bob, the gap under it
+ * is always at least GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE, so it clearly floats. The camera aims at its middle.
+ */
 export const GHOST_HEIGHT = 1.6;
-export const GHOST_FLOAT_BASE = 0.5;
+export const GHOST_FLOAT_BASE = 0.7;
 
-/** The ground a ghost's figure covers, along x and along z. */
+/** The ground a ghost's figure covers, along x and along z: a round figure, so the same both ways. It is inside its cell (2.4 by 1.8). */
 export const GHOST_W = 1.0;
-export const GHOST_D = 0.6;
+export const GHOST_D = 1.0;
 
 // ---- Plot floors ----
 

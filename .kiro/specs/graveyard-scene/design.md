@@ -291,7 +291,7 @@ The scene registers itself with this module when it has a model and a camera; be
 | --- | --- |
 | 1 | `Stones`: one instanced mesh for every tombstone |
 | 2, 3 | `Candles`: wax, and flame with a small glow quad |
-| 4 | `Ghosts`: one instanced mesh, transparent |
+| 4 | `Ghosts`: one instanced mesh, transparent, drawn added |
 | 5, 6 | `Fences`: posts, and rails |
 | 7 | `Plaques`: board and post, one geometry |
 | 8 | `PlotFloors`: one quad per plot, tinted by nesting depth |

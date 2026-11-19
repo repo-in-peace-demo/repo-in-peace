@@ -12,7 +12,8 @@ import { Plaques } from './Plaques';
 import { SelectionRing } from './SelectionRing';
 import { SignDriver } from './SignDriver';
 import { SignLayer } from '../ui/SignLayer';
-import { Ghosts, Stones } from './Stones';
+import { Ghosts } from './Ghosts';
+import { Stones } from './Stones';
 
 /**
  * The plain scene: flat colours and boxes, to check the layout on real data. Everything is drawn with instanced

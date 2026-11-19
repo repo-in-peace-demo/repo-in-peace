@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { animationTime, freezeAnimation, isAnimationFrozen, resumeAnimation } from './animation-clock';
+import { animationTime, freezeAnimation, freezeAnimationAt, isAnimationFrozen, resumeAnimation } from './animation-clock';
 
 afterEach(() => resumeAnimation());
 
@@ -25,6 +25,14 @@ describe('the animation clock', () => {
     resumeAnimation();
     expect(animationTime(7)).toBe(7);
     expect(isAnimationFrozen()).toBe(false);
+  });
+
+  it('can be held at a chosen moment, and runs again after it is resumed', () => {
+    animationTime(5);
+    freezeAnimationAt(1.25);
+    expect(animationTime(8)).toBe(1.25);
+    resumeAnimation();
+    expect(animationTime(9)).toBe(9);
   });
 
   it('can be frozen twice without moving, and freezing keeps the latest time it was told', () => {

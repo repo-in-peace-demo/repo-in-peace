@@ -294,7 +294,7 @@ body,
 .swatch-ancient { background: linear-gradient(to top, #3f6b33 85%, #6e747e 85%); transform: rotate(-8deg); }
 .swatch-unused { background: #8d939e; box-shadow: 0 0 6px 1px rgba(224, 80, 80, 0.7); border-color: #c0504d; }
 .swatch-hot { background: #f0c24b; border-radius: 50% 50% 2px 2px; }
-.swatch-ghost { background: rgba(182, 212, 238, 0.45); border-radius: 50% 50% 2px 2px; }
+.swatch-ghost { background: linear-gradient(to bottom, rgba(143, 232, 240, 0.85), rgba(143, 232, 240, 0.1)); border-color: rgba(143, 232, 240, 0.7); border-radius: 50% 50% 2px 2px; box-shadow: 0 0 6px rgba(143, 232, 240, 0.6); }
 .swatch-floor { background: #1f2d26; border-radius: 2px; border-color: rgba(255, 255, 255, 0.4); }
 
 /* The hover label follows the pointer (moved with a transform from HoverLabel) and lets clicks through. */
@@ -323,7 +323,7 @@ body,
 }
 
 .hover-ghost {
-  color: #b6d4ee;
+  color: #8fe8f0;
   font-style: italic;
 }
 

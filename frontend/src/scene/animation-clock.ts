@@ -18,6 +18,11 @@ export function freezeAnimation(): void {
   frozenAt = latest;
 }
 
+/** Holds the animation at this moment, whatever the clock says: for a test that needs the picture at a chosen time. */
+export function freezeAnimationAt(seconds: number): void {
+  frozenAt = seconds;
+}
+
 /** Lets the animation run again, from the clock's own time. */
 export function resumeAnimation(): void {
   frozenAt = null;
