@@ -141,6 +141,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` and try the mouse (drag, right-drag, wheel) and the keys (W A S D, arrows, Q, E, Shift) on `http://localhost:5173/`.
   - _Requirements: 7_
 
+- [x] 16b. Camera limits (`clampPose`)
+  - [x] 16b.1 `model/fly-controls.ts`: `clampPose`, `cameraLimits`, `maxCameraDistance`, `boundsRadius`; `moveCamera` no longer clamps. `CameraRig` clamps every frame and clamps a flight's end pose. Tests: examples, properties P-clamp-1 to 4 (P18), and a check in `scene-model.test.ts` that the starting pose and every flyTo pose are already inside the limits.
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then check in the browser: E climbs to a ceiling and the view tilts down; Q stops at the floor; right-drag pan stops at the edge and slides; orbit and zoom cannot put the camera under height 1.
+  - _Requirements: 7.3_
+
 - [ ] 17. Overlays
   - [ ] 17.1 `ui/StatsPanel.tsx` (repository name, snapshot date and short SHA, the counts), `ui/Legend.tsx` (one row per entry with a swatch, the snapshot date, a collapse button), `ui/KeysHelp.tsx`.
   - _Requirements: 9_

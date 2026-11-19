@@ -1,4 +1,5 @@
 import type { CameraPose } from './camera-pose';
+import { MAX_STONE_H } from './layout-constants';
 import type { Rect } from './rect';
 import { add, scale, vec3, type Vec3 } from './vec3';
 
@@ -40,6 +41,71 @@ export const FLY_FAST_FACTOR = 3;
 /** The camera never goes lower than this, so it cannot end up inside the ground. */
 export const MIN_CAMERA_HEIGHT = 1;
 
+/** The look-at point may wander this far, as a share of the graveyard's radius, beyond the edge of the root plot. */
+export const WANDER_MARGIN_SHARE = 1;
+
+/** Half the diagonal of the graveyard's bounds: the size that the camera limits and the fly speed are scaled by. */
+export const boundsRadius = (bounds: Rect): number => Math.hypot(bounds.w, bounds.d) / 2;
+
+/**
+ * The furthest the camera may be from its look-at point (zoom out), and the highest it may be above the ground.
+ * One value for both, so E cannot lift the camera higher than the furthest zoom.
+ */
+export const maxCameraDistance = (radius: number): number => Math.max(100, 3 * radius);
+
+/** Where the camera and the point it looks at may be. Used for every input by `clampPose`. */
+export interface CameraLimits {
+  /** The look-at point stays inside this rectangle on the ground (the root plot plus a margin). */
+  area: Rect;
+  /** The camera is never lower than this. */
+  minCameraHeight: number;
+  /** The camera is never higher than this. Must be at least `minCameraHeight`. */
+  maxCameraHeight: number;
+  /** The look-at point is between the ground (0) and this height (the tallest stone). */
+  maxTargetHeight: number;
+}
+
+/** The limits for a graveyard with these bounds. */
+export function cameraLimits(bounds: Rect): CameraLimits {
+  const radius = boundsRadius(bounds);
+  const margin = radius * WANDER_MARGIN_SHARE;
+  return {
+    area: { x: bounds.x - margin, z: bounds.z - margin, w: bounds.w + 2 * margin, d: bounds.d + 2 * margin },
+    minCameraHeight: MIN_CAMERA_HEIGHT,
+    maxCameraHeight: maxCameraDistance(radius),
+    maxTargetHeight: MAX_STONE_H,
+  };
+}
+
+const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
+
+/**
+ * The one rule for where the camera may be, applied after every change to it: keys, mouse and the end of a flight.
+ *
+ * - The look-at point is brought inside `limits.area` sideways. The camera moves sideways by the same amount, so
+ *   the view slides to a stop and its direction does not change.
+ * - The look-at point's height is held between 0 and `maxTargetHeight`. The camera does not move for this, so a
+ *   camera that keeps rising tilts down onto the graveyard.
+ * - The camera's height is held between `minCameraHeight` and `maxCameraHeight`.
+ *
+ * Returns the same object when the pose is already inside the limits, and never changes the pose it is given.
+ * Clamping a clamped pose changes nothing.
+ */
+export function clampPose(pose: CameraPose, limits: CameraLimits): CameraPose {
+  const { area } = limits;
+  const tx = clamp(pose.target.x, area.x, area.x + area.w);
+  const ty = clamp(pose.target.y, 0, limits.maxTargetHeight);
+  const tz = clamp(pose.target.z, area.z, area.z + area.d);
+  const dx = tx - pose.target.x;
+  const dz = tz - pose.target.z;
+  const cx = dx === 0 ? pose.position.x : pose.position.x + dx;
+  const cz = dz === 0 ? pose.position.z : pose.position.z + dz;
+  const cy = clamp(pose.position.y, limits.minCameraHeight, limits.maxCameraHeight);
+
+  if (tx === pose.target.x && ty === pose.target.y && tz === pose.target.z && cy === pose.position.y) return pose; // dx and dz are 0 then too
+  return { position: vec3(cx, cy, cz), target: vec3(tx, ty, tz) };
+}
+
 export function movementFromKeys(pressed: ReadonlySet<string>): FlyInput {
   const input: FlyInput = { forward: 0, right: 0, up: 0 };
   for (const [codes, axis, sign] of BINDINGS) {
@@ -73,15 +139,13 @@ export function isTypingElement(tagName: string | undefined, isContentEditable: 
  *
  * Forward is along the ground, in the direction the camera faces (the camera looking straight down uses
  * the negative z direction). Moving diagonally is no faster than moving straight: the three inputs together
- * are held to length 1. The look-at point is held inside `limits` (the graveyard and a margin) and above the
- * ground, and the camera never goes below MIN_CAMERA_HEIGHT. A look-at point stopped by the sideways limits
- * takes the camera with it; one stopped by the ground does not, so the camera can still come down.
+ * are held to length 1. This does not apply any limit: the caller passes the result to `clampPose`.
  *
  * @param heading the direction the camera faces; its length does not matter
  * @param speed units a second
  * @param seconds the time since the last step
  */
-export function moveCamera(pose: CameraPose, heading: Vec3, input: FlyInput, speed: number, seconds: number, limits: Rect): CameraPose {
+export function moveCamera(pose: CameraPose, heading: Vec3, input: FlyInput, speed: number, seconds: number): CameraPose {
   // A camera looking (almost) straight down has no direction along the ground to go forward in: use negative z.
   const along = Math.hypot(heading.x, heading.z);
   const looksDown = along <= 1e-9 * Math.hypot(heading.x, heading.y, heading.z);
@@ -98,15 +162,5 @@ export function moveCamera(pose: CameraPose, heading: Vec3, input: FlyInput, spe
   if (length > 1) direction = scale(direction, 1 / length);
 
   const step = scale(direction, speed * seconds);
-  const wanted = add(pose.target, step);
-  const target = vec3(
-    Math.min(limits.x + limits.w, Math.max(limits.x, wanted.x)),
-    Math.max(0, wanted.y),
-    Math.min(limits.z + limits.d, Math.max(limits.z, wanted.z)),
-  );
-  // What the limits took off the look-at point sideways is taken off the camera too, so the two stay together there.
-  // The ground is different: a look-at point that cannot go below the ground does not stop the camera coming down
-  // toward it, which just makes the view flatter.
-  const moved = add(pose.position, vec3(step.x + target.x - wanted.x, step.y, step.z + target.z - wanted.z));
-  return { position: vec3(moved.x, Math.max(MIN_CAMERA_HEIGHT, moved.y), moved.z), target };
+  return { position: add(pose.position, step), target: add(pose.target, step) };
 }

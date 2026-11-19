@@ -4,6 +4,7 @@ import { graveyardArb, shuffledGraveyard } from '../../test/arbitraries';
 import { graveyardFrom } from '../../test/make-graveyard';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { DEFAULT_FOV_Y, flyToPose, startPose } from './camera-pose';
+import { cameraLimits, clampPose } from './fly-controls';
 import { layout } from './layout';
 import { buildLegend } from './legend';
 import { pickNearest } from './pick';
@@ -164,6 +165,34 @@ describe('the scene model of any graveyard', () => {
       }),
       { numRuns: 25 },
     );
+  });
+});
+
+describe('the camera limits and the poses the scene flies to', () => {
+  it('leave the starting pose and the pose for every file and ghost as they are, for any graveyard', () => {
+    fc.assert(
+      fc.property(graveyardArb, (g) => {
+        const m = buildSceneModel(g);
+        const limits = cameraLimits(m.layout.bounds);
+        if (clampPose(m.start, limits) !== m.start) return false;
+        for (const path of m.lookup.keys()) {
+          const pose = flyToPose(m.flyTargets, path)!;
+          if (clampPose(pose, limits) !== pose) return false;
+        }
+        return true;
+      }),
+      { numRuns: 40 },
+    );
+  });
+
+  it.each(REAL_GRAVEYARDS)('%s: the same holds for the real file', (name) => {
+    const m = buildSceneModel(loadRealGraveyard(name));
+    const limits = cameraLimits(m.layout.bounds);
+    expect(clampPose(m.start, limits)).toBe(m.start);
+    for (const path of m.lookup.keys()) {
+      const pose = flyToPose(m.flyTargets, path)!;
+      expect(clampPose(pose, limits)).toBe(pose);
+    }
   });
 });
 

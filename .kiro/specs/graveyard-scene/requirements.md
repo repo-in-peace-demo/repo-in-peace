@@ -112,7 +112,11 @@ Each effect has exactly one source. The sources are listed, and no effect reads 
 
 1. THE camera SHALL start framing the whole graveyard from above and in front, whatever its size.
 2. THE user SHALL be able to orbit, pan and zoom with the mouse, and to fly with the keyboard: W A S D or the arrow keys to move, Q and E for down and up, Shift to go faster. The keys SHALL be listed on screen.
-3. THE camera SHALL NOT go below the ground, and zooming SHALL be limited so the camera stays within a stated range of the graveyard.
+3. THE camera SHALL stay within stated limits whichever input moves it (keys, mouse orbit, pan, zoom, or the end of a flight), all applied by one rule, `clampPose`:
+   1. The camera's height SHALL be at least 1 and at most `max(100, 3 × radius)`, the same value as the furthest zoom. (`radius` is half the diagonal of the root plot.)
+   2. The look-at point's height SHALL be between 0 and the tallest stone height. Going up further SHALL raise only the camera, so the view tilts down onto the graveyard.
+   3. The look-at point SHALL stay within the root plot plus one radius on every side, for keys and for panning. When it is stopped, the camera SHALL move by the same amount, so the view slides to a stop and does not jump.
+   4. Tilt is limited only near the horizon (0.02 radians short of it); looking straight down is allowed. Zoom is between 3 and `max(100, 3 × radius)` from the look-at point.
 4. THE scene SHALL expose `flyTo(path)`, which smoothly moves the camera to a pose that frames the stone or ghost with that path, looking at it from a distance that depends on its height.
    1. `flyTo` SHALL take about one second and ease in and out.
    2. `flyTo` for a path that is neither a file nor a ghost SHALL do nothing and report that.
@@ -199,6 +203,7 @@ Supporting properties, added because they follow from the rules:
 - **P15** Picking: a ray through the middle of a target's box hits that target or something nearer, a ray that misses every box hits nothing, and the answer does not depend on the order of the targets (Req 8).
 - **P16** Camera interpolation reaches both end poses, stays finite, and keeps the camera above the ground between two poses above it (Req 7.4).
 - **P17** The floor tint never gets lighter as the nesting depth grows, stays within a stated subtle range, and is the lightest at the root (Req 5.9).
+- **P18** `clampPose`: the result is inside every limit; clamping twice equals clamping once; a pose inside the limits comes back unchanged; and when only the look-at point is stopped sideways, the camera moves with it and the view direction does not change (Req 7.3).
 
 Property P5 is worded differently from the original request, as agreed: moss and lean read the file's age and the thresholds, never the `unused` flag (Req 5.1.4), and P8 checks that each effect depends only on its own fact.
 

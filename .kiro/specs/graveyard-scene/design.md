@@ -336,6 +336,8 @@ A dark blue-black sky dome with a vertical gradient that follows the camera posi
 
 ### Camera
 
+`clampPose(pose, limits)` in `model/fly-controls.ts` is the one rule for where the camera may be. `cameraLimits(bounds)` gives `{ area, minCameraHeight: 1, maxCameraHeight: max(100, 3 r), maxTargetHeight: MAX_STONE_H }`, where `r` is half the diagonal of the root plot and `area` is the root plot plus `r` on every side. `clampPose` brings the look-at point into `area` and moves the camera by the same sideways amount (so the view direction is unchanged), holds the look-at point's height between 0 and `maxTargetHeight` without moving the camera, and holds the camera's height between the floor and the ceiling. It returns the same object when nothing needs to change. `moveCamera` applies no limit. `CameraRig` runs `clampPose` at the end of every frame, after drei's `OrbitControls` has applied the mouse and the keys and flights have run, and clamps a flight's end pose before the flight starts. The starting pose and every `flyTo` pose are inside the limits, which a test checks.
+
 `CameraRig` uses drei's `OrbitControls`: left drag orbits, right drag pans, wheel zooms, with damping, `maxPolarAngle` just under 90° (the camera cannot go below the ground), `minDistance` 3 and `maxDistance` 3 × the bounds radius. Keyboard flying runs in `useFrame`: W, A, S, D and the arrows move the camera and the orbit target together along the ground in the camera's heading, Q and E move down and up (never below 1), and Shift triples the speed; the base speed is `clamp(0.15 × boundsRadius, 5, 80)` units a second. Keys are ignored when the event target is an input, a textarea or an editable element, and when Ctrl, Alt or Meta is held (the later search box will need this).
 
 A flight is started by `flyTo`. In `useFrame` the rig samples `interpolatePose(from, to, t)` and writes the camera position and the control target. A flight ends at `t = 1` or at the first mouse or keyboard camera input (the controls' `start` event, a key press, or the wheel).
@@ -411,6 +413,7 @@ Pure logic is tested in Node with Vitest and fast-check. Rendering code is not u
 | P15 | Picking | For each target, a ray from in front and above through the centre of its box hits it or something nearer; a ray that misses every box returns `undefined`; the result does not depend on the order of the targets |
 | P16 | Camera interpolation | `interpolatePose` at 0 and 1 gives the end poses, stays finite, and the camera height stays above the ground between two poses above it |
 | P17 | Floor tint | `plotFloorShade` is 1 at depth 0, never increases with depth, stays within `[0.70, 1]`, and is constant from depth 6 on |
+| P18 | Camera limits | `clampPose`: the result is inside every limit; clamping twice equals clamping once; a pose inside the limits is returned unchanged; when only the look-at point is stopped sideways, the camera moves with it and the view direction is unchanged |
 
 ### Example tests
 
