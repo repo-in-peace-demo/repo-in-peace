@@ -8,15 +8,19 @@ import {
   smallGraveyardArb,
 } from '../../test/arbitraries';
 import {
+  AREA_BOUND,
+  areaProblems,
   cellOverlap,
   cellsVersusChildPlots,
   containment,
   coverage,
   firstLayoutProblem,
+  mergeProblems,
   nonFinite,
   plotOverlap,
   signOverlap,
 } from '../../test/layout-checks';
+import { makeSyntheticGraveyard } from './synthetic';
 import { validateGraveyard } from '@shared/graveyard-schema';
 import { layout } from './layout';
 import { MAX_STONE_H, MIN_STONE_H } from './layout-constants';
@@ -128,7 +132,7 @@ describe('P3: the same data gives the same layout', () => {
   });
 });
 
-describe('P4: one position for every file and ghost, one plot for every folder', () => {
+describe('P4: one position for every file and ghost, every folder in exactly one plot', () => {
   it('has exactly the paths of the data file, each once, and each stone in its own folder', () => {
     fc.assert(fc.property(graveyardArb, (g) => coverage(g, layout(g)) === undefined));
   });
@@ -219,6 +223,90 @@ describe('P10: finite numbers, and a crowded folder is not a long strip', () => 
         return true;
       }),
       { numRuns: 100 },
+    );
+  });
+});
+
+describe('folders shown together', () => {
+  it('follows the rules, for graveyards of every shape: only empty single-child folders are merged, chains are as long as they can be, the root and folders with ghosts never are, and every plot is named for its folders', () => {
+    fc.assert(fc.property(graveyardArb, (g) => mergeProblems(g, layout(g)) === undefined), { numRuns: 150 });
+  });
+
+  it('shows every folder in exactly one plot, and the plot for a folder with files or ghosts is its own', () => {
+    fc.assert(
+      fc.property(graveyardArb, (g) => {
+        const l = layout(g);
+        const shown = l.plots.flatMap((p) => p.folders);
+        const inPlot = new Set(shown);
+        const holders = new Set([...g.files.map((f) => f.folder), ...l.ghosts.map((q) => q.folder)]);
+        return (
+          shown.length === g.folders.length &&
+          inPlot.size === g.folders.length &&
+          g.folders.every((f) => inPlot.has(f.path)) &&
+          [...holders].every((h) => l.plots.some((p) => p.path === h))
+        );
+      }),
+    );
+  });
+
+  it('never gives a plot more than one folder at the root, and never merges away the root', () => {
+    fc.assert(
+      fc.property(graveyardArb, (g) => {
+        const root = layout(g).plots.find((p) => p.path === '');
+        return root !== undefined && root.folders.length === 1 && root.folders[0] === '' && root.parent === null;
+      }),
+    );
+  });
+
+  it('does not make a graveyard bigger: it never has more plots than folders', () => {
+    fc.assert(fc.property(graveyardArb, (g) => layout(g).plots.length <= g.folders.length));
+  });
+
+  it('shows a deep chain as one plot when only its bottom holds files, and as one plot per level when every level does', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 300 }), fc.integer({ min: 0, max: 20 }), (depth, files) => {
+        // No ghosts here (they are 2% of the files, and there are fewer than 50). The files are shared out one level at a time:
+        // every level gets some when there are at least as many files as levels, and otherwise only the deepest level gets them.
+        const g = makeSyntheticGraveyard({ files, seed: 3, shape: 'deep', depth });
+        const l = layout(g);
+        const expectedPlots = files >= depth ? depth + 1 : 2; // the root, and one plot for every level, or one for the whole chain
+        return l.plots.length === expectedPlots && mergeProblems(g, l) === undefined;
+      }),
+      { numRuns: 80 },
+    );
+  });
+});
+
+describe('packing: little empty ground, close to a square', () => {
+  it(`keeps every plot's content within ${AREA_BOUND} times the area of what it holds, gaps counted, for graveyards of every shape`, () => {
+    fc.assert(fc.property(graveyardArb, (g) => areaProblems(layout(g)) === undefined), { numRuns: 150 });
+  });
+
+  it('holds for 500 to 800 files in one folder, and for chains', () => {
+    fc.assert(fc.property(crowdedGraveyardArb, (g) => areaProblems(layout(g)) === undefined), { numRuns: 30 });
+    fc.assert(fc.property(deepGraveyardArb, (g) => areaProblems(layout(g)) === undefined), { numRuns: 30 });
+  });
+
+  it('puts a wide tree of similar folders into a plot that is close to a square', () => {
+    const wide = fc.record({ files: fc.integer({ min: 150, max: 700 }), seed: fc.integer({ min: 0, max: 100_000 }) });
+    fc.assert(
+      fc.property(wide, ({ files, seed }) => {
+        const l = layout(makeSyntheticGraveyard({ files, seed, shape: 'wide', ghosts: 0 }));
+        const { w, d } = l.bounds;
+        return Math.max(w, d) / Math.min(w, d) <= 1.5;
+      }),
+      { numRuns: 40 },
+    );
+  });
+
+  it('is never longer than twice as long as wide for the whole graveyard, for a tree with many folders', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 200, max: 700 }), fc.integer({ min: 0, max: 100_000 }), (files, seed) => {
+        const l = layout(makeSyntheticGraveyard({ files, seed, shape: 'tree' }));
+        const { w, d } = l.bounds;
+        return Math.max(w, d) / Math.min(w, d) <= 2;
+      }),
+      { numRuns: 40 },
     );
   });
 });

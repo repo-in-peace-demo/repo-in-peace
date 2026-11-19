@@ -114,7 +114,9 @@ Constants (all in one module, each with a comment):
 
 ```ts
 interface Rect { x: number; z: number; w: number; d: number }
-interface PlotLayout   { path: string; parent: string | null; depth: number; rect: Rect; sign: SignSpot }
+interface PlotLayout   { path: string; folders: string[]; label: string; parent: string | null; depth: number; rect: Rect; sign: SignSpot }
+// path = the deepest real folder shown; folders = every real folder shown, outermost first (last = path); label = their last names joined by '/' ('' for the root)
+// parent = the real parent of the outermost folder, which is the path of the plot above; depth = the real depth of `path`
 interface SignSpot     { x: number; z: number; footprint: Rect }       // centre of the front fence, inside the fence band
 interface StoneLayout  { path: string; folder: string; cell: Rect; x: number; z: number; height: number }  // x, z = centre of the base
 interface GhostLayout  { path: string; folder: string; cell: Rect; x: number; z: number }               // folder = the plot it sits in
@@ -122,7 +124,7 @@ interface Layout       { plots: PlotLayout[]; blocks: BlockLayout[]; stones: Sto
 interface BlockLayout  { folder: string; rect: Rect; columns: number; rows: number; count: number }   // a folder's block of cells
 layout(graveyard: Graveyard): Layout
 blockShape(count): { columns; rows; w; d }          // exported, for tests
-packRows(items): { offsets; w; d }                  // exported, for tests: the shelf packing
+packItems(items): { offsets; w; d }                 // exported, for tests: the skyline packing
 nearestExistingFolder(path, folders): string        // exported, for tests: where a ghost sits
 ```
 
@@ -130,11 +132,14 @@ nearestExistingFolder(path, folders): string        // exported, for tests: wher
 
 1. **Group.** Put each file in its folder's list. Resolve each ghost's plot: the directory of its path if it is in `folders`, otherwise the nearest ancestor that is, ending at the root `""` (Req 4.1, 4.2). Sort every list by path with `compareCodePoint`. Because the sort is the only ordering used, the shuffled arrays of a data file give the same result (Req 2.6).
 2. **Block of cells.** For a folder with `n` items (its stones first, then its ghosts, Req 4.3), use `c = max(1, ceil(sqrt(n × PZ / PX)))` columns and `r = ceil(n / c)` rows, where `PX`, `PZ` are the pitches. Cell `k` is at column `k mod c`, row `⌊k / c⌋`. The block is `(c−1)·PX + CELL_W` wide and `(r−1)·PZ + CELL_D` deep. This makes the block close to square in world units: for 500 items it is 20 columns by 25 rows, about 54 by 52 units (Req 3.1).
-3. **Plot sizes, leaves up.** Visit folders from the deepest to the root. A folder's content items are its block (if `n > 0`) followed by its child plots in path order. Pack them in rows (shelf packing): the row width target is `max(widest item, ceil(1.25 × sqrt(total area)))`, items go left to right with `ITEM_GAP` between them, and a new row starts when the next item would pass the target. Row depth is the deepest item in it. The content is the bounding box of the rows. A plot's rectangle is the content plus `FENCE_BAND` on every side; an empty folder is `2·FENCE_BAND` square.
-4. **Positions, root down.** The root plot's corner is `(0, 0)`. Visit folders from the root down; a child's absolute corner is its parent's corner plus `FENCE_BAND` plus its offset in the parent's packing. Cell and stone positions follow the same way. `bounds` is the root rectangle.
-5. **Signs.** A plot's sign is centred on its front edge: `x = rect.x + rect.w / 2`, with a footprint that lies inside the fence band, `SIGN_D` deep, ending at `rect.z + rect.d`. The band is `FENCE_BAND` deep and nothing else lies in it, so a sign overlaps no stone, ghost or child plot (Req 10.6).
+3. **Chains.** A folder that is not the root, has no files, no ghosts and exactly one child folder is merged with that child. Plots exist for the other folders (the tail of each chain); the plot's `folders` lists the chain. Nothing is placed inside a merged folder, so its fence is the fence of the tail.
+4. **Plot sizes, leaves up.** Visit plots from the deepest to the root. A plot's content items are its block of cells (if it has any, one item with id `block`) and its child plots (id `child:<path>`). Pack them with `packItems`, a skyline packer: items are sorted by area (largest first), then longer side, then id. For each of `PACK_WIDTH_CANDIDATES` (25) strip widths between the widest item and the widest item plus 2 × sqrt(total area), the items are placed one by one at the lowest, then leftmost, spot where they fit, with `ITEM_GAP` between items. The width giving the smallest longer side wins, then the smaller area, then the narrower strip. The content is the bounding box. A plot's rectangle is the content plus `FENCE_BAND` on every side; an empty folder is `2·FENCE_BAND` square. Because the block is just another item, a folder's own stones sit beside its child plots and not in a separate strip.
+5. **Positions, root down.** The root plot's corner is `(0, 0)`. Visit folders from the root down; a child's absolute corner is its parent's corner plus `FENCE_BAND` plus its offset in the parent's packing. Cell and stone positions follow the same way. `bounds` is the root rectangle.
+6. **Signs.** A plot's sign is centred on its front edge: `x = rect.x + rect.w / 2`, with a footprint that lies inside the fence band, `SIGN_D` deep, ending at `rect.z + rect.d`. The band is `FENCE_BAND` deep and nothing else lies in it, so a sign overlaps no stone, ghost or child plot (Req 10.6).
 
-Why this satisfies the properties: cells of one folder are on a grid with gaps, so they cannot overlap; the block and the child plots are different items on shelves with gaps; child plots are inside the content, which is inside the parent's rectangle; stones lie inside their block. Rows only ever grow `z` and items only ever grow `x` within a row, so nothing is placed twice.
+Why this satisfies the properties: cells of one folder are on a grid with gaps, so they cannot overlap; the block and the child plots are different items on shelves with gaps; child plots are inside the content, which is inside the parent's rectangle; stones lie inside their block. The packer places each item at a spot where it does not meet an earlier one, so nothing is placed twice.
+
+**Area bound.** The test property: for every plot, (content width + `ITEM_GAP`) × (content depth + `ITEM_GAP`) is at most `AREA_BOUND` (2) × the sum of (item width + `ITEM_GAP`) × (item depth + `ITEM_GAP`). The value 2 is a first estimate to be checked against counterexamples, and it is a fixed number, so a layout that wastes more space fails the test.
 
 `stoneHeight` is applied here so `StoneLayout` carries the height that `flyTo` and picking need.
 

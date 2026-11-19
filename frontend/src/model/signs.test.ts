@@ -94,12 +94,20 @@ describe('buildSignSources', () => {
     expect(sources[1]!.near).toBeGreaterThan(sources[2]!.near);
   });
 
+  it('names a plot that shows several folders for all of them', () => {
+    const merged = buildSignSources(layout(graveyardFrom({ files: ['app/api/accounts/compare/route.ts', 'app/api/other.ts'] })), 'demo');
+    expect(merged.map((s) => s.label)).toEqual(['demo', 'app/api', 'accounts/compare']);
+    expect(merged.map((s) => s.path)).toEqual(['', 'app/api', 'app/api/accounts/compare']);
+  });
+
   it.each(REAL_GRAVEYARDS)('labels every plot of %s with a non-empty name', (name) => {
     const real = loadRealGraveyard(name);
     const realSources = buildSignSources(layout(real), real.meta.name);
     expect(realSources.every((s) => s.label.length > 0)).toBe(true);
     expect(realSources.find((s) => s.path === '')!.label).toBe(real.meta.name);
-    expect(realSources.every((s) => s.path === '' || !s.label.includes('/'))).toBe(true);
+    // A plot that shows several folders is named for all of them, so its label can contain slashes; a plot for one folder does not.
+    const plots = layout(real).plots;
+    expect(realSources.every((s, i) => s.path === '' || plots[i]!.folders.length > 1 || !s.label.includes('/'))).toBe(true);
   });
 });
 

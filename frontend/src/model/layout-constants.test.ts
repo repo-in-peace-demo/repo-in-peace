@@ -12,7 +12,7 @@ import {
   MAX_LEAN_DEG,
   MAX_STONE_H,
   MIN_STONE_H,
-  PACK_ASPECT,
+  PACK_WIDTH_CANDIDATES,
   SIGN_D,
   SIGN_W,
   STONE_D,
@@ -28,7 +28,7 @@ describe('the layout constants', () => {
   it('are all positive, finite numbers', () => {
     const all = [
       MIN_STONE_H, MAX_STONE_H, LOC_AT_MAX_HEIGHT, STONE_W, STONE_D, MAX_LEAN_DEG, LEAN_REACH,
-      CELL_W, CELL_D, CELL_GAP, CELL_PITCH_X, CELL_PITCH_Z, FENCE_BAND, ITEM_GAP, PACK_ASPECT, SIGN_W, SIGN_D,
+      CELL_W, CELL_D, CELL_GAP, CELL_PITCH_X, CELL_PITCH_Z, FENCE_BAND, ITEM_GAP, PACK_WIDTH_CANDIDATES, SIGN_W, SIGN_D,
     ];
     for (const value of all) {
       expect(Number.isFinite(value)).toBe(true);
@@ -66,7 +66,8 @@ describe('the layout constants', () => {
     expect(SIGN_W).toBeLessThanOrEqual(2 * FENCE_BAND);
   });
 
-  it('keep the packing at least as wide as a square, so rows can hold more than one item', () => {
-    expect(PACK_ASPECT).toBeGreaterThanOrEqual(1);
+  it('try more than one strip width when packing, so there is a choice of shapes', () => {
+    expect(Number.isInteger(PACK_WIDTH_CANDIDATES)).toBe(true);
+    expect(PACK_WIDTH_CANDIDATES).toBeGreaterThanOrEqual(2);
   });
 });

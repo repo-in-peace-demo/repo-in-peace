@@ -58,10 +58,11 @@ export const FENCE_BAND = 1.5;
 export const ITEM_GAP = 2.5;
 
 /**
- * How wide, compared with a square of the same total area, a plot's contents are packed.
- * 1 would be a square; a little more gives rows a chance to hold two or three items side by side.
+ * How many strip widths the packer tries for a plot's contents, between the widest item and about twice the side of
+ * a square of the same total area. The packing with the shortest longer side wins, which is the one closest to a square.
+ * More widths pack a little better and take a little longer; the speed guards in scene-model.test.ts keep it honest.
  */
-export const PACK_ASPECT = 1.25;
+export const PACK_WIDTH_CANDIDATES = 25;
 
 // ---- Signs ----
 

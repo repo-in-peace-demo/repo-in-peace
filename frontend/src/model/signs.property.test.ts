@@ -114,12 +114,17 @@ describe('P14: one sign for every plot, on the front fence, in the way of nothin
     );
   });
 
-  it('labels the root with the repository name and every other plot with the last segment of its path', () => {
+  it('labels the root with the repository name, and every other plot with the names of its folders joined by a slash', () => {
     fc.assert(
       fc.property(graveyardArb, (g) => {
-        return buildSignSources(layout(g), g.meta.name).every((s) =>
-          s.path === '' ? s.label === g.meta.name : s.label === s.path.split('/').pop(),
-        );
+        const l = layout(g);
+        const sources = buildSignSources(l, g.meta.name);
+        return sources.every((s, i) => {
+          const plot = l.plots[i]!;
+          return plot.path === ''
+            ? s.label === g.meta.name
+            : s.label === plot.folders.map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/') && s.label.length > 0;
+        });
       }),
     );
   });

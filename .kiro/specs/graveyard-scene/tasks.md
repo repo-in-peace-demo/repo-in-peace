@@ -54,6 +54,13 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 2, 3, 4_
 
+- [x] 5b. Layout packing and folder chains (changes found at checkpoint B)
+  - [x] 5b.1 `packItems` (skyline) replaces `packRows`; a folder's own block is one of the packed items; `PACK_WIDTH_CANDIDATES` replaces `PACK_ASPECT`.
+  - [x] 5b.2 Folders with no files, no ghosts and one child merge into the child. `PlotLayout` gains `folders` and `label`; signs show `label`; hover labels keep the real path.
+  - [x] 5b.3 Checkers `mergeProblems` and `areaProblems` (`AREA_BOUND` 2) in `test/layout-checks.ts`; properties and examples updated (P4 now covers merging and the area bound); scene-model and sign tests use plots instead of folders.
+  - **Run:** `cd frontend && npm run typecheck && npm test`
+  - _Requirements: 2.2, 2.8, 2.9_
+
 - [x] 6. Visual parameters (`model/visual-params.ts`)
   - [x] 6.1 `model/visual-constants.ts` (the shapes of the curves: moss levels, lean minimum, glow, ghost opacity and float, floor tint range) and `model/visual-params.ts`: `mossAmount`, `leanDegrees`, `stoneVisual`, `ghostVisual`, `plotFloorShade(depth)`. None of them can read the decay score, size, recent commits or folder.
   - [x] 6.2 `visual-params.property.test.ts`: **P5** (moss does not decrease when the score rises, for files in the same state with the same `unused` flag; only ancient stones lean, never past `MAX_LEAN_DEG`), **P8** (flipping `unused` changes only cracks and glow; flipping `hot` only the candle; any decay score gives the same look; size, recent commits, folder, author and eulogy are ignored; changing the age within a state leaves cracks, glow, candle and hash variety alone; changing only the path leaves every data effect alone), **P9** (moss ranges per state, monotone in age, 1 from the decay cap on), **P17** (floor tint). Test helpers added to `test/arbitraries.ts`: `makeFileCase`, `fileCaseArb`, and an oracle copy of the analyser's state and score rules. P5's "when the score rises" is strict (`score₁ < score₂`), because scores are rounded and two ages can share one.

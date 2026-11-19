@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { firstLayoutProblem } from '../../test/layout-checks';
 import { graveyardFrom } from '../../test/make-graveyard';
-import { shuffledGraveyard } from '../../test/arbitraries';
+import fc from 'fast-check';
+import { shuffled, shuffledGraveyard } from '../../test/arbitraries';
 import {
   CELL_D,
   CELL_PITCH_X,
@@ -15,7 +16,7 @@ import {
   SIGN_D,
   SIGN_W,
 } from './layout-constants';
-import { blockShape, dirnameOf, layout, nearestExistingFolder, packRows } from './layout';
+import { blockShape, dirnameOf, layout, nearestExistingFolder, packItems, type PackInput } from './layout';
 import { stoneHeight } from './tombstone-height';
 import { overlaps } from './rect';
 
@@ -90,69 +91,132 @@ describe('blockShape', () => {
   });
 });
 
-describe('packRows', () => {
+describe('packItems', () => {
+  const item = (id: string, w: number, d: number): PackInput => ({ id, w, d });
+
   it('has nothing to place for nothing', () => {
-    expect(packRows([])).toEqual({ offsets: [], w: 0, d: 0 });
+    const packed = packItems([]);
+    expect(packed.offsets.size).toBe(0);
+    expect([packed.w, packed.d]).toEqual([0, 0]);
   });
 
   it('puts a single item at the corner and is as big as the item', () => {
-    expect(packRows([{ w: 7, d: 3 }])).toEqual({ offsets: [{ x: 0, z: 0 }], w: 7, d: 3 });
+    const packed = packItems([item('a', 7, 3)]);
+    expect(packed.offsets.get('a')).toEqual({ x: 0, z: 0 });
+    expect([packed.w, packed.d]).toEqual([7, 3]);
   });
 
-  it('starts a new row for an item as wide as the widest one, whatever the gap', () => {
-    // The widest item sets the target width, so no other item can share a row with it.
-    const packed = packRows([{ w: 20, d: 2 }, { w: 20, d: 2 }]);
-    expect(packed.offsets[0]).toEqual({ x: 0, z: 0 });
-    expect(packed.offsets[1]!.x).toBe(0);
-    expect(packed.offsets[1]!.z).toBeCloseTo(2 + ITEM_GAP, 9);
+  it('puts the largest item at the corner', () => {
+    const packed = packItems([item('small', 3, 3), item('big', 20, 20), item('medium', 8, 8)]);
+    expect(packed.offsets.get('big')).toEqual({ x: 0, z: 0 });
   });
 
-  it('puts small items side by side, ITEM_GAP apart, when they fit the target width', () => {
-    // Nine squares of side ITEM_GAP: the area is 9G², so the target is at least 3.75G. Two squares need 3G, three need 5G.
-    const g = ITEM_GAP;
-    const packed = packRows(Array.from({ length: 9 }, () => ({ w: g, d: g })));
-    expect(packed.offsets[0]).toEqual({ x: 0, z: 0 });
-    expect(packed.offsets[1]!.x).toBeCloseTo(2 * g, 9);
-    expect(packed.offsets[1]!.z).toBe(0);
-    expect(packed.offsets[2]!.x).toBe(0); // the third would pass the target
-    expect(packed.offsets[2]!.z).toBeCloseTo(2 * g, 9);
+  it('breaks a tie of size by the longer side, then by id, whatever the order of the items', () => {
+    const items = [item('b', 5, 5), item('a', 5, 5)];
+    expect(packItems(items).offsets.get('a')).toEqual({ x: 0, z: 0 });
+    expect(packItems([...items].reverse()).offsets.get('a')).toEqual({ x: 0, z: 0 });
   });
 
-  it('starts a new row when the next item would pass the target, and never before the first item of a row', () => {
-    const items = [{ w: 20, d: 5 }, { w: 3, d: 5 }, { w: 3, d: 5 }];
-    const packed = packRows(items);
-    expect(packed.offsets[0]).toEqual({ x: 0, z: 0 });
-    // The widest item sets the target, so 20 + gap + 3 passes it and the second item goes on a new row.
-    expect(packed.offsets[1]!.x).toBe(0);
-    expect(packed.offsets[1]!.z).toBeCloseTo(5 + ITEM_GAP, 9);
+  it('fills the gaps beside a big item with small ones instead of starting a new row', () => {
+    // One big item and many small ones: a shelf packer would waste the ground beside the small ones.
+    const items = [item('big', 30, 30), ...Array.from({ length: 6 }, (_, i) => item(`s${i}`, 8, 8))];
+    const packed = packItems(items);
+    const ground = items.reduce((sum, it) => sum + it.w * it.d, 0);
+    expect(packed.w * packed.d).toBeLessThan(ground * 1.8);
   });
 
-  it('keeps items in the order given', () => {
-    const items = Array.from({ length: 12 }, (_, i) => ({ w: 3 + (i % 4), d: 2 + (i % 3) }));
-    const packed = packRows(items);
-    // Reading order: by row, then by column, is the order given.
-    for (let i = 1; i < packed.offsets.length; i++) {
-      const a = packed.offsets[i - 1]!;
-      const b = packed.offsets[i]!;
-      expect(b.z > a.z || (b.z === a.z && b.x > a.x)).toBe(true);
-    }
+  it('comes out close to a square when there are many items of similar size', () => {
+    const packed = packItems(Array.from({ length: 36 }, (_, i) => item(`p${String(i).padStart(2, '0')}`, 5.4, 4.8)));
+    expect(Math.max(packed.w, packed.d) / Math.min(packed.w, packed.d)).toBeLessThan(1.35);
   });
 
-  it('never overlaps items, and keeps them inside the packed area, with the gap between neighbours', () => {
-    const items = Array.from({ length: 30 }, (_, i) => ({ w: 2 + ((i * 7) % 9), d: 2 + ((i * 5) % 6) }));
-    const packed = packRows(items);
-    const rects = packed.offsets.map((o, i) => ({ x: o.x, z: o.z, w: items[i]!.w, d: items[i]!.d }));
-    for (let i = 0; i < rects.length; i++) {
-      expect(rects[i]!.x + rects[i]!.w).toBeLessThanOrEqual(packed.w + 1e-9);
-      expect(rects[i]!.z + rects[i]!.d).toBeLessThanOrEqual(packed.d + 1e-9);
-      for (let j = i + 1; j < rects.length; j++) {
-        expect(overlaps(rects[i]!, rects[j]!)).toBe(false);
-        // Not even closer than the gap in both directions at once.
-        const gapX = Math.max(rects[j]!.x - (rects[i]!.x + rects[i]!.w), rects[i]!.x - (rects[j]!.x + rects[j]!.w));
-        const gapZ = Math.max(rects[j]!.z - (rects[i]!.z + rects[i]!.d), rects[i]!.z - (rects[j]!.z + rects[j]!.d));
-        expect(Math.max(gapX, gapZ)).toBeGreaterThanOrEqual(ITEM_GAP - 1e-9);
-      }
-    }
+  it('is much better than one long row for 36 equal items', () => {
+    const items = Array.from({ length: 36 }, (_, i) => item(`p${i}`, 5, 5));
+    const packed = packItems(items);
+    const oneRow = 36 * 5 + 35 * ITEM_GAP;
+    expect(Math.max(packed.w, packed.d)).toBeLessThan(oneRow / 3);
+  });
+});
+
+describe('packItems for any items', () => {
+  // Items as the layout makes them are close to square: blocks of cells are near-square, and plots are packed into near-square
+  // shapes. So the sizes here are anything from 3 to 60 units, with a shape no more than twice as long as wide.
+  const itemsArb = fc
+    .array(fc.record({ w: fc.double({ min: 3, max: 60, noNaN: true }), ratio: fc.double({ min: 0.5, max: 2, noNaN: true }) }), { maxLength: 40 })
+    .map((list) => list.map((it, i): PackInput => ({ id: `i${String(i).padStart(3, '0')}`, w: it.w, d: it.w * it.ratio })));
+
+  it('never overlaps two items, and keeps at least ITEM_GAP between them', () => {
+    fc.assert(
+      fc.property(itemsArb, (items) => {
+        const packed = packItems(items);
+        const rects = items.map((it) => ({ id: it.id, ...packed.offsets.get(it.id)!, w: it.w, d: it.d }));
+        for (let i = 0; i < rects.length; i++) {
+          for (let j = i + 1; j < rects.length; j++) {
+            const a = rects[i]!;
+            const b = rects[j]!;
+            const gapX = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+            const gapZ = Math.max(b.z - (a.z + a.d), a.z - (b.z + b.d));
+            if (Math.max(gapX, gapZ) < ITEM_GAP - 1e-6) return false;
+          }
+        }
+        return true;
+      }),
+    );
+  });
+
+  it('has every item inside the packed area, which touches the items on its far sides and has no margin on its near sides', () => {
+    fc.assert(
+      fc.property(itemsArb, (items) => {
+        if (items.length === 0) return true;
+        const packed = packItems(items);
+        let right = 0;
+        let bottom = 0;
+        let left = Infinity;
+        let top = Infinity;
+        for (const it of items) {
+          const o = packed.offsets.get(it.id)!;
+          right = Math.max(right, o.x + it.w);
+          bottom = Math.max(bottom, o.z + it.d);
+          left = Math.min(left, o.x);
+          top = Math.min(top, o.z);
+        }
+        return Math.abs(right - packed.w) < 1e-9 && Math.abs(bottom - packed.d) < 1e-9 && Math.abs(left) < 1e-9 && Math.abs(top) < 1e-9;
+      }),
+    );
+  });
+
+  it('gives every item exactly one place, and none to anything else', () => {
+    fc.assert(
+      fc.property(itemsArb, (items) => {
+        const packed = packItems(items);
+        return packed.offsets.size === items.length && items.every((it) => packed.offsets.has(it.id));
+      }),
+    );
+  });
+
+  it('gives the same result whatever order the items are given in', () => {
+    fc.assert(
+      fc.property(itemsArb, fc.integer({ min: 0, max: 1_000_000 }), (items, seed) => {
+        const first = packItems(items);
+        const second = packItems(shuffled(items, seed));
+        return (
+          first.w === second.w &&
+          first.d === second.d &&
+          items.every((it) => first.offsets.get(it.id)!.x === second.offsets.get(it.id)!.x && first.offsets.get(it.id)!.z === second.offsets.get(it.id)!.z)
+        );
+      }),
+    );
+  });
+
+  it('uses little more ground than the items need: at most twice their area with the gaps counted', () => {
+    fc.assert(
+      fc.property(itemsArb, (items) => {
+        if (items.length === 0) return true;
+        const packed = packItems(items);
+        const held = items.reduce((sum, it) => sum + (it.w + ITEM_GAP) * (it.d + ITEM_GAP), 0);
+        return (packed.w + ITEM_GAP) * (packed.d + ITEM_GAP) <= 2 * held + 1e-6;
+      }),
+    );
   });
 });
 
@@ -216,12 +280,14 @@ describe('layout of simple graveyards', () => {
   });
 
   it('records depth and parent of every plot', () => {
-    const l = layout(graveyardFrom({ files: ['a/b/c.ts', 'd.ts'] }));
-    expect(l.plots.map((p) => [p.path, p.parent, p.depth])).toEqual([
-      ['', null, 0],
-      ['a', '', 1],
-      ['a/b', 'a', 2],
+    // Every folder holds a file, so every folder has its own plot.
+    const l = layout(graveyardFrom({ files: ['a/x.ts', 'a/b/c.ts', 'd.ts'] }));
+    expect(l.plots.map((p) => [p.path, p.parent, p.depth, p.label])).toEqual([
+      ['', null, 0, ''],
+      ['a', '', 1, 'a'],
+      ['a/b', 'a', 2, 'b'],
     ]);
+    expect(l.plots.map((p) => p.folders)).toEqual([[''], ['a'], ['a/b']]);
   });
 });
 
@@ -246,13 +312,22 @@ describe('nesting', () => {
     for (const child of ['x', 'y', 'z']) expect(overlaps(block.rect, plotOf(l, child).rect)).toBe(false);
   });
 
-  it('places sibling plots in order of path', () => {
-    const x = plotOf(l, 'x').rect;
-    const y = plotOf(l, 'y').rect;
-    const z = plotOf(l, 'z').rect;
-    const before = (p: typeof x, q: typeof x) => p.z < q.z || (p.z === q.z && p.x < q.x);
-    expect(before(x, y)).toBe(true);
-    expect(before(y, z)).toBe(true);
+  it('puts the biggest plot in the corner, and packs the smaller ones beside and below it', () => {
+    const root = plotOf(l, '').rect;
+    const x = plotOf(l, 'x').rect; // holds two stones and a folder, so it is the biggest
+    expect(x.x).toBeCloseTo(root.x + FENCE_BAND, 9);
+    expect(x.z).toBeCloseTo(root.z + FENCE_BAND, 9);
+    for (const small of ['y', 'z']) {
+      const r = plotOf(l, small).rect;
+      expect(r.w * r.d).toBeLessThan(x.w * x.d);
+    }
+  });
+
+  it('treats the folder\'s own stones as one more item beside its plots, not as a strip of their own', () => {
+    const block = l.blocks.find((b) => b.folder === '')!;
+    const siblings = ['x', 'y', 'z'].map((name) => plotOf(l, name).rect);
+    // The block does not overlap any plot, and is not always at the top: it is wherever the packing put it.
+    for (const r of siblings) expect(overlaps(block.rect, r)).toBe(false);
   });
 
   it('makes the parent bigger for each level of nesting', () => {
@@ -292,14 +367,28 @@ describe('ghost placement in the layout', () => {
 });
 
 describe('extreme shapes', () => {
-  it('lays out a chain of 300 empty folders, each plot 2 × FENCE_BAND bigger than the one inside it', () => {
+  it('shows a chain of 300 empty folders as one plot, named for all of them, with one fence and one sign', () => {
     const chain = Array.from({ length: 300 }, (_, i) => `l${i}`).reduce<string[]>((paths, name, i) => [...paths, i === 0 ? name : `${paths[i - 1]}/${name}`], []);
     const g = graveyardFrom({ folders: [chain[299]!] });
     const l = layout(g);
-    expect(l.plots).toHaveLength(301);
+    expect(l.plots.map((p) => p.path)).toEqual(['', chain[299]]);
+    const merged = plotOf(l, chain[299]!);
+    expect(merged.folders).toEqual(chain);
+    expect(merged.label).toBe(Array.from({ length: 300 }, (_, i) => `l${i}`).join('/'));
+    expect(merged.depth).toBe(300);
+    expect(merged.parent).toBe('');
     expect(firstLayoutProblem(g, l)).toBeUndefined();
-    expect(l.bounds.w).toBeCloseTo(2 * FENCE_BAND * 301, 6);
+    expect(l.bounds.w).toBeCloseTo(4 * FENCE_BAND, 9); // the root's fence around one small plot
+  });
+
+  it('lays out a chain of 300 folders that each hold a file, one plot for each, nested 300 deep', () => {
+    const chain = Array.from({ length: 300 }, (_, i) => `l${i}`).reduce<string[]>((paths, name, i) => [...paths, i === 0 ? name : `${paths[i - 1]}/${name}`], []);
+    const g = graveyardFrom({ files: chain.map((folder) => `${folder}/f.ts`) });
+    const l = layout(g);
+    expect(l.plots).toHaveLength(301);
     expect(plotOf(l, chain[299]!).depth).toBe(300);
+    expect(firstLayoutProblem(g, l)).toBeUndefined();
+    expect(Number.isFinite(l.bounds.w) && Number.isFinite(l.bounds.d)).toBe(true);
   });
 
   it('lays out 600 files in one folder as a near-square block', () => {
@@ -319,11 +408,13 @@ describe('extreme shapes', () => {
     expect(Math.max(l.bounds.w, l.bounds.d) / Math.min(l.bounds.w, l.bounds.d)).toBeLessThan(2);
   });
 
-  it('handles a folder with no files and no children, and one with only children', () => {
+  it('handles a folder with no files and no children, and a chain of folders that hold only the next one', () => {
     const g = graveyardFrom({ folders: ['empty', 'only/children/here'] });
     const l = layout(g);
     expect(firstLayoutProblem(g, l)).toBeUndefined();
     expect(plotOf(l, 'empty').rect.w).toBeCloseTo(2 * FENCE_BAND, 9);
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'empty', 'only/children/here']);
+    expect(plotOf(l, 'only/children/here').label).toBe('only/children/here');
   });
 
   it('handles names with spaces, dots and non-ASCII characters', () => {
@@ -338,13 +429,29 @@ describe('the real test files', () => {
     expect(firstLayoutProblem(g, layout(g))).toBeUndefined();
   });
 
-  it('oikos_ledger: one plot per folder (68), one stone per file (129), no ghosts', () => {
+  it('oikos_ledger: every one of its 68 folders is in one plot, empty single-child folders are shown with the folder inside, 129 stones, no ghosts', () => {
     const g = loadRealGraveyard('demo.oikosledger');
     const l = layout(g);
-    expect(l.plots).toHaveLength(68);
+    expect(l.plots.flatMap((p) => p.folders).sort()).toEqual(g.folders.map((f) => f.path).sort());
+    expect(l.plots.length).toBeLessThan(68); // the deep tree has chains that are shown together
+    expect(l.plots.some((p) => p.folders.length > 1)).toBe(true);
     expect(l.stones).toHaveLength(129);
     expect(l.ghosts).toHaveLength(0);
     expect(Math.max(...l.plots.map((p) => p.depth))).toBeGreaterThanOrEqual(4); // a deep tree
+  });
+
+  it('oikos_ledger: every plot that shows several folders is named by joining their own names', () => {
+    const g = loadRealGraveyard('demo.oikosledger');
+    const l = layout(g);
+    const shown = l.plots.filter((p) => p.folders.length > 1).map((p) => [p.folders.join(' > '), p.label]);
+    // Every merged plot is named by joining its folders' own names.
+    for (const [chain, label] of shown) expect(label).toBe(chain!.split(' > ').map((f) => f.slice(f.lastIndexOf('/') + 1)).join('/'));
+  });
+
+  it('oikos_ledger: the root is close to a square, with little empty ground', () => {
+    const l = layout(loadRealGraveyard('demo.oikosledger'));
+    const { w, d } = l.bounds;
+    expect(Math.max(w, d) / Math.min(w, d)).toBeLessThan(1.6);
   });
 
   it('spatialql: the crowded src folder is a near-square block, and the two ghosts are in the plots of their old folders', () => {
@@ -391,5 +498,95 @@ describe('cell pitch', () => {
     const shape = blockShape(12);
     const nextRow = l.stones[shape.columns]!.cell;
     expect(nextRow.z - first.z).toBeCloseTo(CELL_PITCH_Z, 9);
+  });
+});
+
+describe('folders shown together', () => {
+  const plotWith = (l: ReturnType<typeof layout>, folder: string) => l.plots.find((p) => p.folders.includes(folder))!;
+
+  it('shows a folder with only one folder inside it together with that folder, and names the plot for both', () => {
+    // app/api/accounts holds nothing but compare, which holds the file.
+    const g = graveyardFrom({ files: ['app/api/accounts/compare/route.ts', 'app/api/other.ts'] });
+    const l = layout(g);
+    const merged = plotWith(l, 'app/api/accounts');
+    expect(merged.folders).toEqual(['app/api/accounts', 'app/api/accounts/compare']);
+    expect(merged.path).toBe('app/api/accounts/compare');
+    expect(merged.label).toBe('accounts/compare');
+    expect(merged.parent).toBe('app/api');
+    expect(firstLayoutProblem(g, l)).toBeUndefined();
+  });
+
+  it('keeps the stone\'s real folder, so the hover label can show the full path', () => {
+    const g = graveyardFrom({ files: ['app/api/accounts/compare/route.ts', 'app/api/other.ts'] });
+    const l = layout(g);
+    expect(l.stones.find((s) => s.path === 'app/api/accounts/compare/route.ts')!.folder).toBe('app/api/accounts/compare');
+  });
+
+  it('shows a whole chain as one plot: app, app/api and app/api/accounts hold only the next folder', () => {
+    const g = graveyardFrom({ files: ['app/api/accounts/x.ts'] });
+    const l = layout(g);
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'app/api/accounts']);
+    expect(plotWith(l, 'app').folders).toEqual(['app', 'app/api', 'app/api/accounts']);
+    expect(plotWith(l, 'app').label).toBe('app/api/accounts');
+  });
+
+  it('never shows the root together with the folder inside it, even when it holds nothing else', () => {
+    const l = layout(graveyardFrom({ files: ['only/f.ts'] }));
+    expect(l.plots.map((p) => p.folders)).toEqual([[''], ['only']]);
+    expect(l.plots[0]!.label).toBe('');
+  });
+
+  it('does not show a folder together with the one inside it when it holds a file', () => {
+    const l = layout(graveyardFrom({ files: ['a/own.ts', 'a/b/c.ts'] }));
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/b']);
+  });
+
+  it('does not show a folder together with the one inside it when it holds a ghost, and stops the chain there', () => {
+    // a holds only b, but a ghost of a/gone.ts stood in a: so a keeps its plot.
+    const g = graveyardFrom({ files: ['a/b/c.ts'], ghosts: ['a/gone.ts'] });
+    const l = layout(g);
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/b']);
+    expect(l.ghosts[0]!.folder).toBe('a');
+    expect(firstLayoutProblem(g, l)).toBeUndefined();
+  });
+
+  it('shows the folders above a ghost\'s folder together, and those below it together', () => {
+    // top > mid has a ghost > low1 > low2 holds the file. top is empty with one child, so it joins mid (which holds the ghost).
+    const g = graveyardFrom({ files: ['top/mid/low1/low2/f.ts'], ghosts: ['top/mid/gone.ts'] });
+    const l = layout(g);
+    expect(l.plots.map((p) => p.folders)).toEqual([[''], ['top', 'top/mid'], ['top/mid/low1', 'top/mid/low1/low2']]);
+    expect(l.plots.map((p) => p.label)).toEqual(['', 'top/mid', 'low1/low2']);
+    expect(firstLayoutProblem(g, l)).toBeUndefined();
+  });
+
+  it('does not show a folder together with its child when it has two children', () => {
+    const l = layout(graveyardFrom({ files: ['a/x/f.ts', 'a/y/f.ts'] }));
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'a', 'a/x', 'a/y']);
+  });
+
+  it('puts a ghost whose folder is gone in the nearest folder, even when that folder is shown with another', () => {
+    // The ghost's old folder p/q no longer exists. p exists and is empty with one child r: but p now holds a ghost, so it is not merged.
+    const g = graveyardFrom({ files: ['p/r/f.ts'], ghosts: ['p/q/gone.ts'] });
+    const l = layout(g);
+    expect(l.ghosts[0]!.folder).toBe('p');
+    expect(l.plots.map((p) => p.path)).toEqual(['', 'p', 'p/r']);
+  });
+
+  it('gives the plot the depth of its last folder, for the tint of its floor', () => {
+    const l = layout(graveyardFrom({ files: ['a/b/c/f.ts'] }));
+    expect(plotWith(l, 'a').depth).toBe(3);
+  });
+
+  it('saves a fence for every folder that is shown with the one inside it', () => {
+    const together = layout(graveyardFrom({ files: ['a/b/c/f.ts'] }));
+    const apart = layout(graveyardFrom({ files: ['a/f.ts', 'a/b/f.ts', 'a/b/c/f.ts'] }));
+    expect(together.plots).toHaveLength(2);
+    expect(apart.plots).toHaveLength(4);
+    expect(together.bounds.w * together.bounds.d).toBeLessThan(apart.bounds.w * apart.bounds.d);
+  });
+
+  it('is the same when the data file lists its folders in another order', () => {
+    const g = graveyardFrom({ files: ['a/b/c/f.ts', 'a/b/c/g.ts', 'x/y/z.ts'], ghosts: ['a/gone.ts'] });
+    expect(JSON.stringify(layout(shuffledGraveyard(g, 11)))).toBe(JSON.stringify(layout(g)));
   });
 });

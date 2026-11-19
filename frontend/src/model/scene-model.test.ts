@@ -147,8 +147,9 @@ describe('the scene model of any graveyard', () => {
         return (
           m.pickTargets.length === g.files.length + g.ghosts.length &&
           m.flyTargets.size === g.files.length + g.ghosts.length &&
-          m.signSources.length === g.folders.length &&
-          m.floors.length === g.folders.length
+          m.signSources.length === m.layout.plots.length &&
+          m.floors.length === m.layout.plots.length &&
+          m.layout.plots.length <= g.folders.length
         );
       }),
       { numRuns: 50 },
@@ -213,12 +214,12 @@ describe('speed guards: these catch a slowdown that grows with the square of the
     expect(result.stones).toHaveLength(2000);
   });
 
-  it('lays out a chain of 1,000 folders without running out of stack, and every plot is inside the one above', () => {
+  it('lays out a chain of 1,000 folders that each hold a file without running out of stack', () => {
     const chain: string[] = [];
     for (let i = 0; i < 1000; i++) chain.push(i === 0 ? 'l0' : `${chain[i - 1]}/l${i}`);
-    const g = graveyardFrom({ folders: [chain[999]!], files: [`${chain[999]}/f.ts`] });
+    const g = graveyardFrom({ files: chain.map((folder) => `${folder}/f.ts`) });
     const { result, ms } = timed(() => buildSceneModel(g));
-    expect(result.layout.plots).toHaveLength(1001);
+    expect(result.layout.plots).toHaveLength(1001); // a file in every folder, so none is shown with the one inside it
     expect(ms).toBeLessThan(2000);
     expect(Number.isFinite(result.layout.bounds.w)).toBe(true);
   });

@@ -48,12 +48,14 @@ Two files are in `frontend/public/graveyards/` (the plain `demo.graveyard.json`,
 **User story:** As a viewer, I see the folder structure as nested fenced plots, as in FSN.
 
 1. THE layout SHALL be a pure function of the data file: `layout(graveyard)` returns the plots, the stone positions and the ghost positions, and reads no clock, random source or renderer.
-2. Every folder in `folders` SHALL get exactly one plot. Plots SHALL be axis-aligned rectangles on the ground, in world units, with the root plot as the outermost one.
+2. Every folder in `folders` SHALL be shown by exactly one plot (its own, or a merged one, see 2.9). Plots SHALL be axis-aligned rectangles on the ground, in world units, with the root plot as the outermost one.
 3. A folder's plot SHALL contain the plots of its child folders, so nested folders sit inside their parent's plot.
 4. Sibling plots SHALL NOT overlap, and a plot SHALL leave room for its fence between it and its siblings.
 5. A folder's plot SHALL be sized from what it holds: its own stones and ghosts, and its child plots. It SHALL be computed from the leaves up, so a folder with nothing inside it other than its fence is the smallest plot.
 6. THE layout SHALL NOT depend on the order of the arrays in the data file. Folders, files and ghosts SHALL be placed in order of path (code-point order), so the same data always gives the same layout.
 7. THE layout SHALL work for a chain of folders at least 300 levels deep without a stack overflow, and for a folder with 500 or more files.
+8. A plot SHALL be packed tightly. A folder's items (its own block of stones and ghosts, counted as one item, and its child plots) SHALL be placed largest first, ties by path, with a skyline packing that keeps the plot close to square. Each plot's area SHALL be at most a documented fixed multiple (`AREA_BOUND`, 2) of the area of what it contains, counting a gap around every item.
+9. A folder that is not the root, holds no files and no ghosts, and has exactly one child folder SHALL be merged with that child into one plot. The sign SHALL show the folders' names joined by a slash (for example `accounts/compare`), and hover labels SHALL keep the full real folder path. The root and any folder that holds a ghost SHALL NOT be merged.
 
 ### 3. Layout: stones
 
@@ -180,7 +182,7 @@ Each property gets a fast-check property test. Generators produce folder trees o
 | P1 | No two stones and ghosts overlap, no two sibling plots overlap, and no stone or ghost overlaps a child plot of its own folder. | Req 2.4, 3.2, 3.5, 3.6, 4.3 |
 | P2 | Every stone and ghost footprint lies inside its folder's plot, and every nested plot lies inside its parent's plot. | Req 2.3, 3.2 |
 | P3 | The same data file always produces the same layout, also when the arrays in it are shuffled. | Req 2.1, 2.6 |
-| P4 | Every file and every ghost gets exactly one position, and every folder exactly one plot. | Req 2.2, 3, 4 |
+| P4 | Every file and every ghost gets exactly one position, and every real folder is shown by exactly one plot (its own or a merged one). Merging follows 2.9 exactly, and each plot's area is at most `AREA_BOUND` times the area of what it contains. | Req 2.2, 2.8, 2.9, 3, 4 |
 | P5 | Within a state, moss never decreases as the decay score rises (for files with the same `unused` flag); and only ancient stones lean. | Req 5.1, 5.2 |
 
 Supporting properties, added because they follow from the rules:
