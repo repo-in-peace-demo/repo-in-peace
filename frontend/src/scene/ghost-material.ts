@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GHOST_CURL, GHOST_CURL_HEIGHT, GHOST_EYES, GHOST_SWAY, HEM_BRACES, HEM_DEPTH } from '../model/ghost-shape';
 import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_FLOAT_SPEED, GHOST_HEIGHT, GHOST_OPACITY } from '../model/visual-constants';
 import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
+import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
 
 /**
  * The ghost material: a translucent pale-cyan sheet with bright edges and a soft glow, drawn added to what is behind it,
@@ -23,6 +24,7 @@ export interface GhostUniforms {
 }
 
 const VERTEX = /* glsl */ `
+${FOG_VERTEX_PARS}
 attribute float aPhase;
 attribute float aHighlight;
 uniform float uTime;
@@ -63,11 +65,14 @@ void main() {
   vec4 viewPosition = viewMatrix * world;
   vNormal = normalize(mat3(viewMatrix) * mat3(modelMatrix) * mat3(instanceMatrix) * normal);
   vViewDir = normalize(-viewPosition.xyz);
+  vec4 mvPosition = viewPosition;
+  ${FOG_VERTEX}
   gl_Position = projectionMatrix * viewPosition;
 }
 `;
 
 const FRAGMENT = /* glsl */ `
+${FOG_FRAGMENT_PARS}
 uniform vec3 uColor;
 uniform vec3 uHoverColor;
 uniform vec3 uSelectedColor;
@@ -120,13 +125,13 @@ void main() {
     alpha = max(alpha, edge * 0.5);
   }
 
-  gl_FragColor = vec4(colour, alpha);
+  gl_FragColor = vec4(colour, alpha * fogVisibility());
   #include <colorspace_fragment>
 }
 `;
 
 export function makeGhostMaterial(): { material: THREE.ShaderMaterial; uniforms: GhostUniforms } {
-  const uniforms = {
+  const uniforms = foggedUniforms({
     uTime: { value: 0 },
     uBase: { value: GHOST_FLOAT_BASE },
     uAmplitude: { value: GHOST_FLOAT_AMPLITUDE },
@@ -142,7 +147,7 @@ export function makeGhostMaterial(): { material: THREE.ShaderMaterial; uniforms:
     uHoverColor: { value: new THREE.Color(HOVER_COLOR) },
     uSelectedColor: { value: new THREE.Color(SELECTION_RING_COLOR) },
     uOpacity: { value: GHOST_OPACITY * 2.0 },
-  };
+  });
   const material = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: VERTEX,
@@ -151,6 +156,7 @@ export function makeGhostMaterial(): { material: THREE.ShaderMaterial; uniforms:
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.FrontSide,
+    fog: true,
   });
   return { material, uniforms: { uTime: uniforms.uTime } };
 }

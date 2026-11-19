@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
+import { Atmosphere } from './Atmosphere';
 import { CameraRig } from './CameraRig';
 import { Candles } from './Candles';
 import { BACKGROUND_COLOR } from './colors';
@@ -35,8 +36,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         camera={{ fov: DEFAULT_FOV_Y, near: 0.1, far: Math.max(1000, radius * 12), position: [position.x, position.y, position.z] }}
       >
         <color attach="background" args={[BACKGROUND_COLOR]} />
-        <hemisphereLight args={['#8aa4d6', '#10151c', 0.9]} />
-        <directionalLight position={[-60, 90, 40]} intensity={1.4} color="#c8d8ff" />
+        <Atmosphere model={model} />
 
         <CameraRig model={model} />
         <Ground model={model} />

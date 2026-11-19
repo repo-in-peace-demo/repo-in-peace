@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GHOST_TAG, ghostTagPlacement } from '../model/ghost-shape';
 import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_FLOAT_SPEED } from '../model/visual-constants';
 import { EFFECT_COLORS } from './colors';
+import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
 import type { TagAtlas } from './ghost-tag-atlas';
 
 /**
@@ -17,6 +18,7 @@ export const TAG_TEXT_NEAR = 14;
 export const TAG_TEXT_FAR = 32;
 
 const VERTEX = /* glsl */ `
+${FOG_VERTEX_PARS}
 attribute float aKind;
 attribute float aCell;
 attribute float aPhase;
@@ -61,11 +63,14 @@ void main() {
     world = card + right * position.x + up * position.y;
   }
   vTextFade = 1.0 - smoothstep(uNear, uFar, distance(cameraPosition, card));
-  gl_Position = projectionMatrix * viewMatrix * vec4(world, 1.0);
+  vec4 mvPosition = viewMatrix * vec4(world, 1.0);
+  ${FOG_VERTEX}
+  gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
 const FRAGMENT = /* glsl */ `
+${FOG_FRAGMENT_PARS}
 uniform vec3 uColor;
 uniform sampler2D uAtlas;
 uniform vec2 uCells; // columns, rows
@@ -93,6 +98,7 @@ void main() {
     float glow = pow(clamp(1.0 - d, 0.0, 1.0), 2.2);
     gl_FragColor = vec4(uColor, glow * mix(0.85, 0.3, vTextFade));
   }
+  gl_FragColor.a *= fogVisibility();
   #include <colorspace_fragment>
 }
 `;
@@ -136,7 +142,7 @@ function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 
 export function makeTagMaterial(atlas: TagAtlas): { material: THREE.ShaderMaterial; uniforms: { uTime: { value: number } } } {
   const { attach, card } = ghostTagPlacement();
-  const uniforms = {
+  const uniforms = foggedUniforms({
     uTime: { value: 0 },
     uBase: { value: GHOST_FLOAT_BASE },
     uAmplitude: { value: GHOST_FLOAT_AMPLITUDE },
@@ -149,7 +155,7 @@ export function makeTagMaterial(atlas: TagAtlas): { material: THREE.ShaderMateri
     uColor: { value: new THREE.Color(EFFECT_COLORS.ghost) },
     uAtlas: { value: atlas.texture },
     uCells: { value: new THREE.Vector2(atlas.columns, atlas.rows) },
-  };
+  });
   const material = new THREE.ShaderMaterial({
     uniforms,
     vertexShader: VERTEX,
@@ -158,6 +164,7 @@ export function makeTagMaterial(atlas: TagAtlas): { material: THREE.ShaderMateri
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    fog: true,
   });
   return { material, uniforms: { uTime: uniforms.uTime } };
 }

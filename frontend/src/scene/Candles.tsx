@@ -7,6 +7,7 @@ import type { SceneModel } from '../model/scene-model';
 import { CANDLE_GLOW_SIZE, CANDLE_HEIGHT, CANDLE_RADIUS, FLAME_HEIGHT } from '../model/visual-constants';
 import { animationTime } from './animation-clock';
 import { EFFECT_COLORS } from './colors';
+import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
 import { noRaycast, placement } from './instances';
 
 /**
@@ -17,6 +18,7 @@ import { noRaycast, placement } from './instances';
  */
 
 const FLAME_SHADER_VERTEX = /* glsl */ `
+${FOG_VERTEX_PARS}
 attribute float aGlow;
 attribute float aPhase;
 uniform float uTime;
@@ -44,11 +46,14 @@ void main() {
     p.z *= 2.0 - flicker;
     world = modelMatrix * instanceMatrix * vec4(p, 1.0);
   }
-  gl_Position = projectionMatrix * viewMatrix * world;
+  vec4 mvPosition = viewMatrix * world;
+  ${FOG_VERTEX}
+  gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
 const FLAME_SHADER_FRAGMENT = /* glsl */ `
+${FOG_FRAGMENT_PARS}
 uniform vec3 uColor;
 varying vec2 vUv;
 varying float vGlow;
@@ -62,6 +67,7 @@ void main() {
     // A hotter, paler heart at the foot of the flame, the candle's own colour toward the tip.
     gl_FragColor = vec4(mix(vec3(1.0, 0.96, 0.78), uColor, vHeight), 1.0);
   }
+  gl_FragColor.a *= fogVisibility(); // drawn added to the background, so fade it with the fog instead of mixing the fog colour in
   #include <colorspace_fragment>
 }
 `;
@@ -104,7 +110,7 @@ export function Candles({ model }: { model: SceneModel }) {
     const flameGeometry = makeFlameGeometry();
     flameGeometry.setAttribute('aPhase', new THREE.InstancedBufferAttribute(Float32Array.from(spots, (s) => s.phase), 1));
     const waxMaterial = new THREE.MeshStandardMaterial({ color: '#d8d0bc', roughness: 0.8 });
-    const uniforms = { uTime: { value: 0 }, uBase: { value: CANDLE_HEIGHT }, uFlameHeight: { value: FLAME_HEIGHT }, uColor: { value: new THREE.Color(EFFECT_COLORS.candle) } };
+    const uniforms = foggedUniforms({ uTime: { value: 0 }, uBase: { value: CANDLE_HEIGHT }, uFlameHeight: { value: FLAME_HEIGHT }, uColor: { value: new THREE.Color(EFFECT_COLORS.candle) } });
     const flameMaterial = new THREE.ShaderMaterial({
       uniforms,
       vertexShader: FLAME_SHADER_VERTEX,
@@ -113,6 +119,7 @@ export function Candles({ model }: { model: SceneModel }) {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
+      fog: true,
     });
     return { waxGeometry, flameGeometry, waxMaterial, flameMaterial, uniforms };
   }, [spots]);

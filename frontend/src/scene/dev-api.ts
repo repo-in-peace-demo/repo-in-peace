@@ -20,6 +20,8 @@ export interface RepoInPeaceDevApi {
   /** Holds every animation at this time in seconds (a ghost's bob, a flame's flicker), to see the scene at a chosen moment. */
   setAnimationTime: (seconds: number) => void;
   resumeAnimation: () => void;
+  /** What the renderer drew in the last frame: draw calls and triangles. */
+  getRenderInfo: () => { calls: number; triangles: number; fogDensity: number };
   /** Whether the animation clock is standing still because the system asks for reduced motion. */
   isReducedMotion: () => boolean;
   /** For each ghost-tag text, how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
@@ -43,12 +45,13 @@ export function installDevApi(
   getPose: () => CameraPose,
   projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null,
   centreOf: (path: string) => { x: number; y: number; z: number } | null,
+  getRenderInfo: () => { calls: number; triangles: number; fogDensity: number },
 ): () => void {
   const getScreenPoint = (path: string): { x: number; y: number } | null => {
     const centre = centreOf(path);
     return centre === null ? null : projectPoint(centre.x, centre.y, centre.z);
   };
-  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }) };
+  const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getRenderInfo, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }) };
   window.repoInPeace = api;
   return () => {
     if (window.repoInPeace === api) delete window.repoInPeace;

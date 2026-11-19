@@ -333,7 +333,7 @@ The attribute values are written once when the model loads, and a single element
 
 ### Atmosphere
 
-A dark blue-black sky dome with a vertical gradient that follows the camera position, about 900 stars at positions taken from `hash01`, a moon disc with a soft glow at a fixed direction, a directional light (cool white, intensity about 1.1) from the moon's direction, and a dim hemisphere light. `FogExp2` with `density = 0.35 / max(boundsRadius, 40)` fades the far edge of the graveyard. There are no shadow maps. The ground is a very dark plane with faint noise in its shader, large enough to reach the fog. Colours and intensities are constants in one file. None of them depends on any file's data (Req 6.5).
+A dark blue-black sky dome with a vertical gradient that follows the camera position, about 900 stars at positions taken from `hash01`, a moon disc with a soft glow at a fixed direction, a directional light (cool white, intensity about 1.1) from the moon's direction, and a dim hemisphere light. `FogExp2` with `density = 0.2 / max(boundsRadius, 40)` fades the far edge of the ground (0.35 fogged the far side of the graveyard to about 40% from the opening view; 0.2 keeps it above 75%). The moonlight comes from high up in front of the opening camera and to the left (`MOONLIGHT_DIRECTION`), and the moon in the sky is drawn behind the graveyard (`MOON_DIRECTION`, 21.7 degrees up), so the faces that the opening view sees are lit. There are no shadow maps. The ground is a very dark plane with faint noise in its shader, large enough to reach the fog. Colours and intensities are constants in one file. None of them depends on any file's data (Req 6.5).
 
 ### Ambient decoration (Req 13, task 24b)
 

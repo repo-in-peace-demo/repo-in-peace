@@ -23,6 +23,8 @@ const heading = new THREE.Vector3();
 export function CameraRig({ model }: { model: SceneModel }) {
   const camera = useThree((state) => state.camera);
   const element = useThree((state) => state.gl.domElement);
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
   const controls = useRef<Controls>(null);
   const flight = useRef<FlightState>(IDLE);
 
@@ -73,13 +75,14 @@ export function CameraRig({ model }: { model: SceneModel }) {
           const box = model.pickTargets.find((t) => t.path === path);
           return box ? { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 } : null;
         },
+        () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0 }),
       );
     });
     return () => {
       gone = true;
       remove?.();
     };
-  }, [camera, element, model]);
+  }, [camera, element, gl, scene, model]);
 
   // Let `flyTo` start flights.
   useEffect(

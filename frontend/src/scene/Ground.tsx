@@ -1,17 +1,52 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
-import { FLOOR_COLOR, GROUND_COLOR } from './colors';
+import { GROUND_BASE_COLOR, groundSize } from '../model/atmosphere';
+import { FLOOR_COLOR } from './colors';
 import { noRaycast, placement } from './instances';
 
-/** The ground: a large dark plane under everything, reaching well past the graveyard. */
+/**
+ * The ground: a very dark plane under everything, so large (`groundSize`) that the fog hides its edge from any camera the
+ * limits allow. Its colour has a faint noise, in two sizes (patches of a few units and a fine grain), from the position on the
+ * ground, so it is not a flat colour and does not swim when the camera moves. The noise is the same everywhere and reads nothing from the data.
+ */
 export function Ground({ model }: { model: SceneModel }) {
   const { x, z, w, d } = model.layout.bounds;
-  const size = Math.max(w, d) * 8 + 400;
+  const size = groundSize(model.layout.bounds);
+  const material = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ color: GROUND_BASE_COLOR, roughness: 1 });
+    m.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vGround;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGround = (modelMatrix * vec4(position, 1.0)).xyz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+varying vec3 vGround;
+float gHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float gNoise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(gHash(i), gHash(i + vec2(1.0, 0.0)), f.x), mix(gHash(i + vec2(0.0, 1.0)), gHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}`,
+        )
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+{
+  float patches = gNoise(vGround.xz * 0.18) * 0.6 + gNoise(vGround.xz * 0.7) * 0.4;
+  float grain = gNoise(vGround.xz * 6.0);
+  diffuseColor.rgb *= 0.7 + 0.6 * patches + 0.12 * (grain - 0.5);
+}`,
+        );
+    };
+    m.customProgramCacheKey = () => 'repo-in-peace-ground-v1';
+    return m;
+  }, []);
+  useEffect(() => () => material.dispose(), [material]);
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x + w / 2, -0.02, z + d / 2]} renderOrder={-20} raycast={noRaycast}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x + w / 2, -0.02, z + d / 2]} renderOrder={-20} raycast={noRaycast} material={material}>
       <planeGeometry args={[size, size]} />
-      <meshStandardMaterial color={GROUND_COLOR} roughness={1} />
     </mesh>
   );
 }
