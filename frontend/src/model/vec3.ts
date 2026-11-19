@@ -22,10 +22,13 @@ export const length = (a: Vec3): number => Math.hypot(a.x, a.y, a.z);
 
 export const distance = (a: Vec3, b: Vec3): number => length(sub(a, b));
 
-/** The same direction with length 1. The zero vector stays the zero vector. */
+/**
+ * The same direction with length 1. The zero vector stays the zero vector. It divides by the length, rather than
+ * multiplying by 1 / length, which overflows to infinity for a vector as small as the smallest numbers there are.
+ */
 export function normalize(a: Vec3): Vec3 {
   const l = length(a);
-  return l === 0 ? vec3(0, 0, 0) : scale(a, 1 / l);
+  return l === 0 ? vec3(0, 0, 0) : vec3(a.x / l, a.y / l, a.z / l);
 }
 
 /** The point a fraction `t` of the way from `a` to `b`. */

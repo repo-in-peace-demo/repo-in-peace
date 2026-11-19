@@ -127,10 +127,11 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` and look at the page (the camera does not move yet; the mouse and keys come in task 16).
   - _Requirements: 2, 3, 4, 5.9, 11.1_
 
-- [ ] 16. Camera
-  - [ ] 16.1 `scene/CameraRig.tsx`: drei `OrbitControls` (left orbit, right pan, wheel zoom, damping, no going below the ground, distance limits from the bounds), the start pose, keyboard flying (W A S D and arrows, Q and E, Shift; ignored in inputs and with Ctrl, Alt or Meta).
-  - [ ] 16.2 `scene/flight.ts` and `scene/api.ts`: `flyTo(path)` returns `true` and starts a 1,000 ms eased flight; `false` for an unknown path or before the scene is ready; any camera input ends the flight.
-  - [ ] 16.3 Tests for the flight state machine (idle, flying, finishes at 1,000 ms, cancelled by input) with an injected clock.
+- [x] 16. Camera
+  - [x] 16.1 `model/fly-controls.ts` (pure: which keys mean which way, the speed, one step of movement) with `fly-controls.test.ts`; `scene/useFlyKeys.ts` (keys by code, ignored while typing and with Ctrl, Alt or Meta held, everything let go when the window loses focus); `scene/CameraRig.tsx`: drei `OrbitControls` (left drag orbits, right drag pans along the ground, wheel zooms, damping, no going below the level of the look-at point, distance from 3 to three times the graveyard's radius), the starting pose, and keyboard flying (W A S D and the arrows, Q and E, Shift is three times as fast; the look-at point may wander one radius beyond the graveyard's edge). A bug found while writing the tests: a look-at point stopped by the ground must not stop the camera coming down, so only the sideways limits are shared between the two.
+  - [x] 16.2 `scene/flight.ts` (the state machine: start, step, cancel; no clock of its own) and `scene/api.ts` (`registerScene`, `flyTo(path)`): a flight takes 1,000 ms, eased; `flyTo` returns `true` when it starts one, `false` for a path that is not a file or ghost, a folder, and before a scene is on the screen or after it has gone. The rig registers its fly targets and ends a flight on any mouse, wheel or flying-key input. `SceneCanvas` now uses the rig.
+  - [x] 16.3 `flight.test.ts` (at the start, partway, exactly at the end, however late the next frame, idle, cancelled, replaced, a clock going backwards; for any time the pose is the interpolated one) and `api.test.ts` (every file and ghost can be flown to; nothing for unknown paths, folders, before and after the scene; a newer scene is not removed by an older one going away late).
+  - **Run:** `cd frontend && npm run typecheck && npm test`, then `npm run dev` and try the mouse (drag, right-drag, wheel) and the keys (W A S D, arrows, Q, E, Shift) on `http://localhost:5173/`.
   - _Requirements: 7_
 
 - [ ] 17. Overlays

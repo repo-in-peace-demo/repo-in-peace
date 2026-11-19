@@ -27,6 +27,13 @@ describe('vec3 examples', () => {
     expect(normalize(vec3(0, 0, 0))).toEqual({ x: 0, y: 0, z: 0 });
   });
 
+  it('normalises a vector as small as the smallest numbers there are, instead of overflowing', () => {
+    // 1 / 5e-324 is infinity: multiplying by it would give infinity and NaN.
+    const n = normalize(vec3(5e-324, 0, 0));
+    expect(n).toEqual({ x: 1, y: 0, z: 0 });
+    expect(length(normalize(vec3(1e-310, -1e-310, 1e-310)))).toBeCloseTo(1, 9);
+  });
+
   it('finds the point between two points', () => {
     expect(lerp(vec3(0, 0, 0), vec3(10, 20, 30), 0.5)).toEqual({ x: 5, y: 10, z: 15 });
     expect(lerp(vec3(2, 2, 2), vec3(4, 4, 4), 0)).toEqual({ x: 2, y: 2, z: 2 });

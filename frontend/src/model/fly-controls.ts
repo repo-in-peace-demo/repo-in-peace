@@ -1,6 +1,6 @@
 import type { CameraPose } from './camera-pose';
 import type { Rect } from './rect';
-import { add, normalize, scale, vec3, type Vec3 } from './vec3';
+import { add, scale, vec3, type Vec3 } from './vec3';
 
 /**
  * Flying with the keyboard: W A S D or the arrows to move, Q and E for down and up, Shift to go faster.
@@ -19,7 +19,6 @@ export interface FlyInput {
 }
 
 /** Keys by `KeyboardEvent.code`, so the layout of the keyboard does not matter. */
-const KEYS: Record<string, keyof FlyInput | undefined> = {};
 const BINDINGS: ReadonlyArray<[codes: readonly string[], axis: keyof FlyInput, sign: 1 | -1]> = [
   [['KeyW', 'ArrowUp'], 'forward', 1],
   [['KeyS', 'ArrowDown'], 'forward', -1],
@@ -28,7 +27,6 @@ const BINDINGS: ReadonlyArray<[codes: readonly string[], axis: keyof FlyInput, s
   [['KeyE'], 'up', 1],
   [['KeyQ'], 'up', -1],
 ];
-void KEYS;
 
 /** Every key code that moves the camera. */
 export const FLY_KEY_CODES: ReadonlySet<string> = new Set(BINDINGS.flatMap(([codes]) => codes));
@@ -75,16 +73,19 @@ export function isTypingElement(tagName: string | undefined, isContentEditable: 
  *
  * Forward is along the ground, in the direction the camera faces (the camera looking straight down uses
  * the negative z direction). Moving diagonally is no faster than moving straight: the three inputs together
- * are held to length 1. The look-at point is held inside `limits` (the graveyard and a margin), and the camera
- * never goes below MIN_CAMERA_HEIGHT.
+ * are held to length 1. The look-at point is held inside `limits` (the graveyard and a margin) and above the
+ * ground, and the camera never goes below MIN_CAMERA_HEIGHT. A look-at point stopped by the sideways limits
+ * takes the camera with it; one stopped by the ground does not, so the camera can still come down.
  *
  * @param heading the direction the camera faces; its length does not matter
  * @param speed units a second
  * @param seconds the time since the last step
  */
 export function moveCamera(pose: CameraPose, heading: Vec3, input: FlyInput, speed: number, seconds: number, limits: Rect): CameraPose {
-  const flat = normalize(vec3(heading.x, 0, heading.z));
-  const ahead = flat.x === 0 && flat.z === 0 ? vec3(0, 0, -1) : flat;
+  // A camera looking (almost) straight down has no direction along the ground to go forward in: use negative z.
+  const along = Math.hypot(heading.x, heading.z);
+  const looksDown = along <= 1e-9 * Math.hypot(heading.x, heading.y, heading.z);
+  const ahead = looksDown ? vec3(0, 0, -1) : vec3(heading.x / along, 0, heading.z / along);
   const right = vec3(-ahead.z, 0, ahead.x);
 
   let direction = vec3(
@@ -103,7 +104,9 @@ export function moveCamera(pose: CameraPose, heading: Vec3, input: FlyInput, spe
     Math.max(0, wanted.y),
     Math.min(limits.z + limits.d, Math.max(limits.z, wanted.z)),
   );
-  // Whatever the limits took off the look-at point is taken off the camera too, so the two stay together.
-  const moved = add(add(pose.position, step), vec3(target.x - wanted.x, target.y - wanted.y, target.z - wanted.z));
+  // What the limits took off the look-at point sideways is taken off the camera too, so the two stay together there.
+  // The ground is different: a look-at point that cannot go below the ground does not stop the camera coming down
+  // toward it, which just makes the view flatter.
+  const moved = add(pose.position, vec3(step.x + target.x - wanted.x, step.y, step.z + target.z - wanted.z));
   return { position: vec3(moved.x, Math.max(MIN_CAMERA_HEIGHT, moved.y), moved.z), target };
 }

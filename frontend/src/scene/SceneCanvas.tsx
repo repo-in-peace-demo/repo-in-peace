@@ -1,23 +1,12 @@
-import { Canvas, useThree } from '@react-three/fiber';
-import { useLayoutEffect } from 'react';
-import { DEFAULT_FOV_Y, type CameraPose } from '../model/camera-pose';
+import { Canvas } from '@react-three/fiber';
+import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
+import { CameraRig } from './CameraRig';
 import { BACKGROUND_COLOR } from './colors';
 import { Fences } from './Fences';
 import { Ground, PlotFloors } from './Ground';
 import { Plaques } from './Plaques';
 import { Ghosts, Stones } from './Stones';
-
-/** Puts the camera at the starting pose, looking at the middle of the graveyard. (The camera rig of the next task takes this over.) */
-function StartView({ pose }: { pose: CameraPose }) {
-  const camera = useThree((state) => state.camera);
-  useLayoutEffect(() => {
-    camera.position.set(pose.position.x, pose.position.y, pose.position.z);
-    camera.lookAt(pose.target.x, pose.target.y, pose.target.z);
-    camera.updateProjectionMatrix();
-  }, [camera, pose]);
-  return null;
-}
 
 /**
  * The plain scene: flat colours and boxes, to check the layout on real data. Everything is drawn with instanced
@@ -39,7 +28,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <hemisphereLight args={['#8aa4d6', '#10151c', 0.9]} />
         <directionalLight position={[-60, 90, 40]} intensity={1.4} color="#c8d8ff" />
 
-        <StartView pose={model.start} />
+        <CameraRig model={model} />
         <Ground model={model} />
         <PlotFloors model={model} />
         <Fences model={model} />
