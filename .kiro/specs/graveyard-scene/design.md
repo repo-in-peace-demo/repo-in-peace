@@ -482,3 +482,18 @@ Because rendering is not unit-tested, the tasks end with a short checklist for y
 3. Dev-only `window.repoInPeace`, the perf overlay and `?synthetic` are additions beyond the requirements, for trying `flyTo` and checking the frame rate. They are behind `import.meta.env.DEV`, so they are not in production builds; a task checks the built files for them.
 3a. The README of `frontend/` records why fiber is pinned to 9 (v10 defaults to WebGPU, and the GLSL patches here need WebGL), so nobody upgrades into it by accident.
 4. Version pins: React 19 with `@react-three/fiber@9` and `@react-three/drei@10`, as explained above.
+
+### Task 25 follow-ups: engraving and flights (constants)
+
+| Constant | Value | Where | Why |
+| --- | --- | --- | --- |
+| `NAME_BOX` | 0.93 × 0.17 (share of `STONE_W` across, scene units up) | `model/engraving.ts` | the name uses most of the face; it is drawn condensed in the atlas to fit 18 characters |
+| `RIP_BOX`, `RIP_ABOVE_SEAM` | 0.7 × 0.3, 0.24 | `model/engraving.ts` | RIP larger than the name, three letters spaced 100 px apart in the atlas |
+| `TEXT_CLEAR_MARGIN` | 0.04 | `model/engraving.ts` | the margin round a text band kept clear of moss |
+| `ENGRAVE_CELL_W`, `ENGRAVE_CELL_H` | 384 × 72 px | `scene/engraving-atlas.ts` | letters are pre-scaled across by the box's proportions so they keep their shape on the stone; weight 800 |
+| letter colour | `#c9cfda`, 0.92 mix, 0.16 emissive | `scene/stone-material.ts` | carved letters read lighter than the face, with a dark shadow on their upper edge (mask offset 0.08 of a cell) |
+| `FLY_DISTANCE_PER_HEIGHT`, `FLY_DISTANCE_BASE`, `FLY_MIN_DISTANCE`, `FLY_MAX_DISTANCE` | 2, 5, 8, 14 | `model/camera-pose.ts` | from 3.5, 6, 8, 40: a flight ends inside `NAME_NEAR` (16), so the name is readable on arrival |
+| `SIGN_HEIGHT`, `PLAQUE_BOARD` | 1.0, 0.9 × 0.3 × 0.06 | `model/signs.ts` | smaller boards that do not block the stones behind them |
+| sign text box | 8 px a character + 15 px, at most 256 × 20 px, 4 px gap | `model/sign-placement.ts` | `placeSignsClear` drops a sign whose box touches a nearer one's |
+
+Input: the wheel zooms toward the pointer; a double-click on a stone or ghost flies to it (`flyTo`); a double-click anywhere else calls `resetView`.
