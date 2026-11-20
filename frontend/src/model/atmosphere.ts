@@ -33,7 +33,7 @@ export const HAZE_COLOR = '#8796b0';
 export const HAZE_MAX_ALPHA = 0.32;
 
 /** The hills take on this much of the haze colour as they rise to the ridge (aerial perspective). */
-export const HILL_HAZE = 0.35;
+export const HILL_HAZE = 0.22;
 
 export const MOON_COLOR = '#c4d2e6'; // pale blue-grey: not pure white, so it is not the brightest thing on the screen
 export const MOONLIGHT_COLOR = '#b9c9ff';

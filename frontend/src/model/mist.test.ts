@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { horizonPlan, landHeightAt } from './horizon';
+import { horizonPlan, landHeightAt, valleyDepth } from './horizon';
 import {
   MIST_EDGE,
   MIST_GRAVEYARD_WEIGHT,
@@ -12,6 +12,8 @@ import {
   mistTopShareOfCandle,
   mistTopShareOfShortestStone,
   mistWeightAt,
+  hillMistMesh,
+  hillMistWeight,
 } from './mist';
 import type { Rect } from './rect';
 
@@ -61,5 +63,35 @@ describe('ground mist', () => {
   it('is the same for the same bounds', () => {
     const b = { x: 0, z: 0, w: 60, d: 40 };
     expect(mistMesh(horizonPlan(b), 4)).toEqual(mistMesh(horizonPlan(b), 4));
+  });
+});
+
+describe('mist pooling on the hills', () => {
+  it('is in the dips of the slopes only: none at the foot (where the graveyard mist ends) or near the ridge (the forest), and from 0 to 1', () => {
+    fc.assert(
+      fc.property(fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }), fc.double({ min: 0, max: 1, noNaN: true }), (angle, t) => {
+        const w = hillMistWeight(angle, t);
+        return w >= 0 && w <= 1 && (t > 0.08 || w === 0) && (t < 0.85 || w === 0);
+      }),
+      { numRuns: 400 },
+    );
+  });
+
+  it('pools more in a valley than on an even stretch of slope at the same height up it', () => {
+    const angles = Array.from({ length: 360 }, (_, i) => (i / 360) * Math.PI * 2);
+    const deepest = angles.reduce((a, b) => (valleyDepth(b) > valleyDepth(a) ? b : a));
+    const flattest = angles.reduce((a, b) => (valleyDepth(b) < valleyDepth(a) ? b : a));
+    expect(hillMistWeight(deepest, 0.4)).toBeGreaterThan(hillMistWeight(flattest, 0.4));
+  });
+
+  it('lies above the land, and below the ridge', () => {
+    const plan = horizonPlan({ x: 0, z: 0, w: 100, d: 80 });
+    const mesh = hillMistMesh(plan, 48, 10);
+    for (let k = 0; k < mesh.weights.length; k++) {
+      const [x, y, z] = [mesh.positions[k * 3]!, mesh.positions[k * 3 + 1]!, mesh.positions[k * 3 + 2]!];
+      expect(y).toBeGreaterThan(landHeightAt(plan, x, z));
+      expect(Math.hypot(x - plan.centre.x, z - plan.centre.z)).toBeLessThan(plan.ridgeRadius);
+    }
+    expect(Math.max(...mesh.indices)).toBeLessThan(mesh.weights.length);
   });
 });

@@ -91,7 +91,7 @@ float gNoise(vec2 p) {
         .replace(
           '#include <opaque_fragment>',
           `#include <opaque_fragment>
-gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze * 0.45, uHazeAmount * smoothstep(0.45, 1.02, vRise));`,
+gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze * 0.45, uHazeAmount * smoothstep(0.75, 1.02, vRise));`,
         );
     };
     landMaterial.customProgramCacheKey = () => 'repo-in-peace-hills-v2';

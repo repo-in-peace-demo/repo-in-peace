@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { horizonPlan } from '../model/horizon';
-import { MIST_COLOR, MIST_LAYER_HEIGHTS, MIST_LAYER_MAX_ALPHA, mistMesh } from '../model/mist';
+import { HILL_MIST_MAX_ALPHA, MIST_COLOR, MIST_LAYER_MAX_ALPHA, hillMistMesh, mistMesh, type MistMesh } from '../model/mist';
 import type { SceneModel } from '../model/scene-model';
 import { animationTime } from './animation-clock';
 import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
@@ -36,7 +36,7 @@ void main() {
 const FRAGMENT = /* glsl */ `
 uniform float uTime;
 uniform float uMaxAlpha;
-uniform float uLayers;
+uniform vec2 uScale;
 uniform vec3 uColor;
 varying float vWeight;
 varying float vLayer;
@@ -51,7 +51,7 @@ void main() {
   if (vWeight <= 0.001) discard;
   // Each sheet rolls at its own speed along the rows (x), with a slow drift across them, so the sheets slide over each other.
   float speed = 0.35 + 0.18 * vLayer;
-  vec2 p = vGround * vec2(0.16, 0.35) + vec2(uTime * speed * 0.12, uTime * 0.015) + vLayer * 7.3; // stretched along the rows (x)
+  vec2 p = vGround * uScale + vec2(uTime * speed * 0.12, uTime * 0.015) + vLayer * 7.3; // stretched along the rows (x) in the graveyard
   float n = mNoise(p) * 0.62 + mNoise(p * 2.7 + vec2(-uTime * 0.05, 3.1)) * 0.38;
   float wisps = smoothstep(0.25, 0.7, n);
   float a = uMaxAlpha * vWeight * wisps;
@@ -60,46 +60,52 @@ void main() {
 }
 `;
 
+function mistAssets(mesh: MistMesh, maxAlpha: number, scale: [number, number]) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3));
+  geometry.setAttribute('aWeight', new THREE.BufferAttribute(mesh.weights, 1));
+  geometry.setAttribute('aLayer', new THREE.BufferAttribute(mesh.layers, 1));
+  geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
+  geometry.computeBoundingSphere();
+  const uniforms = foggedUniforms({
+    uTime: { value: 0 },
+    uMaxAlpha: { value: maxAlpha },
+    uScale: { value: new THREE.Vector2(...scale) },
+    uColor: { value: new THREE.Color(MIST_COLOR) },
+  });
+  const material = new THREE.ShaderMaterial({ uniforms, vertexShader: VERTEX, fragmentShader: FRAGMENT, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true });
+  return { geometry, material, uniforms };
+}
+
 export function Mist({ model }: { model: SceneModel }) {
   const bounds = model.layout.bounds;
   const assets = useMemo(() => {
-    const mesh = mistMesh(horizonPlan(bounds));
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3));
-    geometry.setAttribute('aWeight', new THREE.BufferAttribute(mesh.weights, 1));
-    geometry.setAttribute('aLayer', new THREE.BufferAttribute(mesh.layers, 1));
-    geometry.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
-    geometry.computeBoundingSphere();
-    const uniforms = foggedUniforms({
-      uTime: { value: 0 },
-      uMaxAlpha: { value: MIST_LAYER_MAX_ALPHA },
-      uLayers: { value: MIST_LAYER_HEIGHTS.length },
-      uColor: { value: new THREE.Color(MIST_COLOR) },
-    });
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: VERTEX,
-      fragmentShader: FRAGMENT,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      fog: true,
-    });
-    return { geometry, material, uniforms };
+    const plan = horizonPlan(bounds);
+    // In the graveyard: thin, low, rolling along the rows. On the hills: pooling in the dips, in broader shapes.
+    return [mistAssets(mistMesh(plan), MIST_LAYER_MAX_ALPHA, [0.16, 0.35]), mistAssets(hillMistMesh(plan), HILL_MIST_MAX_ALPHA, [0.05, 0.08])];
   }, [bounds]);
 
   useEffect(
     () => () => {
-      assets.geometry.dispose();
-      assets.material.dispose();
+      for (const a of assets) {
+        a.geometry.dispose();
+        a.material.dispose();
+      }
     },
     [assets],
   );
 
   useFrame(({ clock }) => {
-    assets.uniforms.uTime!.value = animationTime(clock.elapsedTime);
+    const time = animationTime(clock.elapsedTime);
+    for (const a of assets) a.uniforms.uTime!.value = time;
   });
 
   // Drawn after the solid scene and before the see-through things that stand in it (the ghosts' pools, the flames, the ghosts).
-  return <mesh geometry={assets.geometry} material={assets.material} renderOrder={1} frustumCulled={false} raycast={noRaycast} />;
+  return (
+    <>
+      {assets.map((a, i) => (
+        <mesh key={i} geometry={a.geometry} material={a.material} renderOrder={1} frustumCulled={false} raycast={noRaycast} />
+      ))}
+    </>
+  );
 }

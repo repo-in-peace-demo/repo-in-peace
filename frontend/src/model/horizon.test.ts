@@ -1,8 +1,9 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { DEFAULT_FOV_Y } from './camera-pose';
 import { HORIZON_FROM_TOP, establishingShot, projectToFrame } from './framing';
-import { FOREST_ROW_HAZE, forestMesh, forestTrees, forestTriangles, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh, ridgeHeightToward } from './horizon';
+import { FOREST_ROW_HAZE, forestMesh, forestTrees, forestTriangles, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh, ridgeHeightToward, slopeShare, valleyDepth } from './horizon';
 import { vec3 } from './vec3';
 import { layout } from './layout';
 
@@ -139,5 +140,28 @@ describe('the forest', () => {
     expect(mesh.positions).toEqual(forestTriangles(all));
     expect(Math.min(...mesh.up)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...mesh.up)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('rolling hills', () => {
+  it('only rise going out from the graveyard, at any angle, from 0 at the foot to 1 at the ridge: the dips never make a hollow', () => {
+    fc.assert(
+      fc.property(fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }), (angle) => {
+        let last = -1;
+        for (let t = 0; t <= 1.0000001; t += 0.01) {
+          const s = slopeShare(angle, t);
+          if (s < last - 1e-12) return false;
+          last = s;
+        }
+        return slopeShare(angle, 0) === 0 && Math.abs(slopeShare(angle, 1) - 1) < 1e-12;
+      }),
+      { numRuns: 300 },
+    );
+  });
+
+  it('roll: around the ring, the slope halfway up is at very different heights (benches and valleys), not one even ramp', () => {
+    const mids = Array.from({ length: 180 }, (_, i) => slopeShare((i / 180) * Math.PI * 2, 0.5));
+    expect(Math.max(...mids) - Math.min(...mids)).toBeGreaterThan(0.15);
+    expect(Math.max(...Array.from({ length: 180 }, (_, i) => valleyDepth((i / 180) * Math.PI * 2)))).toBeGreaterThan(0.3);
   });
 });
