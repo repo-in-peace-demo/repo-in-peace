@@ -20,7 +20,7 @@ Nothing here changes the scene's drawing. The scene gains two small functions on
 `model/app-flow.ts` is a pure reducer; `App.tsx` holds its state and does the side effects (fetch, read file, build model, change the address).
 
 ```ts
-type Source = { kind: 'demo'; name: string } | { kind: 'local'; fileName: string; graveyard: Graveyard } | { kind: 'synthetic'; files: number };
+type Source = { kind: 'demo'; name: string } | { kind: 'local'; fileName: string; graveyard: Graveyard } | { kind: 'made'; files: number };  // 'made': see below
 type FlowState =
   | { screen: 'boot'; notice: BootNotice | null }            // a local-file error is shown on the boot screen
   | { screen: 'digging'; source: Source; startedAt: number; counts: Counts | null }
@@ -31,11 +31,11 @@ type FlowEvent =
   | { type: 'loaded'; model: SceneModel } | { type: 'failed'; title: string; message: string; details: string[] }
   | { type: 'local-rejected'; notice: BootNotice } | { type: 'back' };
 
-function initialFlow(search: string, isDev: boolean, now: number): FlowState;  // the route from the address
+function initialFlow(route: Route, now: number): FlowState;  // from routeFromAddress
 function flow(state: FlowState, event: FlowEvent): FlowState;
 ```
 
-- **Route from the address** (`routeFromAddress(search, isDev)` in `model/graveyard-load.ts`, replacing the default of `parseGraveyardName`): no `graveyard` parameter gives `boot`; a valid name gives `digging` with a demo source; a bad name gives `error` with the existing message (no request); in development `?synthetic=<n>` gives `digging` with a synthetic source. `DEFAULT_GRAVEYARD` goes, since a bare address no longer loads spatialql.
+- **Route from the address** (`routeFromAddress(search, madeFiles)` in `model/graveyard-load.ts`; `parseGraveyardName` now returns `null` for an address without the parameter): a `graveyard` parameter decides alone, a valid name giving a demo and a bad one the existing message (no request); without one, `madeFiles` (the development build's `?synthetic=<n>` count, read by `model/dev-features.ts` behind `import.meta.env.DEV`, always `null` in production) gives a made-up graveyard, and otherwise the boot screen. `DEFAULT_GRAVEYARD` is gone. The made-up source is called `made` in the flow, so production code never contains the word `synthetic` (the build grep of the scene spec, task 26.3).
 - **The address:** choosing a demo calls `history.pushState` with `?graveyard=<name>`; `popstate` re-runs `initialFlow` from the new address, so Back returns to the boot screen. A local file does not change the address (Decision 6).
 - **Back from an error:** the error screen gets a "Back to the graveyards" button (`flow(..., {type:'back'})`, address reset to the bare path).
 

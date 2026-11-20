@@ -14,18 +14,20 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 1: Pure model
 
-- [ ] 1. Routes and flow (`model/graveyard-load.ts`, `model/app-flow.ts`)
-  - [ ] 1.1 `routeFromAddress(search, isDev)`:
+- [x] 1. Routes and flow (`model/graveyard-load.ts`, `model/app-flow.ts`)
+  - [x] 1.1 `routeFromAddress(search, madeFiles)` (the made-up count is passed in by the development build; see the design):
     - no `graveyard` parameter gives `boot`;
     - a valid name gives a demo source;
     - a bad name gives the existing name message;
     - in development, `?synthetic=<n>` gives a synthetic source.
 
     Remove `DEFAULT_GRAVEYARD`, and update its tests and `useGraveyardLoad`.
-  - [ ] 1.2 `initialFlow`, `flow`, as in the design.
+
+    **Done:** `parseGraveyardName` returns `null` without the parameter. Until task 6, a bare address shows "Choose a graveyard" with the two demo addresses.
+  - [x] 1.2 `initialFlow`, `flow`, as in the design.
     - **Examples:** boot → choose → digging → loaded → scene; digging → failed → error → back → boot; local-rejected stays on boot with the notice.
     - **Property:** no event takes the flow to a scene without a model, and `back` always ends on boot.
-  - [ ] 1.3 Change every Playwright test that opens the bare address to open `?graveyard=demo.spatialql`. Find them with `grep -n "goto('/')\|goto(\`/\`)" e2e`.
+  - [x] 1.3 **Nothing to change:** no test opens the bare address (`dev.spec.ts` opens `/?synthetic=2000`, which still routes to the made-up graveyard). The task was: change every Playwright test that opens the bare address to open `?graveyard=demo.spatialql`. Find them with `grep -n "goto('/')\|goto(\`/\`)" e2e`.
   - _Requirements: 1.1, 1.10, 2.1, 3.4_
 
 - [ ] 2. Manifest, boot script and digging timing (`model/manifest.ts`, `boot-script.ts`, `digging-timing.ts`)

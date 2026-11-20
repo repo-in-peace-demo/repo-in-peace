@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Graveyard } from '@shared/graveyard-schema';
-import { graveyardUrl, parseGraveyardName } from '../model/graveyard-load';
+import { graveyardUrl, routeFromAddress } from '../model/graveyard-load';
 import { fetchGraveyard } from './fetch-graveyard';
 
 export type LoadState =
@@ -36,11 +36,17 @@ export function useGraveyardLoad(search: string, baseUrl: string, enabled: boole
       };
     }
 
-    const parsed = parseGraveyardName(search);
-    if (!parsed.ok) {
-      setState({ status: 'error', title: 'Name not allowed', message: parsed.message, details: [] });
+    const route = routeFromAddress(search);
+    if (route.kind === 'bad-name') {
+      setState({ status: 'error', title: 'Name not allowed', message: route.message, details: [] });
       return;
     }
+    // Until the boot screen exists (interface spec, task 6), a bare address says how to open a graveyard.
+    if (route.kind !== 'demo') {
+      setState({ status: 'error', title: 'Choose a graveyard', message: 'Add ?graveyard=demo.spatialql or ?graveyard=demo.oikosledger to the address.', details: [] });
+      return;
+    }
+    const parsed = route;
 
     setState({ status: 'loading' });
     const controller = new AbortController();

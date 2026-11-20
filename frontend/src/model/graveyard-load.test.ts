@@ -4,11 +4,11 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION, type Graveyard } from '@shared/graveyard-schema';
 import {
-  DEFAULT_GRAVEYARD,
   GRAVEYARD_NAME_PATTERN,
   checkGraveyardData,
   graveyardUrl,
   parseGraveyardName,
+  routeFromAddress,
 } from './graveyard-load';
 
 const SHA = 'a'.repeat(40);
@@ -48,10 +48,9 @@ function validGraveyard(): Graveyard {
 }
 
 describe('parseGraveyardName', () => {
-  it('loads the default when the address names no graveyard', () => {
-    expect(parseGraveyardName('')).toEqual({ ok: true, name: 'demo.spatialql' });
-    expect(parseGraveyardName('?other=1')).toEqual({ ok: true, name: 'demo.spatialql' });
-    expect(DEFAULT_GRAVEYARD).toBe('demo.spatialql');
+  it('names nothing when the address has no graveyard parameter (the boot screen shows then)', () => {
+    expect(parseGraveyardName('')).toBeNull();
+    expect(parseGraveyardName('?other=1')).toBeNull();
   });
 
   it.each([
@@ -69,7 +68,7 @@ describe('parseGraveyardName', () => {
   });
 
   it('accepts exactly 100 characters', () => {
-    expect(parseGraveyardName(`?graveyard=${'a'.repeat(100)}`).ok).toBe(true);
+    expect(parseGraveyardName(`?graveyard=${'a'.repeat(100)}`)?.ok).toBe(true);
   });
 
   it.each([
@@ -87,20 +86,52 @@ describe('parseGraveyardName', () => {
     ['markup', '?graveyard=%3Cscript%3E'],
   ])('rejects %s, with a message and no name', (_label, search) => {
     const result = parseGraveyardName(search);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.message).toContain('is not allowed');
+    expect(result?.ok).toBe(false);
+    if (result && !result.ok) expect(result.message).toContain('is not allowed');
   });
 
   it('shortens a very long name in the message', () => {
     const result = parseGraveyardName(`?graveyard=${'x'.repeat(5000)}%2F`);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.message.length).toBeLessThan(300);
+    expect(result?.ok).toBe(false);
+    if (result && !result.ok) expect(result.message.length).toBeLessThan(300);
   });
 
   it('accepts a name made only of dots, which cannot leave the graveyards folder', () => {
     // "..", but with ".graveyard.json" added the file is "...graveyard.json" inside graveyards/.
-    expect(parseGraveyardName('?graveyard=..').ok).toBe(true);
+    expect(parseGraveyardName('?graveyard=..')?.ok).toBe(true);
     expect(graveyardUrl('..', '/')).toBe('/graveyards/...graveyard.json');
+  });
+});
+
+describe('routeFromAddress', () => {
+  it('shows the boot screen for a bare address, and for an address with other parameters only', () => {
+    expect(routeFromAddress('')).toEqual({ kind: 'boot' });
+    expect(routeFromAddress('?stats')).toEqual({ kind: 'boot' });
+  });
+
+  it('goes to a named demo, and refuses a bad name with the message (nothing to request)', () => {
+    expect(routeFromAddress('?graveyard=demo.oikosledger')).toEqual({ kind: 'demo', name: 'demo.oikosledger' });
+    const bad = routeFromAddress('?graveyard=..%2Fsecret');
+    expect(bad.kind).toBe('bad-name');
+    if (bad.kind === 'bad-name') expect(bad.message).toContain('is not allowed');
+  });
+
+  it('goes to a made-up graveyard only when the build passes a count, and a graveyard name wins over it', () => {
+    expect(routeFromAddress('?synthetic=2000', null)).toEqual({ kind: 'boot' }); // production: the count is never read
+    expect(routeFromAddress('?synthetic=2000', 2000)).toEqual({ kind: 'made', files: 2000 });
+    expect(routeFromAddress('?graveyard=demo.spatialql&synthetic=5', 5)).toEqual({ kind: 'demo', name: 'demo.spatialql' });
+    for (const bad of [0, -1, 2.5, Number.NaN]) expect(routeFromAddress('', bad)).toEqual({ kind: 'boot' });
+  });
+
+  it('for any address: a graveyard parameter decides alone, and without one it is boot or made', () => {
+    fc.assert(
+      fc.property(fc.option(fc.string({ maxLength: 40 }), { nil: undefined }), fc.option(fc.integer({ min: -5, max: 5000 }), { nil: null }), (name, made) => {
+        const search = name === undefined ? '?x=1' : `?graveyard=${encodeURIComponent(name)}`;
+        const route = routeFromAddress(search, made);
+        if (name !== undefined) return route.kind === (GRAVEYARD_NAME_PATTERN.test(name) ? 'demo' : 'bad-name');
+        return route.kind === (made !== null && made >= 1 ? 'made' : 'boot');
+      }),
+    );
   });
 });
 
@@ -124,7 +155,7 @@ describe('P13: the name check accepts exactly the allowed names', () => {
     );
     fc.assert(
       fc.property(text, (name) => {
-        const result = parseGraveyardName(`?graveyard=${encodeURIComponent(name)}`);
+        const result = parseGraveyardName(`?graveyard=${encodeURIComponent(name)}`)!;
         return result.ok === GRAVEYARD_NAME_PATTERN.test(name) && (!result.ok || result.name === name);
       }),
     );
@@ -133,7 +164,7 @@ describe('P13: the name check accepts exactly the allowed names', () => {
   it('never names a file outside graveyards/: an accepted name has no slash and no backslash', () => {
     fc.assert(
       fc.property(fc.string({ unit: 'grapheme', maxLength: 130 }), (name) => {
-        const result = parseGraveyardName(`?graveyard=${encodeURIComponent(name)}`);
+        const result = parseGraveyardName(`?graveyard=${encodeURIComponent(name)}`)!;
         return !result.ok || !/[/\\]/.test(result.name);
       }),
     );

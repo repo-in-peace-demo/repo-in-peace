@@ -1,12 +1,9 @@
 import { SCHEMA_VERSION, validateGraveyard, type Graveyard } from '@shared/graveyard-schema';
 
 /**
- * Deciding which data file to load and whether what came back is usable. Pure: the fetch itself
+ * Deciding where the page address leads, which data file to load and whether what came back is usable. Pure: the fetch itself
  * is in `ui/useGraveyardLoad.ts`. The scene never draws a partly valid file.
  */
-
-/** The graveyard that loads when the URL names none. It has ghosts, which makes a good first look. */
-export const DEFAULT_GRAVEYARD = 'demo.spatialql';
 
 /**
  * The names allowed in `?graveyard=`: 1 to 100 letters, digits, dots, underscores and hyphens.
@@ -17,10 +14,13 @@ export const GRAVEYARD_NAME_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
 
 export type NameResult = { ok: true; name: string } | { ok: false; message: string };
 
-/** @param search the query string of the page address, with or without the leading `?` */
-export function parseGraveyardName(search: string): NameResult {
-  const requested = new URLSearchParams(search).get('graveyard');
-  const name = requested ?? DEFAULT_GRAVEYARD;
+/**
+ * The graveyard the page address names, checked; `null` when it names none (the boot screen shows then: interface spec, Req 1.1).
+ * @param search the query string of the page address, with or without the leading `?`
+ */
+export function parseGraveyardName(search: string): NameResult | null {
+  const name = new URLSearchParams(search).get('graveyard');
+  if (name === null) return null;
   if (GRAVEYARD_NAME_PATTERN.test(name)) return { ok: true, name };
 
   const shown = name.length > 60 ? `${name.slice(0, 60)}…` : name;
@@ -30,6 +30,25 @@ export function parseGraveyardName(search: string): NameResult {
       `The graveyard name "${shown}" is not allowed. ` +
       'Use 1 to 100 letters, digits, dots, underscores or hyphens, for example ?graveyard=demo.spatialql.',
   };
+}
+
+/** Where the page address leads: the boot screen, a demo graveyard, a made-up one (development builds), or a refused name. */
+export type Route =
+  | { kind: 'boot' }
+  | { kind: 'demo'; name: string }
+  | { kind: 'made'; files: number }
+  | { kind: 'bad-name'; message: string };
+
+/**
+ * The route of a page address (interface spec, Req 1.1 and 2.1). A `graveyard` parameter wins: a valid name goes to that demo, any
+ * other value is refused with the name message and nothing is requested. Without one, `madeFiles` (the count of a made-up graveyard
+ * that a development build read from the address, or null) goes to it, and otherwise the boot screen shows.
+ */
+export function routeFromAddress(search: string, madeFiles: number | null = null): Route {
+  const named = parseGraveyardName(search);
+  if (named !== null) return named.ok ? { kind: 'demo', name: named.name } : { kind: 'bad-name', message: named.message };
+  if (madeFiles !== null && Number.isInteger(madeFiles) && madeFiles >= 1) return { kind: 'made', files: madeFiles };
+  return { kind: 'boot' };
 }
 
 /** Where the data file is served from. `baseUrl` is Vite's `import.meta.env.BASE_URL`. */
