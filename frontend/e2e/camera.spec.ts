@@ -6,6 +6,7 @@ import { DEFAULT_FOV_Y, startPose, type CameraPose } from '../src/model/camera-p
 import { sceneCameraLimits } from '../src/model/camera-bounds';
 import { boundsRadius, flySpeed } from '../src/model/fly-controls';
 import { buildSceneModel } from '../src/model/scene-model';
+import { NAME_NEAR } from '../src/model/engraving';
 import { distance } from '../src/model/vec3';
 
 /**
@@ -180,5 +181,64 @@ test.describe('camera limits, in the real app', () => {
       await hold(page, ['Shift', 'KeyS'], 1500);
       expect(offFront(await pose(page)), `flown back after orbiting to the ${label}`).toBeLessThanOrEqual(50 + 0.5);
     }
+  });
+
+  /** The front-row stone (nearest the opening camera) whose middle is well inside the window at the start. */
+  async function frontStoneOnScreen(page: Page): Promise<{ path: string; x: number; y: number; z: number; at: { x: number; y: number } }> {
+    const rows = [...model.stones].sort((a, b) => b.layout.z - a.layout.z);
+    for (const s of rows) {
+      const at = await page.evaluate((path) => window.repoInPeace!.getScreenPoint(path), s.file.path);
+      if (at && at.x > 160 && at.x < 1120 && at.y > 120 && at.y < 600) return { path: s.file.path, x: s.layout.x, y: s.layout.height / 2, z: s.layout.z, at };
+    }
+    throw new Error('no front-row stone is on screen at the start');
+  }
+
+  test('8. the wheel zooms toward the pointer: a front-row stone comes within reading distance of its name, and the limits still hold', async ({ page }) => {
+    await openApp(page);
+    const stone = await frontStoneOnScreen(page);
+    const away = async (): Promise<number> => {
+      const p = await pose(page);
+      return distance(p.position, { x: stone.x, y: stone.y, z: stone.z });
+    };
+    const before = await away();
+    expect(before, 'the stone starts out of reading distance').toBeGreaterThan(NAME_NEAR);
+    let at = stone.at;
+    for (let i = 0; i < 60 && (await away()) >= NAME_NEAR - 1; i++) {
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.wheel(0, -240);
+      await page.waitForTimeout(80);
+      at = (await page.evaluate((path) => window.repoInPeace!.getScreenPoint(path), stone.path)) ?? at;
+    }
+    await page.waitForTimeout(500);
+    expect(await away(), 'zooming toward the stone should bring it within the distance its name is readable from').toBeLessThan(NAME_NEAR);
+    // Every limit still applies: the pose is where `clampPose` would leave it.
+    const p = await pose(page);
+    expect(p.position.y).toBeGreaterThanOrEqual(limits.minCameraHeight - EPS);
+    expect(insideSideways(p), JSON.stringify(p.target)).toBe(true);
+  });
+
+  test('9. a double-click on a stone flies to it, selects it and stops within reading distance', async ({ page }) => {
+    await openApp(page);
+    const stone = await frontStoneOnScreen(page);
+    await page.mouse.dblclick(stone.at.x, stone.at.y);
+    await expect
+      .poll(async () => {
+        const p = await pose(page);
+        return distance(p.target, { x: stone.x, y: stone.y, z: stone.z });
+      }, { timeout: 4000 })
+      .toBeLessThan(3);
+    const p = await pose(page);
+    expect(distance(p.position, { x: stone.x, y: stone.y, z: stone.z })).toBeLessThan(NAME_NEAR);
+    expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toMatchObject({ path: stone.path });
+  });
+
+  test('10. a double-click on empty ground does not move the camera', async ({ page }) => {
+    await openApp(page);
+    const first = await pose(page);
+    await page.mouse.dblclick(640, 8); // the sky
+    await page.waitForTimeout(800);
+    const now = await pose(page);
+    expect(distance(now.position, first.position)).toBeLessThan(0.5);
+    expect(distance(now.target, first.target)).toBeLessThan(0.5);
   });
 });

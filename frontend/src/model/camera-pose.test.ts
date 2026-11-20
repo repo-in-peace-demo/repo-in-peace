@@ -15,6 +15,7 @@ import { layout } from './layout';
 import { buildSignSources, visibleSigns } from './signs';
 import { makeSyntheticGraveyard } from './synthetic';
 import { stoneHeight } from './tombstone-height';
+import { NAME_NEAR } from './engraving';
 import { distance, normalize, sub, vec3 } from './vec3';
 import { GHOST_FLOAT_BASE, GHOST_HEIGHT } from './visual-constants';
 
@@ -134,11 +135,18 @@ describe('flyToPose', () => {
     expect(away('src/mid.ts')).toBeLessThan(away('src/huge.ts'));
   });
 
-  it('keeps the distance between 8 and 40 units: 3.5 × height + 6 in between', () => {
+  it('keeps the distance between 8 and 14 units: 2 × height + 5 in between', () => {
     const tiny = flyToPose(targets, 'src/tiny.ts')!;
     const huge = flyToPose(targets, 'src/huge.ts')!;
-    expect(distance(tiny.position, tiny.target)).toBeCloseTo(3.5 * stoneHeight(1) + 6, 9);
-    expect(distance(huge.position, huge.target)).toBeCloseTo(3.5 * stoneHeight(6451) + 6, 9);
+    expect(distance(tiny.position, tiny.target)).toBeCloseTo(Math.max(8, 2 * stoneHeight(1) + 5), 9);
+    expect(distance(huge.position, huge.target)).toBeCloseTo(2 * stoneHeight(6451) + 5, 9);
+  });
+
+  it('stands every stone within the distance its engraved name is fully readable from', () => {
+    for (const path of ['src/tiny.ts', 'src/mid.ts', 'src/huge.ts']) {
+      const pose = flyToPose(targets, path)!;
+      expect(distance(pose.position, pose.target)).toBeLessThan(NAME_NEAR);
+    }
   });
 
   it('aims at a ghost at the middle of its floating figure', () => {

@@ -18,7 +18,7 @@ type Controls = ComponentRef<typeof OrbitControls>;
 const heading = new THREE.Vector3();
 
 /**
- * The camera: drag to orbit, right-drag to pan, the wheel to zoom (drei's OrbitControls), the keyboard to fly,
+ * The camera: drag to orbit, right-drag to pan, the wheel to zoom toward the pointer (drei's OrbitControls), the keyboard to fly,
  * and smooth flights for `flyTo`. It starts at the establishing shot for the window's own shape (`safeEstablishingShot`), and
  * Reset view flies back to that shot for the shape the window has then. The shot's lens shift is applied to the camera, again
  * whenever the window changes size, and stays on whatever the camera does (it is part of the lens). Any mouse or keyboard input ends a flight
@@ -196,6 +196,10 @@ export function CameraRig({ model }: { model: SceneModel }) {
       screenSpacePanning={false}
       // The camera stays at least MIN_TILT_DEG above the horizontal, seen from the point it looks at (clampPose says the same).
       maxPolarAngle={Math.PI / 2 - (MIN_TILT_DEG * Math.PI) / 180}
+      // The wheel zooms toward the point under the pointer, so the front rows can be reached; `clampPose` still keeps the result
+      // inside every limit (floor, tilt, sideways bounds, zoom range). The look-at point moves with it, which is why a zoom
+      // is clamped like a pan ('slide').
+      zoomToCursor
       minDistance={3}
       maxDistance={limits.maxDistance}
       onStart={() => {

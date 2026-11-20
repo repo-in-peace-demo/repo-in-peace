@@ -14,7 +14,7 @@ import { distance, length, normalize, sub, vec3, type Vec3 } from './vec3';
 const finite = (v: Vec3): boolean => Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
 
 describe('P12: flyTo gives a usable pose for every file and ghost', () => {
-  it('is finite, above the ground, aimed inside the graveyard, and between 8 and 40 units from its target', () => {
+  it('is finite, above the ground, aimed inside the graveyard, and between 8 and 14 units from its target', () => {
     fc.assert(
       fc.property(graveyardArb, (g) => {
         const l = layout(g);
@@ -28,7 +28,7 @@ describe('P12: flyTo gives a usable pose for every file and ghost', () => {
           if (pose.target.x < x - pad || pose.target.x > x + w + pad || pose.target.z < z - pad || pose.target.z > z + d + pad) return false;
           if (pose.target.y < 0 || pose.target.y > pad) return false;
           const away = distance(pose.position, pose.target);
-          if (away < 8 - 1e-9 || away > 40 + 1e-9) return false;
+          if (away < 8 - 1e-9 || away > 14 + 1e-9) return false;
         }
         return true;
       }),

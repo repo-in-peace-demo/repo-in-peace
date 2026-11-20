@@ -135,4 +135,43 @@ test.describe('screenshots to judge by eye', () => {
       console.log(name, JSON.stringify(await page.evaluate(() => window.repoInPeace!.getEngravingAtlas())).slice(0, 200));
     }
   });
+
+  // Task 25 follow-up 1: the wheel toward a front-row stone, and a double-click on a stone, on both files.
+  for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+    test(`zoom toward the pointer and double-click to fly: ${name}`, async ({ page }) => {
+      mkdirSync(OUT, { recursive: true });
+      const g = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL(`../public/graveyards/${name}.graveyard.json`, import.meta.url)), 'utf8')) as Graveyard);
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(1200);
+      const rows = [...g.stones].sort((a, b) => b.layout.z - a.layout.z);
+      let target: { path: string; at: { x: number; y: number } } | null = null;
+      for (const s of rows) {
+        const at = await page.evaluate((path) => window.repoInPeace!.getScreenPoint(path), s.file.path);
+        if (at && at.x > 160 && at.x < 1120 && at.y > 120 && at.y < 600) {
+          target = { path: s.file.path, at };
+          break;
+        }
+      }
+      if (target === null) throw new Error('no front-row stone on screen');
+      const found = target;
+      let at = found.at;
+      for (let i = 0; i < 12; i++) {
+        await page.mouse.move(at.x, at.y);
+        await page.mouse.wheel(0, -240);
+        await page.waitForTimeout(80);
+        at = (await page.evaluate((path) => window.repoInPeace!.getScreenPoint(path), found.path)) ?? at;
+      }
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: `${OUT}zoom-${name}.png` });
+      await page.evaluate(() => window.repoInPeace!.resetView());
+      await page.waitForTimeout(1800);
+      await page.mouse.dblclick(found.at.x, found.at.y);
+      await page.waitForTimeout(1900);
+      await page.mouse.move(640, 8);
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${OUT}dblclick-${name}.png` });
+    });
+  }
 });

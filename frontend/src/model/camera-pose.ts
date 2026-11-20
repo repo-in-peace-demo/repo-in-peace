@@ -39,10 +39,12 @@ const FLY_DIRECTION = normalize(vec3(0, 0.375, 1)); // 20.6 degrees above the ho
 const AIM_HEIGHT_SHARE = 0.55;
 
 /** The distance from the target is `FLY_DISTANCE_PER_HEIGHT × height + FLY_DISTANCE_BASE`, kept between the two limits. */
-const FLY_DISTANCE_PER_HEIGHT = 3.5;
-const FLY_DISTANCE_BASE = 6;
+// Task 25: from 3.5 × height + 6 (up to 20 for the tallest stone), which left a tall stone's engraved name half faded: the name is
+// fully readable within NAME_NEAR (16). The tallest stone now stands 13 away, and nothing is further than 14.
+const FLY_DISTANCE_PER_HEIGHT = 2;
+const FLY_DISTANCE_BASE = 5;
 const FLY_MIN_DISTANCE = 8;
-const FLY_MAX_DISTANCE = 40;
+const FLY_MAX_DISTANCE = 14;
 
 /** What `flyTo` can fly to: a stone or a ghost, where it stands and how tall it is. */
 export interface FlyTarget {
