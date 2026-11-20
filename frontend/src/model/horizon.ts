@@ -42,8 +42,25 @@ export const FOREST_ROWS: ReadonlyArray<{ offset: number; lift: number }> = [
 
 /** The treetops, in degrees above the design eye's level: a base and an uneven rise and fall around the ring. */
 const CANOPY_BASE_DEG = 1.2;
-const CANOPY_SWELL_DEG = 1.1;
-const TREE_JITTER_DEG = 0.9;
+const CANOPY_SWELL_DEG = 1.5;
+const TREE_JITTER_DEG = 1.25;
+
+/** Now and then a tall spire rises above its neighbours by this many degrees (1 tree in SPIRE_EVERY, on average). */
+const SPIRE_DEG = 1.4;
+const SPIRE_SHARE = 0.06;
+
+/** Gaps: where a slow rise and fall around the ring is below GAP_BELOW, the front rows thin out, so the forest has breaks. */
+const GAP_BELOW = -0.55;
+
+/** How hazy each row of the forest is, front to back (scene/Horizon.tsx mixes it toward the haze). */
+export const FOREST_ROW_HAZE: readonly number[] = [0, 0.14, 0.26];
+
+/**
+ * The bare, twisted trees that frame the left and right edges of the opening view: at these angles from the design eye
+ * (negative to the left), a little in front of the forest, reaching well above it into the sky.
+ */
+export const FRAMING_TREE_AZIMUTHS_DEG: readonly number[] = [-41, -35, 34, 40];
+const FRAMING_TREE_TOP_DEG = 6.2;
 
 /** The clearing under the moon: its treetops are at most this many degrees above the design eye's level (below the horizon). */
 const CLEARING_TOP_DEG = -1.5;
@@ -216,8 +233,41 @@ export interface Tree {
   /** Along the ring at the tree, on the ground (length 1): the trees are flat shapes across this direction, facing the middle. */
   across: { x: number; z: number };
   bare: boolean;
+  /** The row of the forest, 0 in front (the framing trees are in row 0 too). */
+  row: number;
+  /** How much it faces the moon, 0 to 1 (seen from the design eye): how bright the moonlit edge of its top is. */
+  moonward: number;
   /** The seed of its shape. */
   key: string;
+}
+
+const moonwardOf = (azimuthDeg: number): number => Math.max(0, Math.cos((azimuthDeg - MOON_AZIMUTH_DEG) * RAD * 1.6));
+
+/** The point of the ring of this radius that the design eye (inside the ring) sees at this azimuth. */
+function onRingAt(plan: HorizonPlan, radius: number, azimuthDeg: number): { x: number; z: number } {
+  const dx = Math.sin(azimuthDeg * RAD);
+  const dz = -Math.cos(azimuthDeg * RAD);
+  const ox = plan.eye.x - plan.centre.x;
+  const oz = plan.eye.z - plan.centre.z;
+  const b = ox * dx + oz * dz;
+  const c = ox * ox + oz * oz - radius * radius; // < 0: the eye is inside
+  const t = -b + Math.sqrt(Math.max(0, b * b - c));
+  return { x: plan.eye.x + dx * t, z: plan.eye.z + dz * t };
+}
+
+/** The bare trees that frame the opening view, one at each of FRAMING_TREE_AZIMUTHS_DEG. */
+function framingTrees(plan: HorizonPlan, typical: number): Tree[] {
+  return FRAMING_TREE_AZIMUTHS_DEG.map((azimuth, i) => {
+    const key = `forest/framing/${i}`;
+    const radius = plan.ridgeRadius * (1.0 + 0.01 * hash01(key, 'r')); // behind the haze ring, in front of the first row (1.02)
+    const { x, z } = onRingAt(plan, radius, azimuth);
+    const base = vec3(x, landHeightAt(plan, x, z) - typical * 0.05, z);
+    const along = Math.hypot(x - plan.eye.x, z - plan.eye.z);
+    const top = plan.eye.y + along * Math.tan((FRAMING_TREE_TOP_DEG - 0.8 * hash01(key, 'h')) * RAD);
+    const height = top - base.y;
+    const angle = Math.atan2(z - plan.centre.z, x - plan.centre.x);
+    return { base, height, width: height * 0.85, across: { x: -Math.sin(angle), z: Math.cos(angle) }, bare: true, row: 0, moonward: moonwardOf(azimuth), key };
+  });
 }
 
 /** Every tree of the forest, the same for the same bounds. */
@@ -240,21 +290,27 @@ export function forestTrees(plan: HorizonPlan): Tree[] {
       const azimuth = azimuthFromEye(plan, base);
       const bareSlot = rowIndex === 0 && i % BARE_TREE_EVERY === 7 && Math.abs(azimuth - MOON_AZIMUTH_DEG) > haloHalfWidthDeg() + BARE_TREE_CLEARANCE_DEG + CLEARING_SHOULDER_DEG;
       let topDeg = CANOPY_BASE_DEG + row.lift + CANOPY_SWELL_DEG * swell(angle, 'canopy') + TREE_JITTER_DEG * (hash01(key, 'height') * 2 - 1);
+      if (hash01(key, 'spire') < SPIRE_SHARE) topDeg += SPIRE_DEG;
       topDeg = Math.min(topDeg, clearingCeilingDeg(azimuth));
       let top = eyeLevel + along * Math.tan(topDeg * RAD);
       if (bareSlot) top = base.y + (top - base.y) * BARE_TREE_HEIGHT;
       const height = top - base.y;
       if (height < typical * 0.25) continue; // the clearing: no tree, or only stumps, so leave it out
+      // A gap: the front two rows thin out where the slow swell is low, so the forest has breaks.
+      if (!bareSlot && rowIndex < 2 && swell(angle, 'gaps') < GAP_BELOW && hash01(key, 'gap') < 0.8) continue;
       trees.push({
         base,
         height,
         width: bareSlot ? height * 0.9 : height * (0.32 + 0.12 * hash01(key, 'width')),
         across: { x: -Math.sin(angle), z: Math.cos(angle) },
         bare: bareSlot,
+        row: rowIndex,
+        moonward: moonwardOf(azimuth),
         key,
       });
     }
   });
+  for (const tree of framingTrees(plan, typical)) trees.push(tree);
   return trees;
 }
 
@@ -340,12 +396,29 @@ function bareTriangles(tree: Tree, out: number[]): void {
 
 /** Every triangle of the forest, as x, y, z of three points each, one after another. Every point is inside its tree's box. */
 export function forestTriangles(trees: readonly Tree[]): Float32Array {
+  return forestMesh(trees).positions;
+}
+
+/**
+ * The forest's triangles, and for each point: how far up its tree it is (0 at the foot, 1 at the top), how much its tree faces
+ * the moon, and how hazy its row is. The shader lights the treetops' edge from these and hazes the back rows.
+ */
+export function forestMesh(trees: readonly Tree[]): { positions: Float32Array; up: Float32Array; moonward: Float32Array; haze: Float32Array } {
   const out: number[] = [];
+  const up: number[] = [];
+  const moonward: number[] = [];
+  const haze: number[] = [];
   for (const tree of trees) {
+    const start = out.length;
     if (tree.bare) bareTriangles(tree, out);
     else pineTriangles(tree, out);
+    for (let k = start; k < out.length; k += 3) {
+      up.push(Math.min(1, Math.max(0, (out[k + 1]! - tree.base.y) / tree.height)));
+      moonward.push(tree.moonward);
+      haze.push(FOREST_ROW_HAZE[tree.row] ?? 0);
+    }
   }
-  return Float32Array.from(out);
+  return { positions: Float32Array.from(out), up: Float32Array.from(up), moonward: Float32Array.from(moonward), haze: Float32Array.from(haze) };
 }
 
 // ---- The haze where the hills meet the forest ----

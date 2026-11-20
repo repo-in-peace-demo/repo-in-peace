@@ -22,6 +22,9 @@ export const GROUND_BASE_COLOR = '#0a0e13';
 /** The forest on the ridge: flat, unlit, darker than the sky at the horizon, so it reads as a silhouette against it. */
 export const FOREST_COLOR = '#03050a';
 
+/** The faint moonlit edge along the treetops, and the trees toward the moon most. */
+export const FOREST_EDGE_COLOR = '#3a4660';
+
 /** The hills: lighter than the graveyard's ground, so the moonlight shows on the slopes that face it. */
 export const HILL_COLOR = '#2b3547';
 

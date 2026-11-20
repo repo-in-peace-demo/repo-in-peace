@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { FOREST_COLOR, HAZE_COLOR, HAZE_MAX_ALPHA, HILL_COLOR, HILL_HAZE } from '../model/atmosphere';
-import { forestTrees, forestTriangles, hazeRingMesh, horizonPlan, landMesh } from '../model/horizon';
+import { FOREST_COLOR, FOREST_EDGE_COLOR, HAZE_COLOR, HAZE_MAX_ALPHA, HILL_COLOR, HILL_HAZE } from '../model/atmosphere';
+import { forestMesh, forestTrees, hazeRingMesh, horizonPlan, landMesh } from '../model/horizon';
 import type { SceneModel } from '../model/scene-model';
 import { noRaycast } from './instances';
 
@@ -113,10 +113,55 @@ void main() {
       fog: false,
     });
 
+    // The forest: flat dark silhouettes, with a faint moonlit edge along the treetops (brighter on the trees toward the moon),
+    // and the back rows mixed toward the haze, so the forest has depth. Unlit by the scene's lights, and fogged.
+    const forest = forestMesh(forestTrees(plan));
     const forestGeometry = new THREE.BufferGeometry();
-    forestGeometry.setAttribute('position', new THREE.BufferAttribute(forestTriangles(forestTrees(plan)), 3));
+    forestGeometry.setAttribute('position', new THREE.BufferAttribute(forest.positions, 3));
+    forestGeometry.setAttribute('aUp', new THREE.BufferAttribute(forest.up, 1));
+    forestGeometry.setAttribute('aMoonward', new THREE.BufferAttribute(forest.moonward, 1));
+    forestGeometry.setAttribute('aHaze', new THREE.BufferAttribute(forest.haze, 1));
     forestGeometry.computeBoundingSphere();
-    const forestMaterial = new THREE.MeshBasicMaterial({ color: FOREST_COLOR, side: THREE.DoubleSide });
+    const forestMaterial = new THREE.ShaderMaterial({
+      uniforms: THREE.UniformsUtils.merge([
+        THREE.UniformsLib.fog,
+        { uColor: { value: new THREE.Color(FOREST_COLOR) }, uEdge: { value: new THREE.Color(FOREST_EDGE_COLOR) }, uHaze: { value: hazeColour } },
+      ]),
+      vertexShader: /* glsl */ `
+attribute float aUp;
+attribute float aMoonward;
+attribute float aHaze;
+varying float vUp;
+varying float vMoonward;
+varying float vHaze;
+#include <fog_pars_vertex>
+void main() {
+  vUp = aUp;
+  vMoonward = aMoonward;
+  vHaze = aHaze;
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
+  #include <fog_vertex>
+}`,
+      fragmentShader: /* glsl */ `
+uniform vec3 uColor;
+uniform vec3 uEdge;
+uniform vec3 uHaze;
+varying float vUp;
+varying float vMoonward;
+varying float vHaze;
+#include <fog_pars_fragment>
+void main() {
+  float edge = smoothstep(0.9, 1.0, vUp) * (0.25 + 0.75 * vMoonward);
+  vec3 colour = mix(uColor, uEdge, edge * 0.4);
+  colour = mix(colour, uHaze * 0.22, vHaze);
+  gl_FragColor = vec4(colour, 1.0);
+  #include <colorspace_fragment>
+  #include <fog_fragment>
+}`,
+      side: THREE.DoubleSide,
+      fog: true,
+    });
 
     return { landGeometry, landMaterial, forestGeometry, forestMaterial, hazeGeometry, hazeMaterial };
   }, [bounds]);
