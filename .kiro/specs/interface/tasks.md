@@ -111,8 +111,11 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
     - `?graveyard=demo.oikosledger` skips the boot screen.
 
     The version-1 file is written by the test into a temporary folder, not kept in the repository.
-  - [ ] 6.5 Screenshot test `interface boot`: the boot screen with the choices, and the digging screen. To catch the digging screen, the test delays the data file with `page.route`.
-  - **Run:** `npx playwright test e2e/boot.spec.ts`, then `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts -g "interface boot"`.
+  - [ ] 6.5 **Leaving the scene frees its GPU resources.** On Back, or when another graveyard is chosen, the old scene is unmounted, and everything it made is disposed: geometries, materials, textures, render targets, the engraving atlas and the ghost-tag atlas. Every `useMemo`'d geometry, material or texture gets a matching dispose in an effect cleanup. Check this file by file in `scene/`; some already have one (`Plaques.tsx`). The canvas and its WebGL context are dropped with the scene, and `gl.dispose()` is called on unmount.
+    - The dev `getRenderInfo()` also returns `renderer.info.memory` (geometries and textures), read from the live renderer.
+    - **Browser check** (`e2e/boot.spec.ts`): switch between the two demos five times (spatialql, Back, oikos, Back, …). After each arrival, read the geometry and texture counts. Each graveyard's counts must be the same on every visit, so nothing builds up. Listen on every canvas for `webglcontextlost` and fail if it ever fires. Also count the canvases in the page, which must never be more than one.
+  - [ ] 6.6 Screenshot test `interface boot`: the boot screen with the choices, and the digging screen. To catch the digging screen, the test delays the data file with `page.route`.
+  - **Run:** `npx playwright test e2e/boot.spec.ts` (including the five switches), then `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts -g "interface boot"`.
   - **Commit** with the screenshots.
   - _Requirements: 1, 2, 3_
 
