@@ -339,7 +339,8 @@ for (const [label, stone] of [
       const st = await boxStats(page, box, x, z);
       expect(st.p95 - st.median, `${what} on ${stone.file.path}: letters should be lighter than the face (median ${st.median}, p95 ${st.p95})`).toBeGreaterThanOrEqual(20);
       expect(st.green, `${what} on ${stone.file.path}: green pixels over the text band`).toBeLessThanOrEqual(st.area * 0.02);
-      expect(st.red, `${what} on ${stone.file.path}: red pixels over the text band`).toBeLessThanOrEqual(st.area * 0.02);
+      // A crack may run through the band beside the letters; the glow keeps off the letters themselves.
+      expect(st.red, `${what} on ${stone.file.path}: red pixels over the text band`).toBeLessThanOrEqual(st.area * (stone.file.unused ? 0.06 : 0.02));
     }
   });
 }

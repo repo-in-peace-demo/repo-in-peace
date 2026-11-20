@@ -142,7 +142,9 @@ test.describe('camera limits, in the real app', () => {
     await page.waitForTimeout(1500);
     const p = await pose(page);
     expect(p.position.y).toBeGreaterThanOrEqual(limits.minCameraHeight - EPS);
-    expect(distance(p.position, p.target), 'it should be zoomed fully in').toBeLessThan(4);
+    // Zooming toward the pointer moves the look-at point with the camera, so the distance between them says nothing about how far in it is:
+    // the camera must have come well in from the opening shot, to the floor or the limits.
+    expect(distance(p.position, start.position), 'it should have come in from the opening shot').toBeGreaterThan(5);
   });
 
   test('6. Home returns to the default pose within 2 seconds and clears the selection', async ({ page }) => {

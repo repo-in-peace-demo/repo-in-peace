@@ -168,7 +168,7 @@ float crackEdge(vec2 p) {
       vec2 g = nearestId + vec2(float(i), float(j));
       if (g == nearestId) continue;
       // The same for both cells either side of a border, so a kept border is kept all along its length.
-      if (hash21((nearestId + g) * 0.37 + 11.0) < 0.45) continue;
+      if (hash21((nearestId + g) * 0.37 + 11.0) < 0.35) continue;
       vec2 pt = crackPoint(g);
       edge = min(edge, dot(0.5 * (nearest + pt) - p, normalize(pt - nearest)));
     }
@@ -218,10 +218,13 @@ const FRAGMENT_COLOR = /* glsl */ `
   // stale moss above the foot, which the row in front hides from the overview).
   gFar = smoothstep(18.0, 70.0, length(vViewPosition));
   float mossNoise = fbm(uv2 * 4.0 + seedOffset * 1.7);
-  float climb = mix(vHeightFrac, y / max(nameBottom, 0.05), frontness);
+  // A stone with no room below its name (the shortest) keeps the moss over its whole height, clear of the text band only.
+  float room = smoothstep(0.15, 0.3, nameBottom);
+  float climb = mix(vHeightFrac, mix(vHeightFrac, y / max(nameBottom, 0.05), room), frontness);
   float mossEdge = 0.3 + vMoss * 0.85 - (climb + (mossNoise - 0.5) * 0.4);
   float moss = smoothstep(0.0, 0.1, mossEdge) * step(0.001, vMoss);
-  moss *= 1.0 - frontness * smoothstep(nameBottom - 0.06, nameBottom, y);
+  moss *= 1.0 - frontness * room * smoothstep(nameBottom - 0.06, nameBottom, y);
+  moss *= 1.0 - frontness * inName;
   // A cap of moss on the top, deeper the older (0.15 of the stone on the first stale day, 0.35 when ancient): from the
   // overview a stone in a back row shows only its top. Still the age alone. Not over the texts.
   float capEdge = vHeightFrac - (1.0 - 0.1 - vMoss * 0.35) + (mossNoise - 0.5) * 0.25;
@@ -238,7 +241,7 @@ const FRAGMENT_COLOR = /* glsl */ `
     float edge = crackEdge(uv2 * 1.7 + seedOffset * 0.1 + 0.3 * warp);
     // Widened toward a pixel on screen (fwidth), and more for a stone only a few pixels tall, so it does not vanish from the overview.
     float tiny = smoothstep(0.025, 0.07, fwidth(vHeightFrac));
-    float w = clamp(1.2 * fwidth(edge), 0.016, 0.04) * (1.0 + 1.5 * tiny);
+    float w = clamp(1.2 * fwidth(edge), 0.016, 0.04) * (1.0 + 3.0 * tiny);
     float line = 1.0 - smoothstep(0.0, w, edge);
     gCrack = line * (1.0 - 0.25 * moss);
     gFaint = 1.0;
@@ -247,6 +250,7 @@ const FRAGMENT_COLOR = /* glsl */ `
       float keepOff = nearInk(0.0, seam + uRipBox.x, uRipBox.y, uRipBox.z, 0.035);
       if (vNameFade > 0.01) keepOff = max(keepOff, vNameFade * nearInk(vNameCell, nameY, uNameBox.y, uNameBox.z, 0.03));
       gCrack *= 1.0 - frontness * keepOff;
+      gFaint = 1.0 - frontness * keepOff;
     }
     diffuseColor.rgb *= 1.0 - 0.85 * gCrack;
   }
@@ -273,7 +277,7 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
   // From far away it is boosted by distance alone, so it is still the same for every unused stone at a given distance.
   totalEmissiveRadiance += uCrackGlowColor * (uGlow * (1.6 + 1.6 * gFar)) * gCrack;
   // The faint red glow over a whole unused stone: the same for every unused stone (distance only), dimmer under the letters.
-  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (0.22 + 0.3 * gFar)) * gFaint * (1.0 - gInk);
+  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (0.12 + 0.7 * gFar)) * gFaint * (1.0 - gInk);
   // A little light in the letters, so they read under the dim moonlight.
   totalEmissiveRadiance += uLetterColor * 0.16 * gInk;
   // A little of the moss's own colour from far away, so it is still green under the dim moonlight (age only: gMoss reads vMoss).

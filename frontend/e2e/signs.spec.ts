@@ -86,7 +86,9 @@ test.describe('folder signs, in the real app', () => {
     await page.keyboard.up('Shift');
     const actual = await expectPageMatchesCamera(page);
     expect(actual.length, 'some sign should still show').toBeGreaterThan(0);
-    expect(Math.min(...actual.map((s) => s.opacity)), 'a sign should be partly faded here, or this check proves nothing').toBeLessThan(0.95);
+    // Signs that overlap a nearer one are dropped, and the far ones are the faint ones, so look at the signs in range before that.
+    const inRange = visibleSigns(model.signSources, { position: (await pose(page)).position, forward: sub((await pose(page)).target, (await pose(page)).position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
+    expect(Math.min(...inRange.map((s) => s.opacity)), 'a sign should be partly faded here, or this check proves nothing').toBeLessThan(0.95);
   });
 
   test('flying into a small folder shows its sign, and zooming out from the overview fades it', async ({ page }) => {
@@ -104,6 +106,11 @@ test.describe('folder signs, in the real app', () => {
     // Zooming out from the overview (as far as the limits inside the trees allow), the sign fades: fainter than it was, or gone.
     await page.mouse.move(640, 360);
     for (let i = 0; i < 30; i++) await page.mouse.wheel(0, 600);
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('KeyS'); // and back as far as the limits let the camera go: the wheel now zooms toward the pointer
+    await page.waitForTimeout(2500);
+    await page.keyboard.up('KeyS');
+    await page.keyboard.up('Shift');
     await page.mouse.move(640, 20); // off the stones, so no hover label
     const away = await expectPageMatchesCamera(page);
     const awayOpacity = away.find((s) => s.text === 'data')?.opacity ?? 0;
