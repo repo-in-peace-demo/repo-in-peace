@@ -11,14 +11,14 @@ import { OPENING_DURATION_MS, blendShots, type Shot } from './framing';
  */
 
 /** How long the hand-over after an interrupted move takes, in milliseconds: the lens shift eases over it. */
-export const HANDOVER_MS = 1200;
+export const HANDOVER_MS = 2400;
 
 /**
  * How quickly the camera is brought into its limits during the hand-over: each frame it goes this share of the rest of the way,
  * `1 - exp(-seconds / HANDOVER_SETTLE_S)` for a frame of `seconds`, so it eases in at the same pace whatever the frame rate (about 99%
  * of the way by the end of HANDOVER_MS). It does not fight the input that ended the move: that input still moves the camera.
  */
-export const HANDOVER_SETTLE_S = 0.25;
+export const HANDOVER_SETTLE_S = 0.5; // from 0.25: the lift into the tilt limit after an interrupted move was about 4 units in its first 0.2 s
 
 export function settleShare(seconds: number, settleS: number = HANDOVER_SETTLE_S): number {
   if (!(seconds > 0)) return 0;
