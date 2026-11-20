@@ -26,11 +26,11 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 **User story:** As a visitor without a link, I land on a workstation-style screen that lets me pick a graveyard.
 
 1. WHEN the page address has no `graveyard` parameter (and, in development builds, no `synthetic` parameter) THE app SHALL show the boot screen instead of loading a graveyard. (Today it loads `demo.spatialql`; the boot screen replaces that default.)
-2. THE boot screen SHALL list the demo graveyards from the manifest, each with its repository name and its file count (and its ghost count when there are any). THE manifest SHALL be made from the files in `public/graveyards/` at build time and by the dev server, so a data file added there appears without editing any list by hand.
+2. THE boot screen SHALL list the demo graveyards from the manifest, each with its repository name and its file count (and its ghost count when there are any), without loading the data files themselves. THE manifest SHALL be written by a Vite plugin from the files in `public/graveyards/`, by the dev server and in builds, so a data file added there appears without editing any list by hand. THE analyser SHALL know nothing of it.
 3. THE boot screen SHALL type a short fake workstation boot, line by line, in the terminal style, then show the choices. THE text SHALL be our own; it SHALL NOT name SGI, IRIX or FSN, or copy their screens.
 4. Any key press or click while the boot text types SHALL show all of it at once and the choices. It SHALL NOT also choose a graveyard.
 5. WHILE the system asks for reduced motion THE boot text SHALL appear at once, with no typing and no blinking cursor.
-6. THE choices SHALL be reachable and usable with the keyboard alone (arrow keys or Tab to move, Enter to choose), with a visible focus.
+6. THE choices SHALL be reachable and usable with the keyboard alone (arrow keys or Tab to move, Enter to choose), with a visible focus. WHEN the choices appear THE first demo graveyard SHALL be highlighted and focused, so Enter opens it at once.
 7. THE boot screen SHALL offer **Open a graveyard file**: a file picker and a drop area for a `.graveyard.json`. THE file SHALL be read in the browser with the File API and SHALL NOT be sent anywhere.
 8. A local file SHALL go through the same checks as a demo file (the scene spec's Req 1.4 and 1.5): IF its `meta.schemaVersion` is not 2 THEN the boot screen SHALL say which version the file has, which version the viewer reads, and that the file should be made again with the current analyser. IF it is not JSON or fails validation THEN it SHALL say which, with the first few errors. In both cases the user SHALL stay on the boot screen and can choose again.
 9. IF the manifest cannot be loaded THEN the boot screen SHALL still offer **Open a graveyard file**, and say that the demo list is missing.
@@ -58,7 +58,7 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 4. THE state wording SHALL use the file's age and the data file's thresholds: "Fresh: last touched N days before the snapshot", "Stale: untouched N days before the snapshot (stale after S days)", "Ancient: untouched N days before the snapshot (ancient after A days)", with N the age in whole days and the singular "1 day". THE wording SHALL agree with the file's `decayState`.
 5. For a **ghost** it SHALL show: the file name and path; the date it was deleted and by whom; the commit it was deleted in (short SHA, with the full SHA available to copy); and its file type, from its extension, as on its toe tag.
 6. THE panel SHALL show the eulogy from the data file. WHILE it is empty (the analyser leaves it empty until spec 4) it SHALL show a short placeholder line, styled so it cannot be mistaken for a eulogy.
-7. THE panel SHALL show a **Bury** button for a stone that is unused or ancient, and a **Resurrect** button for a ghost. Both SHALL be visible but disabled, with a note that they arrive with the PR function. (They do nothing in this spec.)
+7. THE panel SHALL show a **Bury** button only for a stone that Knip lists as unused (a cracked stone), whatever its age, and a **Resurrect** button for a ghost. A stone that is still used SHALL NOT be offered Bury, however old: old but used code is stable, not dead, and deleting it would break the app. So a fresh unused stone (`app/components/voice/index.ts`) gets Bury, and an ancient used stone does not. Both SHALL be visible but disabled, with a note that they arrive with the PR function. (They do nothing in this spec.)
 8. THE panel SHALL NOT cover the selected stone or ghost on screen: it SHALL open on the side of the window away from it. IF it would still cover it (a narrow window) THEN the camera SHALL be moved sideways just enough, smoothly, without changing what is selected.
 9. Every value SHALL be text (never markup from the data file), and long paths SHALL wrap or shorten in the middle, keeping the file name readable.
 
@@ -79,9 +79,9 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 **User story:** As a maintainer planning a clean-up, I scan every grave sorted by how dead it is.
 
 1. A collapsible list SHALL be docked on one side of the window, with a row for every file and every ghost.
-2. THE default sort SHALL be most dead first: decay score from highest to lowest, ties by path (code-point order). Ghosts SHALL sort as most dead of all (above every file), by deleted date, oldest first, ties by path.
+2. THE default sort SHALL be most dead first: decay score from highest to lowest, ties by path (code-point order). Ghosts SHALL come after every stone (they are already deleted, so they do not push unused stones down a clean-up list), among themselves by deleted date, oldest first, ties by path.
 3. THE list SHALL offer sorts by **decay** (as above), **age** (oldest first: a file by its age, a ghost by the days from its deletion to the snapshot), **name** (file name, then path) and **size** (lines of code, largest first; ghosts, which have no size, last). Every sort SHALL fall back to path for ties, and a second click on the same sort SHALL reverse it.
-4. THE list SHALL offer filters: **fresh**, **stale**, **ancient**, **ghosts** (what a row is), and **unused**, **hot** (flags of a file). A row SHALL be shown when it is one of the selected kinds (any kind when none is selected) AND has every selected flag. THE list SHALL show how many rows match, out of how many.
+4. THE list SHALL offer filters in two groups: the kinds **fresh**, **stale**, **ancient**, **ghosts** (what a row is), which combine with OR, and the flags **unused**, **hot**, which combine with AND. The two groups combine with AND: a row SHALL be shown when it is one of the selected kinds (any kind when none is selected) and has every selected flag (a ghost has neither flag). THE list SHALL show how many rows match, out of how many.
 5. A click on a row, or Enter on a focused row, SHALL select its file or ghost and fly to it with `flyTo`.
 6. WHEN the selection changes from anywhere else (the scene, search) THE list SHALL highlight the matching row and scroll it into view. WHEN the selected row is filtered out THE list SHALL highlight nothing and say that the selection is hidden by the filters.
 7. THE list SHALL stay smooth with 2,000 rows: it SHALL draw only the rows in view (virtualised), and sorting or filtering 2,000 rows SHALL take under 16 ms.
@@ -108,8 +108,8 @@ Each property gets a fast-check property test.
 
 | # | Property | Covers |
 | --- | --- | --- |
-| P1 | Filtering returns exactly the rows that are one of the selected kinds (any when none) and have every selected flag; clearing the filters returns every row. | Req 5.4 |
-| P2 | Sorting is deterministic: the same rows in any input order give the same order; ties fall back to path; reversing twice gives the original order. | Req 5.2, 5.3 |
+| P1 | Filtering returns exactly the rows whose kind is one of the selected kinds (OR; any kind when none is selected) and that have every selected flag (AND), the two groups combined with AND; clearing the filters returns every row. | Req 5.4 |
+| P2 | Sorting is deterministic: the same rows in any input order give the same order; ties fall back to path; reversing twice gives the original order; under the default sort every stone comes before every ghost. | Req 5.2, 5.3 |
 | P3 | Search ranking: an exact file-name match ranks above a prefix match, which ranks above a match elsewhere in the name, which ranks above a path-only match; a non-matching row never appears. | Req 6.3 |
 | P4 | Selection sync: whatever selects a file or ghost (the scene, a list row, search), the store holds it, and the list highlights exactly one row, that one (or none when it is filtered out). | Req 4.1, 5.5, 5.6, 6.4 |
 | P5 | The detail panel's state wording names the file's `decayState`, its day count is the file's age, and the threshold it quotes is the data file's. | Req 4.4, 4b.5 |
@@ -123,6 +123,7 @@ Supporting properties:
 - **P10** Middle shortening of a long path always keeps the whole file name (Req 4.9).
 - **P11** The hover line of a stone starts with the state word that matches its `decayState`, carries its last commit date and its lines, and has exactly the flags that apply (unused when `unused`, hot with `recentCommits` when `hot`) and no others; a ghost's line starts with "Ghost" and ends with its toe-tag type. The words are the same as the detail panel's for the same item (Req 4b.2 to 4b.5).
 - **P12** Dates on the hover line are the data file's dates in UTC, for any time zone the tests run in, and carry the year exactly when it differs from the snapshot's (Req 4b.4).
+- **P13** Bury is offered exactly for unused stones, whatever their state, and never for a used stone or a ghost; Resurrect exactly for ghosts (Req 4.7).
 
 ## Out of scope
 
@@ -130,13 +131,16 @@ Supporting properties:
 - The PR function, and the bury and resurrect animations (spec 5).
 - Sound.
 
-## Open questions for review
+## Decisions
 
-1. **Manifest.** The browser cannot list `public/graveyards/`, so I propose a small Vite plugin that writes `index.json` (name, repository name, file and ghost counts) from the folder in the dev server and in builds. The alternative is that the analyser updates `index.json` when it writes a file. Which do you want?
-2. **No parameter means the boot screen.** Today a bare address loads spatialql. With this spec it shows the boot screen; only `?graveyard=` goes straight in. Agreed?
-3. **Filters.** "Rows that satisfy every active filter" read literally makes fresh + stale match nothing. I propose kinds (fresh, stale, ancient, ghosts) combine with OR and flags (unused, hot) with AND (Req 5.4, P1). Agreed?
-4. **Ghosts in the sorts.** Ghosts have no decay score or size. I propose they sort as most dead of all under decay, by days since deletion under age, and last under size (Req 5.2, 5.3).
-5. **Bury** applies to stones that are unused or ancient ("cracked or ancient"), including a fresh unused stone. Agreed?
-6. **Local files and the address.** A local file leaves no `graveyard` parameter, so a reload goes back to the boot screen. Keeping the file across a reload (in session storage) is possible but not proposed.
-7. **Hover dates.** Month and day, with the year added when it is not the snapshot's year (both demo files fall within their snapshot's year, so they never show one; a long-lived repository will). Always UTC, as the data file's dates are (Req 4b.4).
-8. **Which side.** The list docks on the left and the detail panel opens on the right by default, moving to the left when the selected item is on the right half of the screen (Req 4.8). The stats panel (top left) and legend (top right) stay where they are and collapse below 1600 px as now.
+Settled in review:
+
+1. **Demo list:** a Vite plugin writes `public/graveyards/index.json` from the folder, in the dev server and in builds, with each graveyard's name (from its `meta`), file count and ghost count. The analyser knows nothing of it.
+2. **A bare address shows the boot screen.** It stays quick: the typing can be skipped, the first demo is highlighted and Enter opens it. `?graveyard=` links still go straight to the scene.
+3. **Filters:** kinds (fresh, stale, ancient, ghosts) combine with OR, flags (unused, hot) with AND, and the two groups with AND (Req 5.4, P1).
+4. **Ghosts in the sorts:** after every stone under decay; by the days from deletion to the snapshot under age; last under size.
+5. **Bury only on unused stones**, whatever their age; never on a used stone, however old (Req 4.7, P13). `docs/concept.md` says the same.
+6. **A local file is not kept:** a reload returns to the boot screen.
+7. **Sides:** the list on the left, the detail panel on the right, switching sides when the item is on the right half of the screen; the camera nudges only if the panel would still cover it.
+8. **Hover dates:** month and day, with the year only when it differs from the snapshot's, in UTC.
+9. The digging screen shows for at least 400 ms and adds at most 1 s; a ghost's file type comes from its extension; Escape in the search box clears the text first, then leaves the box, without clearing the selection.

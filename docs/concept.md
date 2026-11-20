@@ -60,7 +60,7 @@ A list view docks beside the scene: every file sorted by decay, most dead first,
 
 Both actions open a pull request and never change a branch directly, so nothing is lost and a human always approves.
 
-- **Bury** (on a cracked or ancient stone): opens a PR that deletes the file, with the eulogy and the reasons it was flagged in the PR description. In the scene, a hand pulls the stone into the ground.
+- **Bury** (only on a cracked stone, one Knip lists as unused, whatever its age; an old file that is still used is stable, not dead, and is never offered for burial): opens a PR that deletes the file, with the eulogy and the reasons it was flagged in the PR description. In the scene, a hand pulls the stone into the ground.
 - **Resurrect** (on a ghost): opens a PR that restores the deleted file exactly as it was at its last commit. No rewriting. In the scene, the ghost solidifies back into a stone.
 
 For judges: the hosted demo opens PRs against a fork of the demo repo in your own GitHub account, so it always works without asking judges to log in. Opening PRs on someone's own repo needs GitHub sign-in and is a nice-to-have. Safeguards: the PR function uses a GitHub token scoped to the demo fork only, limits how often anyone can trigger it, and the fork can be reset to a clean state at any time.
