@@ -293,7 +293,7 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 6.2_
 
 - [x] 28. **Final checkpoint and manual checklist** **Done (manual check):** B1, C1, D (reduced motion), F (18 draw calls, p95 9.2 ms at 2,000 stones) and G (production: no overlay, no dev hook, `?synthetic` does nothing) pass. Added during it: the opening move on first load (`9281e9b`, hand-over `87a5fd3`, `8f186f1`).
-  - [ ] 28.1 **Open: narrow windows.** The fix is in (`7f83316`: trees planned beyond the furthest camera for window shapes 0.75 to 2.4, narrower windows cropped at the sides; `model/tree-placement.property.test.ts`; `e2e/trees.spec.ts` at 1200 × 1450 and 900 × 1200). Still to do: confirm it in the browser with DevTools docked (about 1200 × 1450): no branch across the graveyard and no pine tops along the bottom, at the first frame and after Reset view. The ultra-wide (2.4) zoomed-out edge tree is in `docs/backlog.md`.
+  - [x] 28.1 **Narrow windows.** The fix is in (`7f83316`: trees planned beyond the furthest camera for window shapes 0.75 to 2.4, narrower windows cropped at the sides; `model/tree-placement.property.test.ts`; `e2e/trees.spec.ts` at 1200 × 1450 and 900 × 1200). Confirmed in the browser with DevTools docked (about 1200 × 1450): no branch across the graveyard and no pine tops along the bottom, at the first frame and after Reset view. The ultra-wide (2.4) zoomed-out edge tree is in `docs/backlog.md`.
   - **Run:**
     ```
     cd frontend
