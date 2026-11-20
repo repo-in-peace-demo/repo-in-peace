@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './fixtures';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
@@ -307,6 +307,9 @@ test.describe('ghosts, in the real app', () => {
   test('with reduced motion nothing moves: the ghost, its tag and the pool are the same a moment later; without it they are not', async ({ browser }) => {
     const look = async (reduced: boolean): Promise<{ same: boolean; flag: boolean }> => {
       const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, reducedMotion: reduced ? 'reduce' : 'no-preference' });
+      await context.addInitScript(() => {
+        window.__repoInPeaceNoOpening = true;
+      });
       const page = await context.newPage();
       await page.goto('/?graveyard=demo.spatialql');
       await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });

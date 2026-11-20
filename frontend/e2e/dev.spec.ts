@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 /**
  * Development extras (task 26), on the dev server the end-to-end tests run against: the performance overlay with `?stats`, and a

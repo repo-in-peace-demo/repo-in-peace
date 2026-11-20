@@ -17,7 +17,7 @@ npm run preview      # serves dist/
 
 ### End-to-end tests
 
-The Playwright tests are in `e2e/` (`e2e/README.md`). Once: `npx playwright install chromium`. Headless Chromium has no GPU, so `playwright.config.ts` passes `--use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist` to draw WebGL in software. If a test page says "WebGL is not available", those flags need changing for your Chromium version (try `--use-gl=angle`, or run with `--headed`). Pictures to judge by eye: `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts` (into `test-results/screenshots/`).
+The Playwright tests are in `e2e/` (`e2e/README.md`). They import `test` from `e2e/fixtures.ts`, which turns the opening move off (development builds only) so a check starts at the overview; `e2e/opening.spec.ts` uses Playwright's own `test` and checks the move. Once: `npx playwright install chromium`. Headless Chromium has no GPU, so `playwright.config.ts` passes `--use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist` to draw WebGL in software. If a test page says "WebGL is not available", those flags need changing for your Chromium version (try `--use-gl=angle`, or run with `--headed`). Pictures to judge by eye: `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts` (into `test-results/screenshots/`).
 
 ## Page address
 
@@ -44,6 +44,8 @@ The Playwright tests are in `e2e/` (`e2e/README.md`). Once: `npx playwright inst
 | Shift | hold to fly 3 times faster |
 | Home or R | reset the view and clear the selection |
 | ? | show or hide the controls panel |
+
+On first load the camera rises from a low shot into the overview over about 3.6 seconds; any key, click, drag or scroll ends it where it is, and with Reduce motion on the scene opens on the overview. Reset view goes straight to the overview.
 
 The camera stays above the ground, at least 20° above the horizontal from its look-at point, and inside the trees round the graveyard, whatever moved it (`model/fly-controls.ts`, `clampPose`).
 

@@ -11,3 +11,6 @@ export function watchReducedMotion(): () => void {
     setReducedMotion(false);
   };
 }
+
+/** Whether the system asks for reduced motion right now. */
+export const prefersReducedMotion = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;

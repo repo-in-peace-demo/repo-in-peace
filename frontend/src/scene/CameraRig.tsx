@@ -3,23 +3,30 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from 'react';
 import * as THREE from 'three';
 import type { CameraPose } from '../model/camera-pose';
-import { safeEstablishingShot } from '../model/framing';
+import { openingShot, safeEstablishingShot, type Shot } from '../model/framing';
+import { handoverShare, openingAt, playsOpening } from '../model/opening-move';
 import { sceneCameraLimits } from '../model/camera-bounds';
 import { MIN_TILT_DEG, boundsRadius, clampPose, flySpeed, isFast, moveCamera, movementFromKeys } from '../model/fly-controls';
 import type { SceneModel } from '../model/scene-model';
-import { vec3 } from '../model/vec3';
+import { lerp, vec3 } from '../model/vec3';
 import { registerScene } from './api';
 import { IDLE, cancelFlight, startFlight, stepFlight, type FlightState } from './flight';
 import { applyLensShift } from './lens-shift';
+import { prefersReducedMotion } from './reduced-motion';
 import { useFlyKeys } from './useFlyKeys';
 
 type Controls = ComponentRef<typeof OrbitControls>;
 
 const heading = new THREE.Vector3();
 
+/** OrbitControls' own tilt limit: MIN_TILT_DEG above the horizontal (clampPose says the same). Relaxed during the opening move, which starts lower. */
+const MAX_POLAR = Math.PI / 2 - (MIN_TILT_DEG * Math.PI) / 180;
+const OPENING_MAX_POLAR = Math.PI / 2 - 1e-3;
+
 /**
  * The camera: drag to orbit, right-drag to pan, the wheel to zoom toward the pointer (drei's OrbitControls), the keyboard to fly,
- * and smooth flights for `flyTo`. It starts at the establishing shot for the window's own shape (`safeEstablishingShot`), and
+ * and smooth flights for `flyTo`. On first load it plays the opening move, rising from a low shot into the establishing shot (any input
+ * ends it; reduced motion skips it). It ends at the establishing shot for the window's own shape (`safeEstablishingShot`), and
  * Reset view flies back to that shot for the shape the window has then. The shot's lens shift is applied to the camera, again
  * whenever the window changes size, and stays on whatever the camera does (it is part of the lens). Any mouse or keyboard input ends a flight
  * and gives control back. Whatever moved the camera, `clampPose` puts it back inside the limits at the end of every
@@ -34,6 +41,10 @@ export function CameraRig({ model }: { model: SceneModel }) {
   const controls = useRef<Controls>(null);
   const flight = useRef<FlightState>(IDLE);
   const lastTarget = useRef<{ x: number; z: number } | null>(null);
+  // The opening move on first load (model/opening-move.ts), the hand-over after it is interrupted, and the lens shift on the camera now.
+  const opening = useRef<{ from: Shot; to: Shot; start: number } | null>(null);
+  const handover = useRef<{ start: number; fromShift: number } | null>(null);
+  const lensShift = useRef(0);
 
   const radius = boundsRadius(model.layout.bounds);
   // The establishing shot for this graveyard, this lens and the window's shape now.
@@ -47,8 +58,26 @@ export function CameraRig({ model }: { model: SceneModel }) {
   // The lens shift, for the canvas's size now. react-three-fiber sets the aspect and the projection on a resize first; this
   // runs after it and sets both again with the shift. Taken off when the scene goes away.
   useLayoutEffect(() => {
-    applyLensShift(camera, shot.viewShift, size.width, size.height);
+    // During the opening move and its hand-over the frame callback sets the shift; this only puts it back after a resize.
+    const shift = opening.current || handover.current ? lensShift.current : shot.viewShift;
+    lensShift.current = shift;
+    applyLensShift(camera, shift, size.width, size.height);
   }, [camera, shot.viewShift, size.width, size.height]);
+  const setShift = (shift: number): void => {
+    if (shift === lensShift.current) return;
+    lensShift.current = shift;
+    applyLensShift(camera, shift, size.width, size.height);
+  };
+  const setShiftRef = useRef(setShift);
+  setShiftRef.current = setShift;
+
+  /** Ends the opening move where the camera is, and starts the hand-over (the limits and the lens shift ease in). */
+  const endOpening = useRef(() => {});
+  endOpening.current = () => {
+    if (!opening.current) return;
+    opening.current = null;
+    handover.current = { start: performance.now(), fromShift: lensShift.current };
+  };
   useEffect(
     () => () => {
       camera.clearViewOffset();
@@ -58,17 +87,42 @@ export function CameraRig({ model }: { model: SceneModel }) {
 
   const keys = useFlyKeys(() => {
     flight.current = cancelFlight();
+    endOpening.current();
   });
+
+  // Any key, click or scroll ends the opening move (a drag starts with a pointerdown; OrbitControls' onStart also ends it).
+  useEffect(() => {
+    const end = (): void => endOpening.current();
+    window.addEventListener('keydown', end);
+    element.addEventListener('pointerdown', end);
+    element.addEventListener('wheel', end, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', end);
+      element.removeEventListener('pointerdown', end);
+      element.removeEventListener('wheel', end);
+    };
+  }, [element]);
 
   // Start at the establishing shot, again for each graveyard that is loaded (not when the window is resized: the camera is not
   // taken away from where the user has moved it).
   useLayoutEffect(() => {
-    const { position, target } = latestShot.current.pose;
+    // The opening move, unless the system asks for reduced motion (then the scene opens on the establishing shot) or a browser test
+    // turned it off (development builds only, `window.__repoInPeaceNoOpening`).
+    const turnedOff = import.meta.env.DEV && window.__repoInPeaceNoOpening === true;
+    const to = latestShot.current;
+    const from = openingShot(model.layout.bounds, camera.fov, aspect);
+    const plays = playsOpening(prefersReducedMotion(), turnedOff);
+    opening.current = plays ? { from, to, start: performance.now() } : null;
+    handover.current = null;
+    const first = plays ? from : to;
+    setShiftRef.current(first.viewShift);
+    const { position, target } = first.pose;
     camera.position.set(position.x, position.y, position.z);
     camera.lookAt(target.x, target.y, target.z);
     flight.current = IDLE;
     const orbit = controls.current;
     if (orbit) {
+      orbit.maxPolarAngle = plays ? OPENING_MAX_POLAR : MAX_POLAR;
       orbit.target.set(target.x, target.y, target.z);
       orbit.update();
     }
@@ -102,11 +156,14 @@ export function CameraRig({ model }: { model: SceneModel }) {
           return box ? { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 } : null;
         },
         () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0 }),
-        () => latestShot.current.viewShift,
+        () => lensShift.current,
         (to) => {
           const orbit = controls.current;
           if (!orbit) return;
           flight.current = cancelFlight();
+          opening.current = null;
+          handover.current = null;
+          setShiftRef.current(latestShot.current.viewShift);
           camera.position.set(to.position.x, to.position.y, to.position.z);
           orbit.target.set(to.target.x, to.target.y, to.target.z);
           orbit.update();
@@ -132,6 +189,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
             position: vec3(camera.position.x, camera.position.y, camera.position.z),
             target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
           };
+          endOpening.current(); // a flight (flyTo, Reset view, a double-click) ends the opening move and goes straight where it was asked
           flight.current = startFlight(from, clampPose(to, limits), performance.now());
         },
       }),
@@ -141,6 +199,23 @@ export function CameraRig({ model }: { model: SceneModel }) {
   useFrame((_state, delta) => {
     const orbit = controls.current;
     if (!orbit) return;
+
+    // OrbitControls keeps its own tilt limit; during the opening move and the hand-over it is relaxed, and clampPose eases the camera in.
+    orbit.maxPolarAngle = opening.current || handover.current ? OPENING_MAX_POLAR : MAX_POLAR;
+
+    // The opening move: nothing else moves the camera, and the limits do not apply to it (its low start is below the tilt limit).
+    const move = opening.current;
+    if (move) {
+      const at = openingAt(move.from, move.to, performance.now() - move.start);
+      const { position, target } = at.shot.pose;
+      camera.position.set(position.x, position.y, position.z);
+      orbit.target.set(target.x, target.y, target.z);
+      orbit.update();
+      setShiftRef.current(at.shot.viewShift);
+      if (at.done) opening.current = null;
+      lastTarget.current = { x: target.x, z: target.z };
+      return;
+    }
 
     if (flight.current.phase === 'flying') {
       const step = stepFlight(flight.current, performance.now());
@@ -177,7 +252,15 @@ export function CameraRig({ model }: { model: SceneModel }) {
     // A pan or a flight moves the look-at point; a zoom or an orbit does not. The first slides to a stop at the limits, the
     // second brings the camera in.
     const moved = lastTarget.current !== null && (lastTarget.current.x !== now.target.x || lastTarget.current.z !== now.target.z);
-    const clamped = clampPose(now, limits, moved ? 'slide' : 'pull');
+    let clamped = clampPose(now, limits, moved ? 'slide' : 'pull');
+    // After an interrupted opening move: ease into the limits and into the establishing shot's lens shift instead of jumping.
+    const easing = handover.current;
+    if (easing) {
+      const k = handoverShare(performance.now() - easing.start);
+      setShiftRef.current(easing.fromShift + (latestShot.current.viewShift - easing.fromShift) * k);
+      if (k < 1) clamped = { position: lerp(now.position, clamped.position, Math.max(k, 0.15)), target: lerp(now.target, clamped.target, Math.max(k, 0.15)) };
+      else handover.current = null;
+    }
     lastTarget.current = clamped.target;
     if (clamped !== now) {
       camera.position.set(clamped.position.x, clamped.position.y, clamped.position.z);
@@ -195,7 +278,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
       // Right-drag pans along the ground, so the point the camera looks at cannot be dragged underground.
       screenSpacePanning={false}
       // The camera stays at least MIN_TILT_DEG above the horizontal, seen from the point it looks at (clampPose says the same).
-      maxPolarAngle={Math.PI / 2 - (MIN_TILT_DEG * Math.PI) / 180}
+      maxPolarAngle={MAX_POLAR}
       // The wheel zooms toward the point under the pointer, so the front rows can be reached; `clampPose` still keeps the result
       // inside every limit (floor, tilt, sideways bounds, zoom range). The look-at point moves with it, which is why a zoom
       // is clamped like a pan ('slide').
@@ -204,6 +287,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
       maxDistance={limits.maxDistance}
       onStart={() => {
         flight.current = cancelFlight();
+        endOpening.current();
       }}
     />
   );

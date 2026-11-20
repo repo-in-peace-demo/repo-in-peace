@@ -47,6 +47,8 @@ export interface RepoInPeaceDevApi {
 declare global {
   interface Window {
     repoInPeace?: RepoInPeaceDevApi;
+    /** Set by the browser tests (`e2e/fixtures.ts`) before the page loads: the scene opens on the establishing shot, without the opening move. Read in development builds only. */
+    __repoInPeaceNoOpening?: boolean;
   }
 }
 
