@@ -2,7 +2,9 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
+import { engravingCells, engravingFor } from '../model/engraving';
 import { leanQuaternion, stoneAttributes } from '../model/stone-attributes';
+import { ENGRAVE_CAPACITY, makeEngravingAtlas } from './engraving-atlas';
 import { useRimHighlight } from './highlight';
 import { animationTime } from './animation-clock';
 import { makeStoneMaterial } from './stone-material';
@@ -30,13 +32,18 @@ export function Stones({ model }: { model: SceneModel }) {
     const highlight = attribute(new Float32Array(stones.length));
     highlight.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('aHighlight', highlight);
-    const { material, uniforms } = makeStoneMaterial();
-    return { geometry, material, uniforms, highlight };
+    // The engraving: RIP and the names in one atlas, and each stone's name cell.
+    const { texts, nameCell } = engravingCells(stones.map((s) => engravingFor(s.file.path, s.file.unused)), ENGRAVE_CAPACITY);
+    geometry.setAttribute('aNameCell', attribute(Float32Array.from(nameCell)));
+    const atlas = makeEngravingAtlas(texts);
+    const { material, uniforms } = makeStoneMaterial({ atlas: atlas.texture, rows: atlas.rows });
+    return { geometry, material, uniforms, highlight, atlas: atlas.texture };
   }, [stones]);
   useEffect(
     () => () => {
       assets.geometry.dispose();
       assets.material.dispose();
+      assets.atlas.dispose();
     },
     [assets],
   );

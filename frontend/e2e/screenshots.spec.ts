@@ -112,4 +112,27 @@ test.describe('screenshots to judge by eye', () => {
     }
     console.log(`stone ${front.file.path}: ${OUT}stone-selected-flyto.png, foot at ${JSON.stringify(foot)}`);
   });
+
+  test('engraving close up: an unused stone (RIP and its name) and a used one (its name only)', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+      const g = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL(`../public/graveyards/${name}.graveyard.json`, import.meta.url)), 'utf8')) as Graveyard);
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      const unused = g.stones.find((s) => s.file.unused)!;
+      const used = g.stones.find((s) => !s.file.unused && s.layout.height > 1.5) ?? g.stones.find((s) => !s.file.unused)!;
+      for (const [label, stone] of [['unused', unused], ['used', used]] as const) {
+        // Straight in front of the stone, a little above its top, close: nothing in the way.
+        const { x, z, height } = stone.layout;
+        await page.evaluate((p) => window.repoInPeace!.setPose(p), { position: { x, y: height * 0.75 + 0.6, z: z + 2.1 }, target: { x, y: height * 0.7, z } });
+        await page.waitForTimeout(600);
+        await page.mouse.move(640, 10);
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: `${OUT}engrave-${name}-${label}.png` });
+      }
+      console.log(name, JSON.stringify(await page.evaluate(() => window.repoInPeace!.getEngravingAtlas())).slice(0, 200));
+    }
+  });
 });

@@ -103,6 +103,14 @@ export function CameraRig({ model }: { model: SceneModel }) {
         },
         () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0 }),
         () => latestShot.current.viewShift,
+        (to) => {
+          const orbit = controls.current;
+          if (!orbit) return;
+          flight.current = cancelFlight();
+          camera.position.set(to.position.x, to.position.y, to.position.z);
+          orbit.target.set(to.target.x, to.target.y, to.target.z);
+          orbit.update();
+        },
       );
     });
     return () => {

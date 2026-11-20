@@ -1,6 +1,7 @@
 import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
 import { freezeAnimation, freezeAnimationAt, isReducedMotion, resumeAnimation } from './animation-clock';
+import { engravingDebug } from './engraving-atlas';
 import { atlasDebug } from './ghost-tag-atlas';
 import { horizonDebug } from './Horizon';
 import { flyTo, resetView } from './api';
@@ -33,6 +34,10 @@ export interface RepoInPeaceDevApi {
   getScreenPoint: (path: string) => { x: number; y: number } | null;
   /** The page position (in pixels) of a point of the scene, or `null` when it is behind the camera. */
   projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null;
+  /** For each engraved text ("RIP" and each name), how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
+  getEngravingAtlas: () => Record<string, number>;
+  /** Puts the camera at this pose at once (inside the camera limits, which still apply): for pictures from a chosen place. */
+  setPose: (pose: CameraPose) => void;
   /** The camera's lens shift now: the share of the frame's height the picture is moved down by (`model/framing.ts`). */
   getViewShift: () => number;
   /** Shows or hides the trees, the haze and the low mist around the graveyard (scene/Horizon.tsx, the back mist in scene/Mist.tsx), to look at the sky alone, which is the same for every graveyard. */
@@ -52,6 +57,7 @@ export function installDevApi(
   centreOf: (path: string) => { x: number; y: number; z: number } | null,
   getRenderInfo: () => { calls: number; triangles: number; fogDensity: number },
   getViewShift: () => number,
+  setPose: (pose: CameraPose) => void,
 ): () => void {
   const getScreenPoint = (path: string): { x: number; y: number } | null => {
     const centre = centreOf(path);
@@ -59,6 +65,8 @@ export function installDevApi(
   };
   const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getRenderInfo, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }),
     getViewShift,
+    setPose,
+    getEngravingAtlas: () => ({ ...engravingDebug.litPixels }),
     setHorizonVisible: (visible) => {
       horizonDebug.visible = visible;
       if (horizonDebug.group) horizonDebug.group.visible = visible;

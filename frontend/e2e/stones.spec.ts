@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { candleSpots } from '../src/model/candle-placement';
+import { RIP_TEXT, engravingFor } from '../src/model/engraving';
 import { buildSceneModel } from '../src/model/scene-model';
 import { CANDLE_HEIGHT } from '../src/model/visual-constants';
 
@@ -82,6 +83,16 @@ test.describe('stone material, in the real app', () => {
   test('the shaders compile and draw without errors', async ({ page }) => {
     await flyTo(page, mossy.file.path);
     await flyTo(page, freshUnused.file.path);
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+
+  test('the engraving atlas has RIP and every stone\'s name drawn in it', async ({ page }) => {
+    const lit = await page.evaluate(() => window.repoInPeace!.getEngravingAtlas());
+    expect(lit[RIP_TEXT], 'pixels of RIP in its cell').toBeGreaterThan(500);
+    for (const s of model.stones) {
+      const name = engravingFor(s.file.path, s.file.unused).name!;
+      expect(lit[name] ?? 0, `pixels of ${name} in its cell`).toBeGreaterThan(150);
+    }
     expect(problems, problems.join('\n')).toEqual([]);
   });
 

@@ -1,5 +1,8 @@
 import * as THREE from 'three';
+import { NAME_BELOW_SEAM, NAME_BOX, NAME_FAR, NAME_MIN_BOTTOM, NAME_NEAR, RIP_ABOVE_SEAM, RIP_BOX } from '../model/engraving';
+import { STONE_D, STONE_W } from '../model/layout-constants';
 import { GLOW } from '../model/visual-constants';
+import { ENGRAVE_COLUMNS } from './engraving-atlas';
 import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
 
 /**
@@ -10,6 +13,9 @@ import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
  *   aCrack      1 for an unused stone: dark thin cracks, and a faint red glow inside them
  *   aHighlight  0 nothing, 0.5 hover (a pale rim), 1 selected (a rim in the selection ring's colour, slowly pulsing)
  *   aSeed       0 to 1; varies the noise from stone to stone
+ *   aNameCell   the atlas cell of the file's name, or -1 (`model/engraving.ts`)
+ * On the front face it carves "RIP" into the arch of an unused stone (aCrack), and the file's name below it, which fades in as
+ * the camera comes near (NAME_FAR to NAME_NEAR): darker grooves with a lit lower lip, read from the engraving atlas.
  * The rim is an edge glow only: the surface of a hovered or selected stone is not tinted.
  */
 
@@ -24,7 +30,13 @@ attribute float aMoss;
 attribute float aCrack;
 attribute float aHighlight;
 attribute float aSeed;
+attribute float aNameCell;
 varying vec3 vLocalPos;
+varying float vStoneHeight;
+varying float vFront;
+varying float vNameCell;
+varying float vNameFade;
+uniform vec2 uNameFade;
 varying float vHeightFrac;
 varying float vMoss;
 varying float vCrack;
@@ -43,6 +55,15 @@ vMoss = aMoss;
 vCrack = aCrack;
 vHighlight = aHighlight;
 vSeed = aSeed;
+vStoneHeight = aHeight;
+vFront = objectNormal.z;
+vNameCell = aNameCell;
+#ifdef USE_INSTANCING
+  vec4 stoneMiddle = modelMatrix * instanceMatrix * vec4(0.0, aHeight * 0.5, 0.0, 1.0);
+#else
+  vec4 stoneMiddle = modelMatrix * vec4(0.0, aHeight * 0.5, 0.0, 1.0);
+#endif
+vNameFade = aNameCell < 0.0 ? 0.0 : 1.0 - smoothstep(uNameFade.x, uNameFade.y, distance(cameraPosition, stoneMiddle.xyz));
 `;
 
 const FRAGMENT_DECLARATIONS = /* glsl */ `
@@ -52,6 +73,15 @@ varying float vMoss;
 varying float vCrack;
 varying float vHighlight;
 varying float vSeed;
+varying float vStoneHeight;
+varying float vFront;
+varying float vNameCell;
+varying float vNameFade;
+uniform sampler2D uEngrave;
+uniform vec2 uEngraveGrid; // columns, rows
+uniform vec4 uRipBox;      // above the seam, width, height, unused
+uniform vec4 uNameBox;     // below the seam, width, height, lowest bottom
+uniform vec2 uStoneSize;   // width, depth
 uniform float uTime;
 uniform float uGlow;
 uniform vec3 uMossColor;
@@ -74,6 +104,19 @@ float vnoise(vec2 p) {
   float c = hash21(i + vec2(0.0, 1.0));
   float d = hash21(i + vec2(1.0, 1.0));
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+// How much of a carved text covers this point of the face (0 to 1), and its lit lower lip: the cell's mask at the point, and a
+// little below it. The box is its centre up from the foot and its size; x is measured from the middle of the face.
+vec2 carved(float cell, float boxY, float boxW, float boxH) {
+  float bu = (vLocalPos.x / boxW) + 0.5;
+  float bv = (vLocalPos.y - boxY) / boxH + 0.5;
+  if (bu < 0.0 || bu > 1.0 || bv < 0.0 || bv > 1.0 || cell < 0.0) return vec2(0.0);
+  float col = mod(cell, uEngraveGrid.x);
+  float row = floor(cell / uEngraveGrid.x);
+  vec2 at = vec2((col + bu) / uEngraveGrid.x, 1.0 - (row + 1.0 - bv) / uEngraveGrid.y);
+  float ink = texture2D(uEngrave, at).a;
+  float below = texture2D(uEngrave, at + vec2(0.0, 0.12 / uEngraveGrid.y)).a;
+  return vec2(ink, clamp(below - ink, 0.0, 1.0));
 }
 float fbm(vec2 p) {
   float v = 0.0;
@@ -113,6 +156,19 @@ const FRAGMENT_COLOR = /* glsl */ `
     gCrack = line * (1.0 - 0.6 * moss);
     diffuseColor.rgb *= 1.0 - 0.85 * gCrack;
   }
+
+  // The engraving, on the front face only: "RIP" in the arch of an unused stone, the name below it up close.
+  if (vFront > 0.7) {
+    float seam = max(vStoneHeight - uStoneSize.x * 0.5, 0.01);
+    vec2 cut = vec2(0.0);
+    if (vCrack > 0.5) cut += carved(0.0, seam + uRipBox.x, uRipBox.y, uRipBox.z);
+    if (vNameFade > 0.01) {
+      float nameY = max(seam - uNameBox.x - uNameBox.z * 0.5, uNameBox.w) + uNameBox.z * 0.5;
+      cut += carved(vNameCell, nameY, uNameBox.y, uNameBox.z) * vNameFade;
+    }
+    diffuseColor.rgb *= 1.0 - 0.7 * clamp(cut.x, 0.0, 1.0);
+    diffuseColor.rgb += vec3(0.08) * clamp(cut.y, 0.0, 1.0);
+  }
 }
 `;
 
@@ -132,7 +188,7 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 `;
 
 /** One material for every stone, and the uniform the scene advances each frame. */
-export function makeStoneMaterial(): { material: THREE.MeshStandardMaterial; uniforms: StoneUniforms } {
+export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: number }): { material: THREE.MeshStandardMaterial; uniforms: StoneUniforms } {
   const uniforms: StoneUniforms = { uTime: { value: 0 } };
   const material = new THREE.MeshStandardMaterial({ color: EFFECT_COLORS.stone, roughness: 0.92, metalness: 0 });
 
@@ -143,6 +199,12 @@ export function makeStoneMaterial(): { material: THREE.MeshStandardMaterial; uni
     shader.uniforms.uCrackGlowColor = { value: new THREE.Color(EFFECT_COLORS.unused) };
     shader.uniforms.uHoverColor = { value: new THREE.Color(HOVER_COLOR) };
     shader.uniforms.uSelectedColor = { value: new THREE.Color(SELECTION_RING_COLOR) };
+    shader.uniforms.uEngrave = { value: engraving.atlas };
+    shader.uniforms.uEngraveGrid = { value: new THREE.Vector2(ENGRAVE_COLUMNS, engraving.rows) };
+    shader.uniforms.uRipBox = { value: new THREE.Vector4(RIP_ABOVE_SEAM, RIP_BOX.w * STONE_W, RIP_BOX.h, 0) };
+    shader.uniforms.uNameBox = { value: new THREE.Vector4(NAME_BELOW_SEAM, NAME_BOX.w * STONE_W, NAME_BOX.h, NAME_MIN_BOTTOM) };
+    shader.uniforms.uStoneSize = { value: new THREE.Vector2(STONE_W, STONE_D) };
+    shader.uniforms.uNameFade = { value: new THREE.Vector2(NAME_NEAR, NAME_FAR) };
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${VERTEX_DECLARATIONS}`)
@@ -152,6 +214,6 @@ export function makeStoneMaterial(): { material: THREE.MeshStandardMaterial; uni
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v1';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v2';
   return { material, uniforms };
 }
