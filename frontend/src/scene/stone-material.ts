@@ -149,16 +149,19 @@ vec2 carved(float cell, float boxY, float boxW, float boxH) {
   float legible = 1.0 - smoothstep(3.0, 6.0, e.texels);
   return vec2(ink, clamp(lower - ink, 0.0, 1.0)) * legible;
 }
-// 1 on a text's letters and within about reach (scene units) of them: eight taps round the point. Only ever this close to the letters.
+// 1 on a text's letters and within about reach (scene units) of them: eight taps round the point. Only ever this close to the letters,
+// and only while the letters can be seen: it fades out with them (as in carved), so a distant unused stone keeps its whole glow.
 float nearInk(float cell, float boxY, float boxW, float boxH, float reach) {
   float m = 0.0;
+  float texels = 0.0;
   for (int i = 0; i < 9; i++) {
     float a = float(i) * 0.7853982;
     vec2 shift = i == 8 ? vec2(0.0) : reach * vec2(cos(a), sin(a));
     Engrave e = engraveAt(cell, boxY, boxW, boxH, shift);
     m = max(m, textureGrad(uEngrave, e.at, e.dx, e.dy).a * e.inside);
+    texels = e.texels;
   }
-  return smoothstep(0.0, 0.6, m);
+  return smoothstep(0.0, 0.6, m) * (1.0 - smoothstep(3.0, 6.0, texels));
 }
 // Cracks: the borders of a jittered cell pattern, a few of them kept, so they run as long thin lines that branch, not as
 // contours of noise (which closed into specks all over the stone). The distance to the nearest kept border, in the pattern's units.
