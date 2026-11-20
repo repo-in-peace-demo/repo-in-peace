@@ -30,16 +30,16 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 1.3 **Nothing to change:** no test opens the bare address (`dev.spec.ts` opens `/?synthetic=2000`, which still routes to the made-up graveyard). The task was: change every Playwright test that opens the bare address to open `?graveyard=demo.spatialql`. Find them with `grep -n "goto('/')\|goto(\`/\`)" e2e`.
   - _Requirements: 1.1, 1.10, 2.1, 3.4_
 
-- [ ] 2. Manifest, boot script and digging timing (`model/manifest.ts`, `boot-script.ts`, `digging-timing.ts`)
-  - [ ] 2.1 `buildManifest`, `checkManifest`.
+- [x] 2. Manifest, boot script and digging timing (`model/manifest.ts`, `boot-script.ts`, `digging-timing.ts`)
+  - [x] 2.1 `buildManifest`, `checkManifest`.
     - **P6:** for any mix of valid version-2 files, invalid files, other versions and non-graveyard names, the manifest lists exactly the valid `*.graveyard.json` files. Each entry has the name from the file name, the repo from `meta.name`, and the array lengths as counts, sorted by name. Every other file is in `skipped`, except names that aren't `*.graveyard.json` and `index.json`, which are ignored.
     - **Test:** the two real files give `spatialql 120/2` and `oikos_ledger 129/0`.
-  - [ ] 2.2 `bootLines`, `typedText`, `diggingLines`.
+  - [x] 2.2 `bootLines`, `typedText`, `diggingLines`.
     - **Properties:** the visible text is a prefix of the whole text; it never shrinks as time goes on; it is complete at infinity; and the whole script types in under 2 s at the defaults.
     - **Examples:** no SGI, IRIX or FSN in any line; there is no ghost line when there are no ghosts; the real counts appear in the lines.
-  - [ ] 2.3 `digHoldMs`.
+  - [x] 2.3 `digHoldMs`.
     - **P8:** for any work time, the added delay is between 0 and `DIG_MAX_ADDED_MS`, and the total is at least `DIG_MIN_MS`.
-  - [ ] 2.4 **P7:** extend the `graveyard-load` tests so that every `schemaVersion` other than 2 gives the version message, and a valid version-2 file always loads. This is the path a local file takes.
+  - [x] 2.4 **P7:** extend the `graveyard-load` tests so that every `schemaVersion` other than 2 gives the version message, and a valid version-2 file always loads. This is the path a local file takes.
   - _Requirements: 1.2, 1.3, 1.8, 3.1, 3.2_
 
 - [ ] 3. Shared wording and panel placement (`model/grave-facts.ts`, `model/panel-placement.ts`)

@@ -226,6 +226,17 @@ describe('checkGraveyardData', () => {
       expect(!result.ok && result.kind === 'wrong-version' && result.message.includes('schema version 3')).toBe(true);
     });
 
+    it('P7 (interface spec): any version other than 2 always gives the version message, and a valid version 2 file always loads; a file picked from disk takes this check too', () => {
+      fc.assert(
+        fc.property(fc.oneof(fc.integer(), fc.double(), fc.string(), fc.constant(null), fc.boolean()), (version) => {
+          const result = checkGraveyardData({ ...validGraveyard(), meta: { ...validGraveyard().meta, schemaVersion: version } });
+          if (version === SCHEMA_VERSION) return result.ok;
+          return !result.ok && result.kind === 'wrong-version' && result.message.includes(`reads version ${SCHEMA_VERSION}`);
+        }),
+      );
+      expect(checkGraveyardData(validGraveyard()).ok).toBe(true);
+    });
+
     it.each([
       ['missing', undefined, 'missing, or not a number'],
       ['a string', '2', '"2"'],

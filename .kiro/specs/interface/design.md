@@ -69,7 +69,7 @@ function flow(state: FlowState, event: FlowEvent): FlowState;
     probing graveyards .......... 2 found
     mounting /graveyards ........ ok
     ```
-  - `typedText(lines, elapsedMs, msPerChar = 12, msPerLine = 120)` gives what is visible after `elapsedMs`. It is pure, so the typing is testable.
+  - `typedText(lines, elapsedMs, msPerChar = 6, msPerLine = 80)` gives what is visible after `elapsedMs`. It is pure, so the typing is testable.
   - The whole script types in under 2 s.
 - **Skipping:** any key or pointer press while typing jumps to the end. That handler takes the event, so it does not also choose a graveyard. Under reduced motion `elapsedMs` starts at infinity and the cursor does not blink.
 - **Choices:** a list of buttons, one per manifest entry, reading `spatialql — 120 files, 2 ghosts` and `oikos_ledger — 129 files`. Then **Open a graveyard file…**.
