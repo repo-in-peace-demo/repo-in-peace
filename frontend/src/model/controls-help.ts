@@ -37,10 +37,12 @@ export const CONTROL_GROUPS: readonly ControlGroup[] = [
     entries: [
       { keys: 'Drag', action: 'Orbit around the point you are looking at' },
       { keys: 'Right-drag', action: 'Pan along the ground' },
-      { keys: 'Scroll', action: 'Zoom in and out' },
+      { keys: 'Scroll', action: 'Zoom toward the pointer, and out' },
       { keys: 'Hover', action: 'Show the path of a stone or ghost' },
       { keys: 'Click a stone or ghost', action: 'Select it' },
       { keys: 'Click empty ground', action: 'Clear the selection' },
+      { keys: 'Double-click a stone or ghost', action: 'Fly to it' },
+      { keys: 'Double-click empty space', action: 'Back to overview' },
     ],
   },
   {

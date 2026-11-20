@@ -26,7 +26,7 @@ describe('controls help', () => {
   });
 
   it('lists the mouse actions: drag, right-drag, scroll, hover and click, and the ? key', () => {
-    for (const keys of ['Drag', 'Right-drag', 'Scroll', 'Hover', 'Click a stone or ghost', 'Click empty ground', '?', 'Shift']) {
+    for (const keys of ['Drag', 'Right-drag', 'Scroll', 'Hover', 'Click a stone or ghost', 'Click empty ground', 'Double-click a stone or ghost', 'Double-click empty space', '?', 'Shift']) {
       expect(entryFor(keys), keys).toBeDefined();
     }
     expect(entryFor('Shift')!.action).toContain(String(FLY_FAST_FACTOR));

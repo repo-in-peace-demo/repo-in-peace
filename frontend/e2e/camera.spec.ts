@@ -234,13 +234,22 @@ test.describe('camera limits, in the real app', () => {
     expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toMatchObject({ path: stone.path });
   });
 
-  test('10. a double-click on empty ground does not move the camera', async ({ page }) => {
+  test('10. a double-click on a stone, then on the sky: back to the default pose, as Reset view, with the selection cleared', async ({ page }) => {
     await openApp(page);
-    const first = await pose(page);
+    const stone = await frontStoneOnScreen(page);
+    await page.mouse.dblclick(stone.at.x, stone.at.y);
+    await page.waitForTimeout(1800);
+    const there = await pose(page);
+    expect(distance(there.position, start.position), 'the first double-click should have flown to the stone').toBeGreaterThan(5);
+    expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toMatchObject({ path: stone.path });
+
     await page.mouse.dblclick(640, 8); // the sky
-    await page.waitForTimeout(800);
-    const now = await pose(page);
-    expect(distance(now.position, first.position)).toBeLessThan(0.5);
-    expect(distance(now.target, first.target)).toBeLessThan(0.5);
+    await expect
+      .poll(async () => {
+        const p = await pose(page);
+        return Math.max(distance(p.position, start.position), distance(p.target, start.target));
+      }, { timeout: 3000 })
+      .toBeLessThan(0.5);
+    expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toBeNull();
   });
 });

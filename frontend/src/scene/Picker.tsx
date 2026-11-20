@@ -17,7 +17,7 @@ import type { SceneModel } from '../model/scene-model';
 import { vec3 } from '../model/vec3';
 import { clearHover, setHover, setPointer } from '../store/hover-store';
 import { clearSelection, select } from '../store/selection-store';
-import { flyTo } from './api';
+import { flyTo, resetView } from './api';
 
 const apply = (action: SelectionAction): void => {
   if (action.type === 'select') select({ kind: action.kind, path: action.path });
@@ -39,7 +39,7 @@ const sampleOf = (event: PointerEvent): PointerSample => ({
  * - The pointer position is stored on every move, but the pick runs at most once a frame, and only if the pointer
  *   moved since the last one, so an idle pointer costs nothing.
  * - The hover label is hidden while a drag (orbit or pan) is going on, and comes back with the next move.
- * - A double-click on a stone or ghost selects it and flies the camera to it. A double-click on empty ground does nothing.
+ * - A double-click on a stone or ghost selects it and flies the camera to it. A double-click anywhere else is Reset view.
  * - A click (see `pointer-gesture.ts`) on a stone or ghost selects it; a click on empty ground clears the selection.
  *   Escape does the same as an empty-ground click. None of them moves the camera. A drag never changes the selection.
  */
@@ -90,11 +90,16 @@ export function Picker({ model }: { model: SceneModel }) {
       setHover(hit ? { kind: hit.kind, path: hit.path } : null);
     };
 
-    // A double-click on a stone or ghost flies to it (the same flight as `flyTo`), framed so its engraving or tag can be read.
+    // A double-click (or double-tap) on a stone or ghost flies to it (the same flight as `flyTo`), framed so its engraving or tag
+    // can be read. Anywhere else (ground, sky, trees) it does exactly what Reset view does: flies back to the establishing shot and
+    // clears the selection.
     const onDoubleClick = (event: MouseEvent): void => {
       if (event.button !== 0) return;
       const hit = pickAt.current(event.clientX, event.clientY);
-      if (hit === undefined) return;
+      if (hit === undefined) {
+        resetView();
+        return;
+      }
       apply(clickAction(hit));
       flyTo(hit.path);
     };
