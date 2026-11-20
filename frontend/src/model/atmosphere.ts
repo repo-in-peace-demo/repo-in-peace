@@ -26,7 +26,7 @@ export const FOREST_COLOR = '#03050a';
 export const FOREST_EDGE_COLOR = '#3a4660';
 
 /** The hills: lighter than the graveyard's ground, so the moonlight shows on the slopes that face it. */
-export const HILL_COLOR = '#2b3547';
+export const HILL_COLOR = '#3a4862';
 
 /** The pale haze where the hills meet the forest, and the most of it there is (at the foot of the trees). */
 export const HAZE_COLOR = '#8796b0';

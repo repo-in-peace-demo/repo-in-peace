@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { FOREST_COLOR, FOREST_EDGE_COLOR, HAZE_COLOR, HAZE_MAX_ALPHA, HILL_COLOR, HILL_HAZE } from '../model/atmosphere';
+import { FOREST_COLOR, FOREST_EDGE_COLOR, GROUND_BASE_COLOR, HAZE_COLOR, HAZE_MAX_ALPHA, HILL_COLOR, HILL_HAZE } from '../model/atmosphere';
 import { forestMesh, forestTrees, hazeRingMesh, horizonPlan, landMesh } from '../model/horizon';
 import type { SceneModel } from '../model/scene-model';
 import { noRaycast } from './instances';
@@ -34,11 +34,12 @@ export function Horizon({ model }: { model: SceneModel }) {
     const land = landMesh(plan);
     const landGeometry = new THREE.BufferGeometry();
     landGeometry.setAttribute('position', new THREE.BufferAttribute(land.positions, 3));
+    landGeometry.setAttribute('aRise', new THREE.BufferAttribute(land.rise, 1));
     landGeometry.setIndex(new THREE.BufferAttribute(land.indices, 1));
     landGeometry.computeVertexNormals();
     landGeometry.computeBoundingSphere();
     const landMaterial = new THREE.MeshStandardMaterial({
-      color: HILL_COLOR,
+      color: '#ffffff', // the colour is set in the shader, from the ground's at the foot to the hills' up the slope
       roughness: 1,
       // Where the hills start, just above the flat ground plane (at -0.02): win the depth test against it, without flicker.
       polygonOffset: true,
@@ -52,36 +53,48 @@ export function Horizon({ model }: { model: SceneModel }) {
     landMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uHaze = { value: hazeColour };
       shader.uniforms.uHazeAmount = { value: HILL_HAZE };
-      shader.uniforms.uRidge = { value: plan.ridgeHeight };
+      shader.uniforms.uGround = { value: new THREE.Color(GROUND_BASE_COLOR) };
+      shader.uniforms.uHill = { value: new THREE.Color(HILL_COLOR) };
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vLand;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvLand = (modelMatrix * vec4(position, 1.0)).xyz;');
+        .replace('#include <common>', '#include <common>\nattribute float aRise;\nvarying float vRise;\nvarying vec3 vLand;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRise = aRise;\nvLand = (modelMatrix * vec4(position, 1.0)).xyz;');
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
           `#include <common>
+varying float vRise;
 varying vec3 vLand;
 uniform vec3 uHaze;
 uniform float uHazeAmount;
-uniform float uRidge;
-float hHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float hNoise(vec2 p) {
+uniform vec3 uGround;
+uniform vec3 uHill;
+float gHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float gNoise(vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hHash(i), hHash(i + vec2(1.0, 0.0)), f.x), mix(hHash(i + vec2(0.0, 1.0)), hHash(i + vec2(1.0, 1.0)), f.x), f.y);
+  return mix(mix(gHash(i), gHash(i + vec2(1.0, 0.0)), f.x), mix(gHash(i + vec2(0.0, 1.0)), gHash(i + vec2(1.0, 1.0)), f.x), f.y);
 }`,
         )
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-diffuseColor.rgb *= 0.75 + 0.35 * hNoise(vLand.xz * 0.06) + 0.15 * hNoise(vLand.xz * 0.4);`,
+{
+  // At the foot: exactly the ground's colour and noise (scene/Ground.tsx), so there is no seam where the two meet. Up the slope:
+  // the lighter hill colour with a broader mottling.
+  float up = smoothstep(0.0, 0.35, vRise);
+  float patches = gNoise(vLand.xz * 0.18) * 0.6 + gNoise(vLand.xz * 0.7) * 0.4;
+  float grain = gNoise(vLand.xz * 6.0);
+  vec3 ground = uGround * (0.7 + 0.6 * patches + 0.12 * (grain - 0.5));
+  vec3 hill = uHill * (0.75 + 0.35 * gNoise(vLand.xz * 0.06) + 0.15 * gNoise(vLand.xz * 0.4));
+  diffuseColor.rgb = mix(ground, hill, up);
+}`,
         )
         .replace(
           '#include <opaque_fragment>',
           `#include <opaque_fragment>
-gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze * 0.45, uHazeAmount * smoothstep(uRidge * 0.45, uRidge * 1.02, vLand.y));`,
+gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze * 0.45, uHazeAmount * smoothstep(0.45, 1.02, vRise));`,
         );
     };
-    landMaterial.customProgramCacheKey = () => 'repo-in-peace-hills-v1';
+    landMaterial.customProgramCacheKey = () => 'repo-in-peace-hills-v2';
 
     // The haze in front of the forest's foot: a ring, densest at the foot of the trees, fading up and down.
     const ring = hazeRingMesh(plan);

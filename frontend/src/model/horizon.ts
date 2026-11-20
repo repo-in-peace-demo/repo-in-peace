@@ -87,12 +87,36 @@ export interface HorizonPlan {
   halfD: number;
   /** How far out the hills start rising, beyond the fence. */
   gap: number;
-  /** The ridge of the hills: its distance from the middle, and its height. */
+  /** The ridge of the hills: its distance from the middle, and its height straight behind the middle (its lowest). */
   ridgeRadius: number;
   ridgeHeight: number;
   /** The eye the land is composed for: the establishing shot's camera at the default window shape. */
   eye: Vec3;
+  /** The design eye's forward direction on the ground (length 1): toward the middle. */
+  ahead: { x: number; z: number };
+  /**
+   * The ridge is level on the screen: its height is `eye.y + depth × ridgeSlope`, where depth is how far a point is ahead of the
+   * eye along `ahead`. A plane through the eye that holds the screen's horizontal axis is exactly this, and it projects to a
+   * straight, level line. (Its height from the distance instead would be a circle around the eye, which dips at the sides: a bowl.)
+   */
+  ridgeSlope: number;
 }
+
+/** A height that is level on the screen of the design eye: `eye.y + depth × tan(angleDeg)` at this point of the ground. */
+export function levelHeightAt(plan: HorizonPlan, x: number, z: number, tanAngle: number): number {
+  const depth = (x - plan.eye.x) * plan.ahead.x + (z - plan.eye.z) * plan.ahead.z;
+  return plan.eye.y + depth * tanAngle;
+}
+
+/** The ridge's height along this direction from the middle: level on the screen, and kept under the eye beside and behind it. */
+export function ridgeHeightToward(plan: HorizonPlan, dx: number, dz: number): number {
+  const x = plan.centre.x + dx * plan.ridgeRadius;
+  const z = plan.centre.z + dz * plan.ridgeRadius;
+  return Math.min(plan.eye.y * RIDGE_CAP_SHARE, Math.max(plan.ridgeHeight, levelHeightAt(plan, x, z, plan.ridgeSlope)));
+}
+
+/** The ridge beside and behind the design eye, which the opening view does not see, is kept under this share of its height. */
+const RIDGE_CAP_SHARE = 0.85;
 
 /** The plan of the land for a graveyard with these bounds. */
 export function horizonPlan(bounds: Rect): HorizonPlan {
@@ -115,7 +139,9 @@ export function horizonPlan(bounds: Rect): HorizonPlan {
   const alpha = beta - ESTABLISHING_ELEVATION_DEG * RAD;
   const along = eyeAlong + ridgeRadius;
   const ridgeHeight = Math.max(0.5, eye.y + along * Math.tan(alpha));
-  return { centre, halfW, halfD, gap, ridgeRadius, ridgeHeight, eye };
+  const ahead = eyeAlong > 1e-9 ? { x: (centre.x - eye.x) / eyeAlong, z: (centre.z - eye.z) / eyeAlong } : { x: 0, z: -1 };
+  const ridgeSlope = (ridgeHeight - eye.y) / along;
+  return { centre, halfW, halfD, gap, ridgeRadius, ridgeHeight, eye, ahead, ridgeSlope };
 }
 
 /** How far the fence is from the middle along this direction on the ground (dx, dz of length 1). */
@@ -141,8 +167,8 @@ function swell(angle: number, salt: string): number {
 }
 
 /** The height of the far hills' tops along this direction: under the design eye, so they stay below the horizon. */
-function farTop(plan: HorizonPlan, angle: number): number {
-  const low = plan.ridgeHeight;
+function farTop(plan: HorizonPlan, angle: number, ridge: number): number {
+  const low = ridge;
   const high = plan.eye.y * 0.92;
   return low + Math.max(0, high - low) * (0.45 + 0.5 * swell(angle, 'far-hills'));
 }
@@ -158,34 +184,49 @@ export function landHeightAt(plan: HorizonPlan, x: number, z: number): number {
   const start = fenceAlong(plan, dx, dz) + plan.gap;
   const R = plan.ridgeRadius;
   if (r <= start) return 0;
-  const ridge = plan.ridgeHeight * smooth((r - start) / Math.max(1e-6, R - start));
+  const top = ridgeHeightToward(plan, dx, dz);
+  const ridge = top * smooth((r - start) / Math.max(1e-6, R - start));
   if (r <= FAR_START * R) return ridge;
   const angle = Math.atan2(oz, ox);
-  const far = farTop(plan, angle);
+  const far = farTop(plan, angle, top);
   return ridge + (far - ridge) * smooth((r - FAR_START * R) / ((FAR_PEAK - FAR_START) * R));
 }
 
 /**
- * The land as a mesh: a ring of the ground around the graveyard, from where the hills start to LAND_END times the ridge, with
- * positions (x, y, z) and triangles. Where the land is flat (inside, at the fence) it is left out, and the flat ground shows.
+ * The land as a mesh: a ring of the ground around the graveyard, from just inside where the hills start to LAND_END times the
+ * ridge, with positions (x, y, z), triangles, and for each point how far up to its ridge it is (`rise`, 0 to 1, for the shading).
+ * The rings follow the fence: along each direction from the middle the first two rings are on the flat ground just inside and at
+ * where the hills start, so the foot of the slope follows the fence's straight lines exactly. (A grid of circles would cut it
+ * into steps.) Every quad is kept; the flat part lies just above the ground plane, and is shaded like it.
  */
-export function landMesh(plan: HorizonPlan, segments = 256, rings = 72): { positions: Float32Array; indices: Uint32Array } {
+export function landMesh(plan: HorizonPlan, segments = 384, rings = 72): { positions: Float32Array; rise: Float32Array; indices: Uint32Array } {
   const R = plan.ridgeRadius;
-  const inner = Math.min(plan.halfW, plan.halfD) + plan.gap * 0.5;
   const outer = LAND_END * R;
   const positions = new Float32Array(segments * (rings + 1) * 3);
-  for (let j = 0; j <= rings; j++) {
-    // More rings near the ridge, where the land bends most.
-    const t = j / rings;
-    const r = inner + (outer - inner) * (t < 0.55 ? (t / 0.55) * ((R * 1.1 - inner) / (outer - inner)) : (R * 1.1 - inner) / (outer - inner) + ((t - 0.55) / 0.45) * (1 - (R * 1.1 - inner) / (outer - inner)));
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const x = plan.centre.x + Math.cos(angle) * r;
-      const z = plan.centre.z + Math.sin(angle) * r;
-      const k = (j * segments + i) * 3;
-      positions[k] = x;
-      positions[k + 1] = landHeightAt(plan, x, z);
-      positions[k + 2] = z;
+  const rise = new Float32Array(segments * (rings + 1));
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    const dx = Math.cos(angle);
+    const dz = Math.sin(angle);
+    const start = fenceAlong(plan, dx, dz) + plan.gap;
+    const ridgeAt = Math.max(start + 1, R);
+    const ridgeTop = ridgeHeightToward(plan, dx, dz);
+    for (let j = 0; j <= rings; j++) {
+      // Ring 0 just inside the start, ring 1 at it, then up to the ridge with more rings where it bends (55% of them), then out.
+      let r: number;
+      if (j === 0) r = start - plan.gap * 0.5;
+      else {
+        const t = (j - 1) / (rings - 1);
+        r = t < 0.55 ? start + (ridgeAt * 1.1 - start) * (t / 0.55) : ridgeAt * 1.1 + (outer - ridgeAt * 1.1) * ((t - 0.55) / 0.45);
+      }
+      const x = plan.centre.x + dx * r;
+      const z = plan.centre.z + dz * r;
+      const k = j * segments + i;
+      const y = landHeightAt(plan, x, z);
+      positions[k * 3] = x;
+      positions[k * 3 + 1] = y;
+      positions[k * 3 + 2] = z;
+      rise[k] = Math.min(1, Math.max(0, y / Math.max(1e-6, ridgeTop)));
     }
   }
   const indices: number[] = [];
@@ -193,13 +234,12 @@ export function landMesh(plan: HorizonPlan, segments = 256, rings = 72): { posit
   for (let j = 0; j < rings; j++) {
     for (let i = 0; i < segments; i++) {
       const quad = [at(i, j), at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)];
-      if (quad.every((q) => positions[q * 3 + 1]! < 0.02)) continue; // flat: the ground is there
       // Wound counter-clockwise seen from above, so the face, and the normal three.js works out from it, looks up. (The ring's
       // angle grows from +x toward +z, so i -> i + 1 then outward is counter-clockwise seen from +y.)
       indices.push(quad[0]!, quad[1]!, quad[2]!, quad[1]!, quad[3]!, quad[2]!);
     }
   }
-  return { positions, indices: Uint32Array.from(indices) };
+  return { positions, rise, indices: Uint32Array.from(indices) };
 }
 
 // ---- The forest ----
@@ -262,8 +302,7 @@ function framingTrees(plan: HorizonPlan, typical: number): Tree[] {
     const radius = plan.ridgeRadius * (1.0 + 0.01 * hash01(key, 'r')); // behind the haze ring, in front of the first row (1.02)
     const { x, z } = onRingAt(plan, radius, azimuth);
     const base = vec3(x, landHeightAt(plan, x, z) - typical * 0.05, z);
-    const along = Math.hypot(x - plan.eye.x, z - plan.eye.z);
-    const top = plan.eye.y + along * Math.tan((FRAMING_TREE_TOP_DEG - 0.8 * hash01(key, 'h')) * RAD);
+    const top = levelHeightAt(plan, x, z, Math.tan((FRAMING_TREE_TOP_DEG - 0.8 * hash01(key, 'h')) * RAD));
     const height = top - base.y;
     const angle = Math.atan2(z - plan.centre.z, x - plan.centre.x);
     return { base, height, width: height * 0.85, across: { x: -Math.sin(angle), z: Math.cos(angle) }, bare: true, row: 0, moonward: moonwardOf(azimuth), key };
@@ -286,13 +325,13 @@ export function forestTrees(plan: HorizonPlan): Tree[] {
       const z = plan.centre.z + Math.sin(angle) * radius;
       const ground = landHeightAt(plan, x, z);
       const base = vec3(x, ground - typical * 0.05, z); // a little into the ground, so no light shows under it
-      const along = Math.hypot(x - plan.eye.x, z - plan.eye.z);
       const azimuth = azimuthFromEye(plan, base);
       const bareSlot = rowIndex === 0 && i % BARE_TREE_EVERY === 7 && Math.abs(azimuth - MOON_AZIMUTH_DEG) > haloHalfWidthDeg() + BARE_TREE_CLEARANCE_DEG + CLEARING_SHOULDER_DEG;
       let topDeg = CANOPY_BASE_DEG + row.lift + CANOPY_SWELL_DEG * swell(angle, 'canopy') + TREE_JITTER_DEG * (hash01(key, 'height') * 2 - 1);
       if (hash01(key, 'spire') < SPIRE_SHARE) topDeg += SPIRE_DEG;
       topDeg = Math.min(topDeg, clearingCeilingDeg(azimuth));
-      let top = eyeLevel + along * Math.tan(topDeg * RAD);
+      // Level on the screen, like the ridge: the same angle gives the same height in the frame across the whole forest.
+      let top = levelHeightAt(plan, x, z, Math.tan(topDeg * RAD));
       if (bareSlot) top = base.y + (top - base.y) * BARE_TREE_HEIGHT;
       const height = top - base.y;
       if (height < typical * 0.25) continue; // the clearing: no tree, or only stumps, so leave it out
@@ -430,36 +469,37 @@ export function forestMesh(trees: readonly Tree[]): { positions: Float32Array; u
  */
 export interface HazeBand {
   radius: number;
-  bottom: number;
-  peak: number;
-  top: number;
+  /** Below, above and well above the ridge, along each direction: where the haze starts, is densest, and ends. */
+  below: number;
+  peakAbove: number;
+  topAbove: number;
+  /** The haze never reaches this high: under the design eye, so below the horizon and never in front of the moon. */
+  ceiling: number;
 }
 
 export function hazeBand(plan: HorizonPlan): HazeBand {
   const typical = Math.max(1, plan.eye.y - plan.ridgeHeight);
-  return {
-    radius: plan.ridgeRadius * 0.995,
-    // Starting at the ground, with no haze there, so the land does not cut it off in a hard line.
-    bottom: plan.ridgeHeight - typical * 0.02,
-    peak: plan.ridgeHeight + typical * 0.2,
-    top: Math.min(plan.ridgeHeight + typical * 0.7, plan.eye.y - typical * 0.05),
-  };
+  // Starting at the ground, with no haze there, so the land does not cut it off in a hard line.
+  return { radius: plan.ridgeRadius * 0.995, below: typical * 0.02, peakAbove: typical * 0.2, topAbove: typical * 0.7, ceiling: plan.eye.y - typical * 0.05 };
 }
 
-/** The haze band as a ring of three rows of points (bottom, peak, top), with how dense the haze is at each (0, 1, 0). */
+/** The haze band as a ring of three rows of points (bottom, peak, top), following the ridge, with how dense the haze is at each (0, 1, 0). */
 export function hazeRingMesh(plan: HorizonPlan, segments = 256): { positions: Float32Array; density: Float32Array; indices: Uint32Array } {
   const band = hazeBand(plan);
-  const heights = [band.bottom, band.peak, band.top];
   const densities = [0, 1, 0];
   const positions = new Float32Array(segments * 3 * 3);
   const density = new Float32Array(segments * 3);
-  for (let row = 0; row < 3; row++) {
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    const dx = Math.cos(angle);
+    const dz = Math.sin(angle);
+    const ridge = ridgeHeightToward(plan, dx, dz);
+    const heights = [ridge - band.below, Math.min(ridge + band.peakAbove, band.ceiling - 0.01), Math.min(ridge + band.topAbove, band.ceiling)];
+    for (let row = 0; row < 3; row++) {
       const k = row * segments + i;
-      positions[k * 3] = plan.centre.x + Math.cos(angle) * band.radius;
-      positions[k * 3 + 1] = heights[row]!;
-      positions[k * 3 + 2] = plan.centre.z + Math.sin(angle) * band.radius;
+      positions[k * 3] = plan.centre.x + dx * band.radius;
+      positions[k * 3 + 1] = Math.max(heights[row]!, row > 0 ? heights[row - 1]! + 0.01 : -Infinity);
+      positions[k * 3 + 2] = plan.centre.z + dz * band.radius;
       density[k] = densities[row]!;
     }
   }

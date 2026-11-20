@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { DEFAULT_FOV_Y } from './camera-pose';
 import { HORIZON_FROM_TOP, establishingShot, projectToFrame } from './framing';
-import { FOREST_ROW_HAZE, forestMesh, forestTrees, forestTriangles, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh } from './horizon';
+import { FOREST_ROW_HAZE, forestMesh, forestTrees, forestTriangles, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh, ridgeHeightToward } from './horizon';
 import { vec3 } from './vec3';
 import { layout } from './layout';
 
@@ -37,13 +37,63 @@ describe('the haze where the hills meet the forest', () => {
     const band = hazeBand(plan);
     const trees = forestTrees(plan);
     expect(band.radius).toBeLessThan(Math.min(...trees.map((t) => Math.hypot(t.base.x - plan.centre.x, t.base.z - plan.centre.z))));
-    expect(band.bottom).toBeLessThan(plan.ridgeHeight);
-    expect(band.peak).toBeGreaterThan(plan.ridgeHeight);
-    expect(band.top).toBeGreaterThan(band.peak);
-    expect(band.top).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon, never over the moon
+    expect(band.ceiling).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon, never over the moon
     const ring = hazeRingMesh(plan, 32);
     expect(Math.max(...ring.indices)).toBeLessThan(ring.density.length);
     expect(Math.max(...ring.density)).toBe(1);
+    for (let i = 0; i < 32; i++) {
+      const angle = (i / 32) * Math.PI * 2;
+      const ridge = ridgeHeightToward(plan, Math.cos(angle), Math.sin(angle));
+      const [bottom, peak, top] = [0, 1, 2].map((row) => ring.positions[(row * 32 + i) * 3 + 1]!);
+      expect(bottom).toBeLessThan(ridge); // it starts on the slope
+      expect(peak).toBeGreaterThan(bottom!);
+      expect(top).toBeGreaterThan(peak!);
+      expect(top).toBeLessThanOrEqual(band.ceiling + 1e-9);
+    }
+  });
+});
+
+describe('the ridge', () => {
+  it.each(REAL_GRAVEYARDS)('%s: reads as a level horizon in the opening view, not a bowl: the same height in the frame from side to side', (name) => {
+    const l = layout(loadRealGraveyard(name));
+    const plan = horizonPlan(l.bounds);
+    const shot = establishingShot(l.bounds, DEFAULT_FOV_Y, 1.6);
+    const ys: number[] = [];
+    for (let i = 0; i < 720; i++) {
+      const angle = (i / 720) * Math.PI * 2;
+      const dx = Math.cos(angle);
+      const dz = Math.sin(angle);
+      const p = vec3(plan.centre.x + dx * plan.ridgeRadius, ridgeHeightToward(plan, dx, dz), plan.centre.z + dz * plan.ridgeRadius);
+      const at = projectToFrame(shot.pose, DEFAULT_FOV_Y, 1.6, shot.viewShift, p);
+      if (at && at.x > 0 && at.x < 1) ys.push(at.y);
+    }
+    expect(ys.length).toBeGreaterThan(50);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.005);
+    expect(ys[0]!).toBeGreaterThan(HORIZON_FROM_TOP); // below the horizon
+  });
+
+  it('is never lower than straight behind, and stays under the eye', () => {
+    const plan = horizonPlan({ x: 0, z: 0, w: 100, d: 80 });
+    for (let i = 0; i < 360; i++) {
+      const a = (i * Math.PI) / 180;
+      const h = ridgeHeightToward(plan, Math.cos(a), Math.sin(a));
+      expect(h).toBeGreaterThanOrEqual(plan.ridgeHeight - 1e-9);
+      expect(h).toBeLessThan(plan.eye.y);
+    }
+  });
+});
+
+describe('landMesh, along the fence', () => {
+  it.each(REAL_GRAVEYARDS)('%s: the foot of the slope follows the fence lines: along each direction, the first rise starts where the hills start', (name) => {
+    const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
+    const segments = 96;
+    const { positions } = landMesh(plan, segments, 24);
+    for (let i = 0; i < segments; i++) {
+      // Rings 0 and 1 are flat (just inside, and at where the hills start); ring 2 has risen.
+      expect(positions[(0 * segments + i) * 3 + 1]!).toBe(0);
+      expect(positions[(1 * segments + i) * 3 + 1]!).toBeCloseTo(0, 6);
+      expect(positions[(2 * segments + i) * 3 + 1]!).toBeGreaterThan(1e-4);
+    }
   });
 });
 

@@ -9,9 +9,10 @@ import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from '
 import { noRaycast } from './instances';
 
 /**
- * Ground mist (`model/mist.ts`): thin sheets over the ground and the hills, one draw call. A slow two-scale noise rolls through
- * them across the rows, each sheet at its own speed, so the mist drifts and folds; it pools at the foot of the hills. Drawn after
- * the solid scene without writing depth, and faded by the fog like everything else. It stands still with the animation clock.
+ * Ground mist (`model/mist.ts`): thin, low sheets over the graveyard's ground, one draw call. A slow two-scale noise rolls through
+ * them along the rows, each sheet at its own speed, so the mist drifts and folds between the stones. Drawn after the solid scene
+ * without writing depth (so it never covers a stone, candle or ghost in front of it), and faded by the fog like everything else.
+ * It stands still with the animation clock.
  */
 
 const VERTEX = /* glsl */ `
@@ -50,9 +51,9 @@ void main() {
   if (vWeight <= 0.001) discard;
   // Each sheet rolls at its own speed along the rows (x), with a slow drift across them, so the sheets slide over each other.
   float speed = 0.35 + 0.18 * vLayer;
-  vec2 p = vGround * 0.09 + vec2(uTime * speed * 0.09, uTime * 0.012) + vLayer * 7.3;
+  vec2 p = vGround * vec2(0.16, 0.35) + vec2(uTime * speed * 0.12, uTime * 0.015) + vLayer * 7.3; // stretched along the rows (x)
   float n = mNoise(p) * 0.62 + mNoise(p * 2.7 + vec2(-uTime * 0.05, 3.1)) * 0.38;
-  float wisps = smoothstep(0.32, 0.78, n);
+  float wisps = smoothstep(0.25, 0.7, n);
   float a = uMaxAlpha * vWeight * wisps;
   gl_FragColor = vec4(uColor, a * fogVisibility());
   #include <colorspace_fragment>
