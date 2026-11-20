@@ -39,3 +39,13 @@ describe('the selection ring colour', () => {
     expect(hueAndSaturation(EFFECT_COLORS.stone).saturation).toBeLessThan(0.15);
   });
 });
+
+describe('the crack glow', () => {
+  it('is red-orange: at least 60 degrees of hue from the selection magenta and 20 from the candle yellow, so it reads as neither', () => {
+    const crack = hueAndSaturation(EFFECT_COLORS.unused);
+    expect(hueGap(crack.hue, hueAndSaturation(SELECTION_RING_COLOR).hue)).toBeGreaterThanOrEqual(60);
+    expect(hueGap(crack.hue, hueAndSaturation(EFFECT_COLORS.candle).hue)).toBeGreaterThanOrEqual(20);
+    expect(crack.hue).toBeLessThan(30); // on the red side of orange
+    expect(crack.saturation).toBeGreaterThan(0.6);
+  });
+});

@@ -25,7 +25,7 @@ export const SELECTION_RING_COLOR = '#ff4fd8'; // vivid magenta
 export const EFFECT_COLORS = {
   stone: STONE_COLOR,
   moss: '#5f8f4a',
-  unused: '#e05050',
+  unused: '#e8582a', // red-orange: a pure red (#e05050) added onto a blue-grey stone read as pink, next to the ring's magenta
   candle: '#f0c24b',
   ghost: GHOST_COLOR,
 } as const;

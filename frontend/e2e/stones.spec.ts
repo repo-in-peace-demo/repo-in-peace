@@ -35,7 +35,7 @@ const freshUsed = stoneWhere((s) => s.file.decayState === 'fresh' && !s.file.unu
 const mossy = [...model.stones].filter((s) => s.file.decayState === 'ancient' && !s.file.unused).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0]!;
 const ancientUnused = stoneWhere((s) => s.file.decayState === 'ancient' && s.file.unused);
 
-type Kind = 'green' | 'red' | 'magenta' | 'yellow';
+type Kind = 'green' | 'red' | 'magenta' | 'yellow' | 'pink';
 
 /** How many pixels of a kind are in the window of `half` pixels around (x, y) of the page. */
 async function countPixels(page: Page, kind: Kind, centre: { x: number; y: number }, half = 90): Promise<number> {
@@ -58,6 +58,7 @@ async function countPixels(page: Page, kind: Kind, centre: { x: number; y: numbe
         if (what === 'green' && g > r + 12 && g > b + 12 && g > 50) count++;
         if (what === 'red' && r > g + 45 && r > b + 45 && r > 90) count++;
         if (what === 'yellow' && r > 55 && g > 50 && r >= 1.7 * b && Math.abs(r - g) <= 15) count++; // the candle's yellow, lit: red and green about equal, blue far lower
+        if (what === 'pink' && r > 90 && r > g + 40 && b > g + 25) count++; // red with blue in it: pink to purple
         if (what === 'magenta' && r > 170 && b > 120 && g < r - 60 && g < b - 30) count++;
       }
       return count;
@@ -437,4 +438,20 @@ test('from the default view of oikos_ledger every one of the 7 candles shows as 
     expect.soft(lit, `yellow pixels round the candle of ${spot.path} from the default view`).toBeGreaterThanOrEqual(CANDLE_MIN_YELLOW);
   }
   if (process.env.SHOW_COUNTS) console.log(report.join('\n'));
+});
+
+test('the cracks of a fresh (blue-grey) unused stone glow red-orange, not pink', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(1200);
+  const fresh = model.stones.filter((s) => s.file.unused && s.file.decayState === 'fresh');
+  expect(fresh.map((s) => s.file.path).sort()).toEqual(['app/components/voice/index.ts', 'app/lib/voice/index.ts']);
+  for (const s of fresh) {
+    const at = await flyTo(page, s.file.path);
+    const red = await countPixels(page, 'red', at, 60);
+    const pink = await countPixels(page, 'pink', at, 60);
+    expect(red, `red-orange crack pixels on ${s.file.path}`).toBeGreaterThan(20);
+    expect(pink, `pink pixels on ${s.file.path} (red ${red})`).toBeLessThanOrEqual(Math.max(3, red * 0.1));
+  }
 });

@@ -258,7 +258,12 @@ const FRAGMENT_COLOR = /* glsl */ `
       gCrack *= 1.0 - frontness * keepOff;
       gFaint = 1.0 - frontness * keepOff;
     }
-    diffuseColor.rgb *= 1.0 - 0.85 * gCrack;
+    // The lines are nearly black, so the glow in them is its own red-orange whatever the stone's colour; and under the faint glow over
+    // the stone the blue of the stone is taken down toward a warm grey (not where moss is, which stays green), so red added onto a
+    // blue-grey stone does not come out pink. The same for every unused stone; it says "unused", as the glow does.
+    diffuseColor.rgb *= 1.0 - 0.95 * gCrack;
+    float grey = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    diffuseColor.rgb = mix(diffuseColor.rgb, grey * vec3(1.08, 0.94, 0.72), 0.55 * (1.0 - moss));
   }
 
   // The engraving, on the front face only: "RIP" in the arch of an unused stone, the name below it up close. The letters are
@@ -327,6 +332,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v6';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v7';
   return { material, uniforms };
 }
