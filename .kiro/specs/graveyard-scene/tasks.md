@@ -274,10 +274,10 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 4: Development extras, docs and the final checklist
 
-- [ ] 26. Development-only extras
+- [x] 26. Development-only extras
   - [x] 26.1 `ui/PerfStats.tsx` (frames per second, the 95th-percentile frame time over the last 300 frames, draw calls and triangles from `renderer.info`), `window.repoInPeace = { flyTo, getSelection, select, clearSelection }`, and `?synthetic=<n>` using `makeSyntheticGraveyard`. Each is behind `import.meta.env.DEV` so the production build drops it. **Done:** `ui/PerfStats.tsx` (shown with `?stats` or `?synthetic=<n>`), `scene/PerfProbe.tsx` and `dev/perf-store.ts`, `model/frame-stats.ts` (property-tested); `?synthetic=<n>` in `ui/useGraveyardLoad.ts` through `dev/synthetic-load.ts`; `window.repoInPeace` was already in `scene/dev-api.ts`. All are loaded lazily behind `import.meta.env.DEV`. Browser check: `e2e/dev.spec.ts`.
   - [x] 26.2 A test that the module which installs the development hooks does nothing when `DEV` is false. **Done:** `model/dev-features.test.ts`: with `isDev` false every extra is off for any page address. Every loader of a dev module is behind `import.meta.env.DEV`; that the build drops them is 26.3.
-  - [ ] 26.3 **Run** (checks that nothing ships):
+  - [x] 26.3 **Run** (checks that nothing ships): **Done:** both greps printed their "ok" line.
     ```
     cd frontend
     npm run build
