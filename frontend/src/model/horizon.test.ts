@@ -1,99 +1,104 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { DEFAULT_FOV_Y } from './camera-pose';
 import { HORIZON_FROM_TOP, establishingShot, projectToFrame } from './framing';
-import { FOREST_ROW_HAZE, forestMesh, forestTrees, forestTriangles, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh, ridgeHeightToward } from './horizon';
-import { vec3 } from './vec3';
+import {
+  FOREST_ROW_HAZE,
+  NEAR_HAZE_TO,
+  forestMesh,
+  forestTrees,
+  forestTriangles,
+  hazeBand,
+  hazeRingMesh,
+  horizonPlan,
+  landHeightAt,
+  nearBand,
+  nearTrees,
+} from './horizon';
 import { layout } from './layout';
+import { vec3 } from './vec3';
 
-describe('landMesh', () => {
-  it.each(REAL_GRAVEYARDS)('%s: every triangle faces up, so the moonlight lights the hills from above', (name) => {
-    const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
-    const { positions, indices } = landMesh(plan, 64, 24);
-    expect(indices.length).toBeGreaterThan(0);
-    const p = (i: number) => [positions[i * 3]!, positions[i * 3 + 1]!, positions[i * 3 + 2]!] as const;
-    for (let t = 0; t < indices.length; t += 3) {
-      const [a, b, c] = [p(indices[t]!), p(indices[t + 1]!), p(indices[t + 2]!)];
-      // (b - a) × (c - a): the normal three.js works out for a counter-clockwise face.
-      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-      const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-      const normalY = u[2]! * v[0]! - u[0]! * v[2]!;
-      expect(normalY).toBeGreaterThan(0);
-    }
+describe('the ground beyond the fence', () => {
+  it('is flat: no hills or terrain anywhere', () => {
+    fc.assert(
+      fc.property(fc.double({ min: -2000, max: 2000, noNaN: true }), fc.double({ min: -2000, max: 2000, noNaN: true }), (x, z) => landHeightAt(horizonPlan({ x: 0, z: 0, w: 120, d: 90 }), x, z) === 0),
+    );
   });
+});
 
-  it('puts every point on the land', () => {
-    const plan = horizonPlan({ x: 0, z: 0, w: 100, d: 80 });
-    const { positions } = landMesh(plan, 32, 12);
-    for (let i = 0; i < positions.length; i += 3) {
-      expect(positions[i + 1]!).toBeCloseTo(landHeightAt(plan, positions[i]!, positions[i + 2]!), 3);
+describe('the far forest', () => {
+  it.each(REAL_GRAVEYARDS)('%s: stands on the ground in a line whose foot is level across the opening view, not a bowl', (name) => {
+    const l = layout(loadRealGraveyard(name));
+    const plan = horizonPlan(l.bounds);
+    for (const aspect of [1.6, 16 / 9]) {
+      const shot = establishingShot(l.bounds, DEFAULT_FOV_Y, aspect);
+      const feet = forestTrees(plan)
+        .filter((t) => t.row === 0 && !t.key.startsWith('forest/framing'))
+        .map((t) => projectToFrame(shot.pose, DEFAULT_FOV_Y, aspect, shot.viewShift, vec3(t.base.x, 0, t.base.z)))
+        .filter((p): p is { x: number; y: number } => p !== null && p.x > 0 && p.x < 1);
+      expect(feet.length).toBeGreaterThan(30);
+      const ys = feet.map((p) => p.y);
+      expect(Math.max(...ys) - Math.min(...ys), 'the foot of the far forest across the frame').toBeLessThan(0.02);
     }
   });
 });
 
-describe('the haze where the hills meet the forest', () => {
-  it.each(REAL_GRAVEYARDS)('%s: stands in front of the forest, from the upper slope up into the trees, below the horizon', (name) => {
+describe('the haze at the far forest\'s foot', () => {
+  it.each(REAL_GRAVEYARDS)('%s: is a level strip just in front of the far forest, from the ground up into the trees, below the horizon', (name) => {
     const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
     const band = hazeBand(plan);
-    const trees = forestTrees(plan);
-    expect(band.radius).toBeLessThan(Math.min(...trees.map((t) => Math.hypot(t.base.x - plan.centre.x, t.base.z - plan.centre.z))));
-    expect(band.ceiling).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon, never over the moon
     const ring = hazeRingMesh(plan, 32);
     expect(Math.max(...ring.indices)).toBeLessThan(ring.density.length);
     expect(Math.max(...ring.density)).toBe(1);
-    for (let i = 0; i < 32; i++) {
-      const angle = (i / 32) * Math.PI * 2;
-      const ridge = ridgeHeightToward(plan, Math.cos(angle), Math.sin(angle));
-      const [bottom, peak, top] = [0, 1, 2].map((row) => ring.positions[(row * 32 + i) * 3 + 1]!);
-      expect(bottom).toBeLessThan(ridge); // it starts on the slope
-      expect(peak).toBeGreaterThan(bottom!);
-      expect(top).toBeGreaterThan(peak!);
-      expect(top).toBeLessThanOrEqual(band.ceiling + 1e-9);
-    }
+    const zs = new Set(Array.from({ length: ring.density.length }, (_, k) => ring.positions[k * 3 + 2]));
+    expect(zs.size).toBe(1); // one straight line
+    const lineZ = [...zs][0]!;
+    const farFront = Math.min(...forestTrees(plan).filter((t) => t.row === 0 && t.key.includes('/line/')).map((t) => plan.centre.z - t.base.z));
+    expect(plan.centre.z - lineZ).toBeLessThan(farFront + 1); // in front of the far forest
+    expect(band.top).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon, never over the moon
+    expect(band.peak).toBeGreaterThan(0);
   });
 });
 
-describe('the ridge', () => {
-  it.each(REAL_GRAVEYARDS)('%s: reads as a level horizon in the opening view, not a bowl: the same height in the frame from side to side', (name) => {
+describe('the nearer layer of trees', () => {
+  it.each(REAL_GRAVEYARDS)('%s: stands on the ground behind the back fence, below the horizon, lighter and hazier than the foreground and less hazy than the far forest', (name) => {
     const l = layout(loadRealGraveyard(name));
     const plan = horizonPlan(l.bounds);
-    const shot = establishingShot(l.bounds, DEFAULT_FOV_Y, 1.6);
-    const ys: number[] = [];
-    for (let i = 0; i < 720; i++) {
-      const angle = (i / 720) * Math.PI * 2;
-      const dx = Math.cos(angle);
-      const dz = Math.sin(angle);
-      const p = vec3(plan.centre.x + dx * plan.ridgeRadius, ridgeHeightToward(plan, dx, dz), plan.centre.z + dz * plan.ridgeRadius);
-      const at = projectToFrame(shot.pose, DEFAULT_FOV_Y, 1.6, shot.viewShift, p);
-      if (at && at.x > 0 && at.x < 1) ys.push(at.y);
+    const trees = nearTrees(plan);
+    expect(trees.length).toBeGreaterThan(60);
+    expect(trees.some((t) => t.bare)).toBe(true);
+    expect(trees.some((t) => !t.bare)).toBe(true);
+    for (const t of trees) {
+      expect(t.base.z).toBeLessThan(l.bounds.z - plan.gap); // behind the back fence, never touching it
+      expect(t.base.y).toBeLessThanOrEqual(0);
+      expect(t.base.y + t.height).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon
+      expect(t.haze!).toBeGreaterThan(0);
+      expect(t.haze!).toBeLessThanOrEqual(NEAR_HAZE_TO);
     }
-    expect(ys.length).toBeGreaterThan(50);
-    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(0.005);
-    expect(ys[0]!).toBeGreaterThan(HORIZON_FROM_TOP); // below the horizon
+    expect(NEAR_HAZE_TO).toBeLessThan(FOREST_ROW_HAZE[0]!);
   });
 
-  it('is never lower than straight behind, and stays under the eye', () => {
-    const plan = horizonPlan({ x: 0, z: 0, w: 100, d: 80 });
-    for (let i = 0; i < 360; i++) {
-      const a = (i * Math.PI) / 180;
-      const h = ridgeHeightToward(plan, Math.cos(a), Math.sin(a));
-      expect(h).toBeGreaterThanOrEqual(plan.ridgeHeight - 1e-9);
-      expect(h).toBeLessThan(plan.eye.y);
+  it.each(REAL_GRAVEYARDS)('%s: fills the band between the back fence and the far forest in the opening view, at both laptop shapes', (name) => {
+    const l = layout(loadRealGraveyard(name));
+    const plan = horizonPlan(l.bounds);
+    const { firstZ } = nearBand(plan);
+    for (const aspect of [1.6, 16 / 9]) {
+      const shot = establishingShot(l.bounds, DEFAULT_FOV_Y, aspect);
+      const at = (x: number, y: number, z: number) => projectToFrame(shot.pose, DEFAULT_FOV_Y, aspect, shot.viewShift, vec3(x, y, z))!;
+      const fence = at(plan.centre.x, 0, l.bounds.z).y;
+      const farFoot = at(plan.centre.x, 0, plan.centre.z - plan.ridgeRadius).y;
+      // The first row stands just behind the fence on the screen; some trees reach up past the far forest's foot.
+      expect(fence - at(plan.centre.x, 0, firstZ).y).toBeLessThan(0.05);
+      const tops = nearTrees(plan).map((t) => at(t.base.x, t.base.y + t.height, t.base.z)).filter((p) => p.x > 0.3 && p.x < 0.7);
+      expect(Math.min(...tops.map((p) => p.y))).toBeLessThan(farFoot);
+      expect(Math.min(...tops.map((p) => p.y))).toBeGreaterThan(HORIZON_FROM_TOP); // below the horizon
     }
   });
-});
 
-describe('landMesh, along the fence', () => {
-  it.each(REAL_GRAVEYARDS)('%s: the foot of the slope follows the fence lines: along each direction, the first rise starts where the hills start', (name) => {
-    const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
-    const segments = 96;
-    const { positions } = landMesh(plan, segments, 24);
-    for (let i = 0; i < segments; i++) {
-      // Rings 0 and 1 are flat (just inside, and at where the hills start); ring 2 has risen.
-      expect(positions[(0 * segments + i) * 3 + 1]!).toBe(0);
-      expect(positions[(1 * segments + i) * 3 + 1]!).toBeCloseTo(0, 6);
-      expect(positions[(2 * segments + i) * 3 + 1]!).toBeGreaterThan(1e-4);
-    }
+  it('is the same for the same bounds', () => {
+    const plan = horizonPlan({ x: 0, z: 0, w: 60, d: 40 });
+    expect(JSON.stringify(nearTrees(plan))).toBe(JSON.stringify(nearTrees(horizonPlan({ x: 0, z: 0, w: 60, d: 40 }))));
   });
 });
 
@@ -122,16 +127,18 @@ describe('the forest', () => {
   it.each(REAL_GRAVEYARDS)('%s: has varied heights and gaps, back rows hazier, and the shading data for every point', (name) => {
     const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
     const trees = forestTrees(plan).filter((t) => !t.bare && t.row === 0);
+    // Varied heights: the treetops spread over a good part of a tree's typical height (they stand on flat ground, so the
+    // heights are large and the spread is measured against the typical size, not the mean).
     const heights = trees.map((t) => t.height);
     const mean = heights.reduce((a, b) => a + b, 0) / heights.length;
     const spread = Math.sqrt(heights.reduce((a, h) => a + (h - mean) ** 2, 0) / heights.length);
-    expect(spread / mean).toBeGreaterThan(0.15);
+    expect(spread / Math.max(1, plan.eye.y - plan.ridgeHeight)).toBeGreaterThan(0.15);
     // Gaps: somewhere around the ring the front row has a break much wider than its usual spacing.
     const angles = trees.map((t) => Math.atan2(t.base.z - plan.centre.z, t.base.x - plan.centre.x)).sort((a, b) => a - b);
     const steps = angles.slice(1).map((a, i) => a - angles[i]!);
     const usual = [...steps].sort((a, b) => a - b)[Math.floor(steps.length / 2)]!;
     expect(steps.filter((s) => s > usual * 4).length).toBeGreaterThan(0);
-    expect(FOREST_ROW_HAZE[0]).toBe(0);
+    expect(FOREST_ROW_HAZE[1]!).toBeGreaterThan(FOREST_ROW_HAZE[0]!);
     expect(FOREST_ROW_HAZE[2]!).toBeGreaterThan(FOREST_ROW_HAZE[1]!);
     const all = forestTrees(plan);
     const mesh = forestMesh(all);

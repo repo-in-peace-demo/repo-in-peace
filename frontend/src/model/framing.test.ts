@@ -22,7 +22,7 @@ import {
   shotIsInsideLimits,
   type Shot,
 } from './framing';
-import { forestTrees, forestTriangles, horizonPlan, landHeightAt } from './horizon';
+import { forestTrees, forestTriangles, horizonPlan, landHeightAt, nearTrees } from './horizon';
 import { layout } from './layout';
 import type { Rect } from './rect';
 import { distance, dot, normalize, sub, vec3, type Vec3 } from './vec3';
@@ -159,30 +159,25 @@ describe('the establishing shot', () => {
     }
   });
 
-  it.each(REAL_GRAVEYARDS)('%s: between the back fence and the horizon there is no empty band: the hills rise from just behind the fence to the ridge, lit by the moon', (name) => {
+  it.each(REAL_GRAVEYARDS)('%s: between the back fence and the horizon there is no empty band: the nearer trees stand behind the fence and the far forest rises behind them', (name) => {
     const l = layout(loadRealGraveyard(name));
     const plan = horizonPlan(l.bounds);
     const { pose, viewShift } = establishingShot(l.bounds, FOV, 1.6);
     const b = l.bounds;
-    const fence = projectToFrame(pose, FOV, 1.6, viewShift, vec3(b.x + b.w / 2, 0, b.z))!.y;
-    const ridge = projectToFrame(pose, FOV, 1.6, viewShift, vec3(plan.centre.x, plan.ridgeHeight, plan.centre.z - plan.ridgeRadius))!.y;
-    // The ridge, where the forest stands, is close under the horizon; the hills fill the frame from there down to the fence.
-    expect(ridge - HORIZON_FROM_TOP).toBeGreaterThan(0.04);
-    expect(ridge - HORIZON_FROM_TOP).toBeLessThan(0.12);
-    expect(fence).toBeGreaterThan(ridge);
-    // Walking back from the fence the land only rises, up to the ridge, and it starts rising within a few units of the fence.
-    let last = -1;
-    for (let z = b.z; z >= plan.centre.z - plan.ridgeRadius; z -= 0.5) {
-      const h = landHeightAt(plan, plan.centre.x, z);
-      expect(h).toBeGreaterThanOrEqual(last - 1e-9);
-      last = h;
-    }
-    expect(landHeightAt(plan, plan.centre.x, b.z - plan.gap - 0.25 * (plan.ridgeRadius - b.d / 2))).toBeGreaterThan(0);
-    // The slope that the camera sees faces the moonlight.
-    const z0 = plan.centre.z - (b.d / 2 + plan.ridgeRadius) / 2;
-    const slope = (landHeightAt(plan, plan.centre.x, z0 - 0.5) - landHeightAt(plan, plan.centre.x, z0 + 0.5)) / 1;
-    const normal = normalize(vec3(0, 1, slope));
-    expect(dot(normal, normalize(vec3(MOONLIGHT_DIRECTION.x, MOONLIGHT_DIRECTION.y, MOONLIGHT_DIRECTION.z)))).toBeGreaterThan(0.5);
+    const at = (p: Vec3) => projectToFrame(pose, FOV, 1.6, viewShift, p)!;
+    const fence = at(vec3(b.x + b.w / 2, 0, b.z)).y;
+    const inView = (p: Vec3) => projectToFrame(pose, FOV, 1.6, viewShift, p) !== null;
+    // The middle column, from the fence up: the nearer trees reach up past the far forest's foot, and the far forest's tops
+    // reach above the horizon, so every height of the band has a tree in it.
+    const middle = (t: { base: Vec3; height: number }) => inView(t.base) && Math.abs(at(t.base).x - 0.5) < 0.1;
+    const nearTops = nearTrees(plan).filter(middle).map((t) => at(vec3(t.base.x, t.base.y + t.height, t.base.z)).y);
+    const farFoot = at(vec3(plan.centre.x, 0, plan.centre.z - plan.ridgeRadius)).y;
+    expect(fence).toBeGreaterThan(farFoot);
+    expect(Math.min(...nearTops)).toBeLessThan(farFoot);
+    const farTops = forestTrees(plan).filter((t) => t.row === 0 && !t.bare && middle(t)).map((t) => at(vec3(t.base.x, t.base.y + t.height, t.base.z)).y);
+    expect(Math.min(...farTops)).toBeLessThan(HORIZON_FROM_TOP);
+    // And the ground is flat.
+    for (let z = b.z; z >= plan.centre.z - plan.ridgeRadius; z -= 2) expect(landHeightAt(plan, plan.centre.x, z)).toBe(0);
   });
 
   it.each(REAL_GRAVEYARDS)('%s: the moon and its halo are fully in the frame, in the upper sky above the horizon, on any laptop screen', (name) => {

@@ -80,6 +80,8 @@ test.describe('the night, in the real app', () => {
 
   test('the sky has stars, a moon and a gradient, and the shaders compile', async ({ page }) => {
     await open(page, 'demo.spatialql');
+    // The sky alone: the forest on the ridge reaches into the lower sky (its own checks are in model/horizon.test.ts).
+    await page.evaluate(() => window.repoInPeace!.setHorizonVisible(false));
     await lookAlongTheGround(page);
     const sky: Clip = { x: 540, y: 5, width: 300, height: 300 }; // away from the moon and its glow
     const stars = await pixels(page, sky, 'stars');
@@ -138,6 +140,8 @@ test.describe('the night, in the real app', () => {
 
   test('the fog melts the far ground into the sky: no hard line at the horizon', async ({ page }) => {
     await open(page, 'demo.spatialql');
+    // The fog on the bare ground: the trees stand in front of the horizon (their own checks are in model/horizon.test.ts).
+    await page.evaluate(() => window.repoInPeace!.setHorizonVisible(false));
     await lookAlongTheGround(page);
     // A strip of the ground and a strip of the sky on either side of the horizon, away from the graveyard (to the right of it).
     const horizon = await findHorizon(page);

@@ -35,7 +35,7 @@ export interface RepoInPeaceDevApi {
   projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null;
   /** The camera's lens shift now: the share of the frame's height the picture is moved down by (`model/framing.ts`). */
   getViewShift: () => number;
-  /** Shows or hides the hills and the forest (scene/Horizon.tsx), to look at the sky alone, which is the same for every graveyard. */
+  /** Shows or hides the trees, the haze and the low mist around the graveyard (scene/Horizon.tsx, the back mist in scene/Mist.tsx), to look at the sky alone, which is the same for every graveyard. */
   setHorizonVisible: (visible: boolean) => void;
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
 import type { Legend as LegendModel } from '../model/legend';
 
 /**
@@ -6,7 +7,7 @@ import type { Legend as LegendModel } from '../model/legend';
  * Top right. The swatches are small stand-ins for the effects. The heading button collapses the legend.
  */
 export function Legend({ legend }: { legend: LegendModel }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
   return (
     <section className="legend" aria-label="Legend">
       <button type="button" className="panel-toggle" aria-expanded={open} aria-controls="legend-body" onClick={(event) => {
