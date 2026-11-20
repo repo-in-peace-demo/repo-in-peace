@@ -281,9 +281,9 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 {
   // The glow inside the cracks: the same strength for every unused stone, so it means "unused" and nothing else.
   // From far away it is boosted by distance alone, so it is still the same for every unused stone at a given distance.
-  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (1.6 + 1.6 * gFar)) * gCrack;
+  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (1.6 + 2.6 * gFar)) * gCrack; // far: from 1.6 × gFar, once moss ran under RIP
   // The faint red glow over a whole unused stone: the same for every unused stone (distance only), dimmer under the letters.
-  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (0.12 + 0.7 * gFar)) * gFaint * (1.0 - gInk);
+  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (0.12 + 1.1 * gFar)) * gFaint * (1.0 - gInk);
   // A little light in the letters, so they read under the dim moonlight.
   totalEmissiveRadiance += uLetterColor * 0.16 * gInk;
   // A little of the moss's own colour from far away, so it is still green under the dim moonlight (age only: gMoss reads vMoss).
