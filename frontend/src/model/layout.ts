@@ -8,6 +8,7 @@ import {
   FRONT_BAND_EXTRA,
   ITEM_GAP,
   PACK_ASPECT_TRADE,
+  PACK_LIMIT_ASPECT,
   PACK_DEEP_SLACK,
   PACK_MAX_ASPECT,
   PACK_SIDE_SLACK,
@@ -279,7 +280,8 @@ export function packItems(items: readonly PackInput[]): PackedItems {
   // A longer packing still wins if it saves at least PACK_ASPECT_TRADE of the area (a small block beside a big plot
   // otherwise leaves a bare strip the whole depth of the plot).
   const poolArea = Math.min(...pool.map((a) => a.w * a.d));
-  const saving = near.filter((a) => a.w * a.d <= poolArea * (1 - PACK_ASPECT_TRADE) + SKYLINE_EPS);
+  // Never longer than PACK_LIMIT_ASPECT for it, though: saving area must not stretch a plot (or the whole graveyard) into a strip.
+  const saving = near.filter((a) => a.w * a.d <= poolArea * (1 - PACK_ASPECT_TRADE) + SKYLINE_EPS && aspect(a) <= PACK_LIMIT_ASPECT + SKYLINE_EPS);
   if (saving.length > 0) pool = saving;
   // Seen from the front and above, depth is foreshortened: of packings within PACK_DEEP_SLACK of the least area, prefer one at
   // least as deep as it is wide, which fills a landscape frame better.

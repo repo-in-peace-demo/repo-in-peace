@@ -110,6 +110,7 @@ Constants (all in one module, each with a comment):
 | `ITEM_GAP` | 1.4 | between the stone block and child plots, and between child plots (task 25: from 2.5) |
 | `MIN_STONE_H` | 0.8 | the shortest stone (task 25: from 0.6, which read as a pebble from the overview) |
 | `PACK_SIDE_SLACK`, `PACK_MAX_ASPECT`, `PACK_ASPECT_TRADE`, `PACK_DEEP_SLACK` | 0.15, 1.4, 0.15, 0.1 | the packer picks the least area among packings whose longer side is within 15% of the shortest, so no bare strip is left beside a big child plot (task 25: oikos right side, spatialql beside `src`) |
+| `PACK_LIMIT_ASPECT` | 2.2 | the area-saving rule (`PACK_ASPECT_TRADE`) never picks a packing longer than 2.2 times its width, and the whole graveyard is never longer than that (a property test, from 2). 2.2 because a layout deeper than it is wide suits the overview camera, which sees the depth foreshortened, and spatialql's approved layout (its root's two stones in front of `src`, no bare strip beside it) is 2.15. Added after a property run found the rule, with no limit, stretched 0.6% of large synthetic trees to as much as 2.6; with the limit, 8,400 of them (200 to 700 files, 400 seeds each) are at most 2.186 |
 | `SIGN_W`, `SIGN_D` | 1.6, 0.5 | a plaque's footprint |
 
 **Output** (all arrays sorted by path in code-point order):

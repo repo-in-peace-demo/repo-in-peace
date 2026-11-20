@@ -76,6 +76,14 @@ export const PACK_MAX_ASPECT = 1.4;
 /** ...unless a longer one saves at least this share of the area. */
 export const PACK_ASPECT_TRADE = 0.15;
 
+/**
+ * ...as long as it is no longer than this many times as wide. The whole graveyard is never longer than this either (a property test).
+ * 2.2 and not 2: a layout deeper than it is wide suits the overview camera, which sees the depth foreshortened, and spatialql's
+ * approved layout (its root's two stones in front of `src`, with no bare strip beside it) is 2.15. Without any limit the rule had
+ * stretched 0.6% of large synthetic trees past 2.6.
+ */
+export const PACK_LIMIT_ASPECT = 2.2;
+
 /** ...and of those within this share of the least area, one at least as deep as it is wide (it fills a landscape frame better). */
 export const PACK_DEEP_SLACK = 0.1;
 

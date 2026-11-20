@@ -24,7 +24,7 @@ import {
 import { makeSyntheticGraveyard } from './synthetic';
 import { validateGraveyard } from '@shared/graveyard-schema';
 import { layout } from './layout';
-import { MAX_STONE_H, MIN_STONE_H } from './layout-constants';
+import { MAX_STONE_H, MIN_STONE_H, PACK_LIMIT_ASPECT } from './layout-constants';
 import { stoneHeight } from './tombstone-height';
 
 /**
@@ -316,12 +316,12 @@ describe('packing: little empty ground, close to a square', () => {
     );
   });
 
-  it('is never longer than twice as long as wide for the whole graveyard, for a tree with many folders', () => {
+  it('is never longer than PACK_LIMIT_ASPECT (2.2) times as wide for the whole graveyard, for a tree with many folders', () => {
     fc.assert(
       fc.property(fc.integer({ min: 200, max: 700 }), fc.integer({ min: 0, max: 100_000 }), (files, seed) => {
         const l = layout(makeSyntheticGraveyard({ files, seed, shape: 'tree' }));
         const { w, d } = l.bounds;
-        return Math.max(w, d) / Math.min(w, d) <= 2;
+        return Math.max(w, d) / Math.min(w, d) <= PACK_LIMIT_ASPECT + 1e-9;
       }),
       { numRuns: 40 },
     );
