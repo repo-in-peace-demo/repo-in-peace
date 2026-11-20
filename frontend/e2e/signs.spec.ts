@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
 import { buildSceneModel, type SceneModel } from '../src/model/scene-model';
-import { signBlocked, stoneOccluders } from '../src/model/sign-occlusion';
+import { labelBlocked, signBlocked, stoneOccluders } from '../src/model/sign-occlusion';
 import { placeSignsClear } from '../src/model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../src/model/signs';
 import { sceneCameraLimits } from '../src/model/camera-bounds';
@@ -69,7 +69,8 @@ async function expectedFor(page: Page, p: CameraPose, m: SceneModel = model): Pr
     visible.map((v) => ({ path: v.path, x: sources.get(v.path)!.x, y: sources.get(v.path)!.y, z: sources.get(v.path)!.z })),
   );
   const boxes = stoneOccluders(m.pickTargets);
-  const seen = visible.filter((v) => !signBlocked(p.position, sources.get(v.path)!, boxes));
+  const labelView = { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, viewportHeight: VIEWPORT.height };
+  const seen = visible.filter((v) => !labelBlocked(labelView, sources.get(v.path)!, v.label, boxes));
   return placeSignsClear(seen, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
 }
 
@@ -242,7 +243,8 @@ test.describe('folder signs behind stones', () => {
 
     // Higher up, looking down at the same sign over the stone: the label shows again (the pure function agrees first).
     const above = clampPose({ position: vec3(behind.position.x, behind.position.y + 8, behind.position.z), target: behind.target }, limits);
-    expect(signBlocked(above.position, behind.target, boxes), 'from higher up the stone should no longer be in the way').toBe(false);
+    const aboveView = { position: above.position, forward: sub(above.target, above.position), fovY: DEFAULT_FOV_Y, viewportHeight: VIEWPORT.height };
+    expect(labelBlocked(aboveView, behind.target, label, boxes), 'from higher up the stone should no longer be in the way').toBe(false);
     await page.evaluate((p) => window.repoInPeace!.setPose(p), above);
     const seen = await expectPageMatchesCamera(page, oikos);
     expect(seen.map((s) => s.text), `"${label}" should be labelled again once it can be seen`).toContain(label);

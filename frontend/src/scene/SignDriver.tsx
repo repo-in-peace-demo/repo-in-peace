@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
-import { signBlocked, stoneOccluders } from '../model/sign-occlusion';
+import { labelBlocked, stoneOccluders } from '../model/sign-occlusion';
 import { placeSignsClear } from '../model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../model/signs';
 import { sameView, type ViewSignature } from '../model/view-signature';
@@ -62,12 +62,12 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
       { position: vec3(view.px, view.py, view.pz), forward: vec3(view.fx, view.fy, view.fz), fovY: view.fovY, aspect: view.aspect },
       SIGN_MAX_VISIBLE,
     );
-    // A sign behind a stone is not labelled: its label would be drawn over the stone (the page is on top of the canvas). This runs
+    // A sign whose label is even partly behind a stone is not labelled: the label would be drawn over the stone (the page is on top of the canvas). This runs
     // before the overlap rule, so a hidden sign never takes the place of one further away that can be seen.
-    const camera3 = vec3(view.px, view.py, view.pz);
+    const labelView = { position: vec3(view.px, view.py, view.pz), forward: vec3(view.fx, view.fy, view.fz), fovY: view.fovY, viewportHeight: size.height };
     const unblocked = visible.filter((sign) => {
       const source = sources.get(sign.path);
-      return source !== undefined && !signBlocked(camera3, vec3(source.x, source.y, source.z), occluders);
+      return source !== undefined && !labelBlocked(labelView, vec3(source.x, source.y, source.z), sign.label, occluders);
     });
     const placements = placeSignsClear(unblocked, (path) => {
       const source = sources.get(path);

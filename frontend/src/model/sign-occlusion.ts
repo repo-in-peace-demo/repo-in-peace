@@ -1,5 +1,6 @@
 import { PICK_PADDING, rayBoxDistance, type PickTarget } from './pick';
-import type { Vec3 } from './vec3';
+import { signBox } from './sign-placement';
+import { cross, dot, normalize, sub, vec3, type Vec3 } from './vec3';
 
 /**
  * Whether a folder sign is hidden behind a stone, so its label (a page element over the canvas) is not drawn on top of the stone.
@@ -39,4 +40,40 @@ export function signBlocked(camera: Vec3, anchor: Vec3, boxes: readonly Occluder
     if (t !== undefined && t < 1 - EPS) return true;
   }
   return false;
+}
+
+/** What `labelBlocked` needs to know about the camera: where it is, which way it looks, its lens and the height of the view in pixels. */
+export interface LabelView {
+  position: Vec3;
+  forward: Vec3;
+  /** Vertical field of view, in degrees. */
+  fovY: number;
+  viewportHeight: number;
+}
+
+/**
+ * Six points of the scene that the label of a sign covers on screen: the corners and the middles of the top and bottom edges of its
+ * text box (`signBox`), whose bottom middle is the anchor. They lie in the plane through the anchor facing the camera, so each projects
+ * where that part of the label is drawn. The camera's up is the scene's up, as three.js's `lookAt` has it.
+ */
+export function labelPoints(view: LabelView, anchor: Vec3, label: string): Vec3[] {
+  const f = normalize(view.forward);
+  const right = normalize(cross(f, vec3(0, 1, 0)));
+  const up = cross(right, f);
+  const depth = dot(sub(anchor, view.position), f);
+  if (!(depth > 0) || (right.x === 0 && right.y === 0 && right.z === 0)) return [anchor];
+  const perPixel = (2 * depth * Math.tan((view.fovY * Math.PI) / 360)) / view.viewportHeight;
+  const box = signBox(label, 0, 0); // x from -w/2 to w/2, y from -h (the top) to 0 (the anchor), in pixels
+  const points: Vec3[] = [];
+  for (const px of [box.x0, 0, box.x1]) {
+    for (const py of [0, -box.y0]) {
+      points.push(vec3(anchor.x + (right.x * px + up.x * py) * perPixel, anchor.y + (right.y * px + up.y * py) * perPixel, anchor.z + (right.z * px + up.z * py) * perPixel));
+    }
+  }
+  return points;
+}
+
+/** True when any part of the sign's label (any of `labelPoints`) is behind a stone: a label drawn over the canvas cannot be partly hidden. */
+export function labelBlocked(view: LabelView, anchor: Vec3, label: string, boxes: readonly OccluderBox[]): boolean {
+  return labelPoints(view, anchor, label).some((point) => signBlocked(view.position, point, boxes));
 }

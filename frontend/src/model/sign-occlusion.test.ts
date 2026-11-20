@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { signBlocked, stoneOccluders, type OccluderBox } from './sign-occlusion';
+import { labelBlocked, labelPoints, signBlocked, stoneOccluders, type OccluderBox } from './sign-occlusion';
+import { signBox } from './sign-placement';
 import { PICK_PADDING, type PickTarget } from './pick';
 import { vec3 } from './vec3';
 
@@ -57,6 +58,42 @@ describe('signBlocked', () => {
         // A box this small around a point past the anchor, further than its own size from it, cannot be before the anchor.
         fc.pre(len * (beyond - 1) > 2 * half * Math.sqrt(3));
         return !signBlocked(camera, anchor, [box(c.x - half, c.y - half, c.z - half, c.x + half, c.y + half, c.z + half)]);
+      }),
+      { numRuns: 300 },
+    );
+  });
+});
+
+describe('labelBlocked: any part of the label', () => {
+  const view = { position: vec3(0, 1, 10), forward: vec3(0, 0, -1), fovY: 60, viewportHeight: 720 };
+
+  it('puts the six points round the label in the plane facing the camera, the anchor in the middle of the bottom edge', () => {
+    const anchor = vec3(0, 1, 0);
+    const pts = labelPoints(view, anchor, 'compare');
+    expect(pts).toHaveLength(6);
+    for (const p of pts) expect(p.z).toBeCloseTo(0, 9);
+    const perPixel = (2 * 10 * Math.tan(Math.PI / 6)) / 720;
+    const b = signBox('compare', 0, 0);
+    expect(Math.min(...pts.map((p) => p.x))).toBeCloseTo(b.x0 * perPixel, 9);
+    expect(Math.max(...pts.map((p) => p.x))).toBeCloseTo(b.x1 * perPixel, 9);
+    expect(Math.min(...pts.map((p) => p.y))).toBeCloseTo(1, 9);
+    expect(Math.max(...pts.map((p) => p.y))).toBeCloseTo(1 + -b.y0 * perPixel, 9);
+  });
+
+  it('hides a label whose anchor is clear but whose text runs behind a stone beside it', () => {
+    // The stone covers x from 0.2 to 1.6, just right of the anchor; the label (about 1 unit wide at 10 units) runs over it.
+    const beside = box(0.2, 0, -1, 1.6, 3, -0.5);
+    const anchor = vec3(0, 1, -3);
+    expect(signBlocked(view.position, anchor, [beside])).toBe(false);
+    expect(labelBlocked(view, anchor, 'public', [beside])).toBe(true);
+  });
+
+  it('for any boxes: a label is hidden whenever its anchor is', () => {
+    const coord = fc.double({ min: -10, max: 10, noNaN: true });
+    fc.assert(
+      fc.property(fc.record({ x: coord, y: fc.double({ min: 0, max: 4, noNaN: true }), z: fc.double({ min: -10, max: 5, noNaN: true }) }), fc.array(fc.tuple(coord, coord, fc.double({ min: 0.2, max: 2, noNaN: true })), { maxLength: 5 }), (anchor, raw) => {
+        const boxes = raw.map(([x, z, h]) => box(x - h, 0, z - h, x + h, 2 * h, z + h));
+        return !signBlocked(view.position, anchor, boxes) || labelBlocked(view, anchor, 'label', boxes);
       }),
       { numRuns: 300 },
     );
