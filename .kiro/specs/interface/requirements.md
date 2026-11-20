@@ -62,6 +62,18 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 8. THE panel SHALL NOT cover the selected stone or ghost on screen: it SHALL open on the side of the window away from it. IF it would still cover it (a narrow window) THEN the camera SHALL be moved sideways just enough, smoothly, without changing what is selected.
 9. Every value SHALL be text (never markup from the data file), and long paths SHALL wrap or shorten in the middle, keeping the file name readable.
 
+### 4b. Richer hover label
+
+**User story:** As a viewer moving the pointer over the graveyard, I see what a grave is before I click it.
+
+1. THE hover label SHALL keep its file name and folder (`model/hover-label.ts`) and add one compact summary line below them.
+2. For a **stone** the line SHALL read: the state, the last commit date, the size in lines, then only the flags that apply, joined by " · ". For example "Ancient · last commit Jun 13 · 26 lines · unused · hot (7 commits)", or "Fresh · last commit Aug 2 · 1 line" for a file with no flags. The hot flag SHALL carry the commit count in the hot window ("hot (1 commit)" in the singular).
+3. For a **ghost** the line SHALL read "Ghost · deleted Oct 12 · .ts", with its file type as on its toe tag (the same `·` mark when it has no extension).
+4. Dates on the hover line SHALL be calendar dates (month and day, and the year as well when it is not the snapshot's year), in UTC, as the data file's dates are, so the line does not depend on the viewer's time zone. THE hover line SHALL NOT show ages relative to the snapshot; the detail panel shows both the date and the age.
+5. THE hover line and the detail panel SHALL get their words from the same pure functions (the state name, the date, the lines and the flags), so they never disagree.
+6. THE line SHALL be one line: it SHALL NOT wrap, and IF it is wider than the label's maximum width THEN it SHALL be cut with an ellipsis at the end, keeping the state and the date.
+7. THE label SHALL still be hidden while a drag (orbit or pan) is going on, as now, and SHALL still be text only.
+
 ### 5. List view
 
 **User story:** As a maintainer planning a clean-up, I scan every grave sorted by how dead it is.
@@ -100,7 +112,7 @@ Each property gets a fast-check property test.
 | P2 | Sorting is deterministic: the same rows in any input order give the same order; ties fall back to path; reversing twice gives the original order. | Req 5.2, 5.3 |
 | P3 | Search ranking: an exact file-name match ranks above a prefix match, which ranks above a match elsewhere in the name, which ranks above a path-only match; a non-matching row never appears. | Req 6.3 |
 | P4 | Selection sync: whatever selects a file or ghost (the scene, a list row, search), the store holds it, and the list highlights exactly one row, that one (or none when it is filtered out). | Req 4.1, 5.5, 5.6, 6.4 |
-| P5 | The detail panel's state wording names the file's `decayState`, its day count is the file's age, and the threshold it quotes is the data file's. | Req 4.4 |
+| P5 | The detail panel's state wording names the file's `decayState`, its day count is the file's age, and the threshold it quotes is the data file's. | Req 4.4, 4b.5 |
 
 Supporting properties:
 
@@ -109,6 +121,8 @@ Supporting properties:
 - **P8** The digging screen's added delay is between 0 and 1 second and its total time is at least 400 ms, for any loading time (Req 3.2).
 - **P9** The panel side: the detail panel is always placed on the half of the window away from the selected item's screen position (Req 4.8).
 - **P10** Middle shortening of a long path always keeps the whole file name (Req 4.9).
+- **P11** The hover line of a stone starts with the state word that matches its `decayState`, carries its last commit date and its lines, and has exactly the flags that apply (unused when `unused`, hot with `recentCommits` when `hot`) and no others; a ghost's line starts with "Ghost" and ends with its toe-tag type. The words are the same as the detail panel's for the same item (Req 4b.2 to 4b.5).
+- **P12** Dates on the hover line are the data file's dates in UTC, for any time zone the tests run in, and carry the year exactly when it differs from the snapshot's (Req 4b.4).
 
 ## Out of scope
 
@@ -124,4 +138,5 @@ Supporting properties:
 4. **Ghosts in the sorts.** Ghosts have no decay score or size. I propose they sort as most dead of all under decay, by days since deletion under age, and last under size (Req 5.2, 5.3).
 5. **Bury** applies to stones that are unused or ancient ("cracked or ancient"), including a fresh unused stone. Agreed?
 6. **Local files and the address.** A local file leaves no `graveyard` parameter, so a reload goes back to the boot screen. Keeping the file across a reload (in session storage) is possible but not proposed.
-7. **Which side.** The list docks on the left and the detail panel opens on the right by default, moving to the left when the selected item is on the right half of the screen (Req 4.8). The stats panel (top left) and legend (top right) stay where they are and collapse below 1600 px as now.
+7. **Hover dates.** Month and day, with the year added when it is not the snapshot's year (both demo files fall within their snapshot's year, so they never show one; a long-lived repository will). Always UTC, as the data file's dates are (Req 4b.4).
+8. **Which side.** The list docks on the left and the detail panel opens on the right by default, moving to the left when the selected item is on the right half of the screen (Req 4.8). The stats panel (top left) and legend (top right) stay where they are and collapse below 1600 px as now.
