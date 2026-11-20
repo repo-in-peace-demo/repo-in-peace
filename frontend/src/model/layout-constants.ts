@@ -52,10 +52,10 @@ export const CELL_PITCH_Z = CELL_D + CELL_GAP;
 // ---- Plots ----
 
 /** The inset between a plot's outer rectangle (its fence line) and what it holds. */
-export const FENCE_BAND = 1.5;
+export const FENCE_BAND = 1.0; // task 25: from 1.5; the plaque (0.5 deep, 1.6 wide) still fits
 
 /** The gap between the things a plot holds: its block of stones and its child plots. */
-export const ITEM_GAP = 2.5;
+export const ITEM_GAP = 1.4; // task 25: from 2.5, so ground goes to graves rather than gaps
 
 /**
  * How many strip widths the packer tries for a plot's contents, between the widest item and about twice the side of
@@ -63,6 +63,21 @@ export const ITEM_GAP = 2.5;
  * More widths pack a little better and take a little longer; the speed guards in scene-model.test.ts keep it honest.
  */
 export const PACK_WIDTH_CANDIDATES = 25;
+
+/**
+ * Among the packings whose longer side is within this share of the shortest one, the one with the least area wins. Picking only
+ * the shortest longer side left bare strips beside a big child plot (task 25: spatialql beside `src`, oikos down its right side).
+ */
+export const PACK_SIDE_SLACK = 0.15;
+
+/** ...and no longer than this many times as wide (when some packing is), so a plot stays close to a square. */
+export const PACK_MAX_ASPECT = 1.4;
+
+/** ...unless a longer one saves at least this share of the area. */
+export const PACK_ASPECT_TRADE = 0.15;
+
+/** ...and of those within this share of the least area, one at least as deep as it is wide (it fills a landscape frame better). */
+export const PACK_DEEP_SLACK = 0.1;
 
 // ---- Signs ----
 

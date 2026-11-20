@@ -7,6 +7,10 @@ import {
   FENCE_BAND,
   FRONT_BAND_EXTRA,
   ITEM_GAP,
+  PACK_ASPECT_TRADE,
+  PACK_DEEP_SLACK,
+  PACK_MAX_ASPECT,
+  PACK_SIDE_SLACK,
   PACK_WIDTH_CANDIDATES,
   SIGN_D,
   SIGN_W,
@@ -238,8 +242,8 @@ function raiseSkyline(skyline: readonly Segment[], x: number, w: number, top: nu
  *
  * The items are sorted largest first (by area, then by the longer side, then by id, so the order they are given in does
  * not matter). They are packed into a strip with a skyline, for each of PACK_WIDTH_CANDIDATES strip widths between the widest
- * item and the widest item plus twice the side of a square of the items' total area; the packing whose longer side is
- * shortest wins, then the one with less area, then the narrower strip. Items are ITEM_GAP apart, and the packed area has
+ * item and the widest item plus twice the side of a square of the items' total area; among the packings whose longer side is
+ * within PACK_SIDE_SLACK of the shortest and at most PACK_MAX_ASPECT long, the one with the least area wins (then the shorter side, then the narrower strip). Items are ITEM_GAP apart, and the packed area has
  * no margin around them.
  */
 export function packItems(items: readonly PackInput[]): PackedItems {
@@ -261,17 +265,31 @@ export function packItems(items: readonly PackInput[]): PackedItems {
   }
   const highest = widest + 2 * Math.sqrt(area);
 
-  let best: (PackedItems & { side: number }) | undefined;
+  const attempts: Array<PackedItems & { side: number }> = [];
   for (let k = 0; k < PACK_WIDTH_CANDIDATES; k++) {
-    const stripWidth = widest + ((highest - widest) * k) / (PACK_WIDTH_CANDIDATES - 1);
-    const attempt = packAtWidth(sorted, stripWidth);
-    if (
-      best === undefined ||
-      attempt.side < best.side - SKYLINE_EPS ||
-      (Math.abs(attempt.side - best.side) <= SKYLINE_EPS && attempt.w * attempt.d < best.w * best.d - SKYLINE_EPS)
-    ) {
-      best = attempt;
-    }
+    attempts.push(packAtWidth(sorted, widest + ((highest - widest) * k) / (PACK_WIDTH_CANDIDATES - 1)));
+  }
+  // Nearly the shortest longer side (within PACK_SIDE_SLACK), then the least area, then the shorter side, then the narrower strip.
+  const shortest = Math.min(...attempts.map((a) => a.side));
+  const aspect = (a: PackedItems) => Math.max(a.w, a.d) / Math.max(SKYLINE_EPS, Math.min(a.w, a.d));
+  const near = attempts.filter((a) => a.side <= shortest * (1 + PACK_SIDE_SLACK) + SKYLINE_EPS);
+  const squarish = near.filter((a) => aspect(a) <= PACK_MAX_ASPECT + SKYLINE_EPS);
+  // If none is close to a square, the old rule: the shortest longer side (that packing is the squarest there is).
+  let pool = squarish.length > 0 ? squarish : near.filter((a) => a.side <= shortest + SKYLINE_EPS);
+  // A longer packing still wins if it saves at least PACK_ASPECT_TRADE of the area (a small block beside a big plot
+  // otherwise leaves a bare strip the whole depth of the plot).
+  const poolArea = Math.min(...pool.map((a) => a.w * a.d));
+  const saving = near.filter((a) => a.w * a.d <= poolArea * (1 - PACK_ASPECT_TRADE) + SKYLINE_EPS);
+  if (saving.length > 0) pool = saving;
+  // Seen from the front and above, depth is foreshortened: of packings within PACK_DEEP_SLACK of the least area, prefer one at
+  // least as deep as it is wide, which fills a landscape frame better.
+  const leastArea = Math.min(...pool.map((a) => a.w * a.d));
+  const deep = pool.filter((a) => a.d >= a.w - SKYLINE_EPS && a.w * a.d <= leastArea * (1 + PACK_DEEP_SLACK) + SKYLINE_EPS);
+  let best: (PackedItems & { side: number }) | undefined;
+  for (const attempt of deep.length > 0 ? deep : pool) {
+    const area = attempt.w * attempt.d;
+    const bestArea = best === undefined ? Infinity : best.w * best.d;
+    if (best === undefined || area < bestArea - SKYLINE_EPS || (Math.abs(area - bestArea) <= SKYLINE_EPS && attempt.side < best.side - SKYLINE_EPS)) best = attempt;
   }
   const { offsets, w, d } = best!;
   return { offsets, w, d };
