@@ -37,7 +37,9 @@ export const SIGN_FAR_FACTOR = 2.2;
  */
 export const SIGN_MAJOR_SHARE = 0.1;
 export const SIGN_MINOR_SHARE = 0.02;
-export const SIGN_MINOR_FAR_SCALE = 0.7;
+// Task 25.3 fixes: from 0.7, so the smallest folders' labels are gone by about 22 units (fully readable within 18, so still after a
+// fly-to at 8 to 14) instead of 28, and cover fewer of the stones behind them on the way in. Far stays above near (2.2 × 0.55 = 1.21).
+export const SIGN_MINOR_FAR_SCALE = 0.55;
 
 /** How much of `SIGN_FAR_FACTOR` a plot with this share of the root's area gets: from SIGN_MINOR_FAR_SCALE to 1, never falling as the share grows. */
 export function signFarScale(share: number): number {

@@ -494,5 +494,6 @@ Because rendering is not unit-tested, the tasks end with a short checklist for y
 | `FLY_DISTANCE_PER_HEIGHT`, `FLY_DISTANCE_BASE`, `FLY_MIN_DISTANCE`, `FLY_MAX_DISTANCE` | 2, 5, 8, 14 | `model/camera-pose.ts` | from 3.5, 6, 8, 40: a flight ends inside `NAME_NEAR` (16), so the name is readable on arrival |
 | `SIGN_HEIGHT`, `PLAQUE_BOARD` | 1.0, 0.9 × 0.3 × 0.06 | `model/signs.ts` | smaller boards that do not block the stones behind them |
 | sign text box | 8 px a character + 15 px, at most 256 × 20 px, 4 px gap | `model/sign-placement.ts` | `placeSignsClear` drops a sign whose box touches a nearer one's |
+| `SIGN_MINOR_FAR_SCALE` | 0.55 (from 0.7) | `model/signs.ts` | the smallest folders' labels are gone by about 22 units instead of 28; majors (share 0.1 and up) unchanged, and the scale still rises with the area, so a larger plot's label is never hidden while a smaller sibling's shows |
 
 Input: the wheel zooms toward the pointer; a double-click on a stone or ghost flies to it (`flyTo`); a double-click anywhere else calls `resetView`.
