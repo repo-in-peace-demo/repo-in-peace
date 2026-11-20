@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { candleSpots } from '../src/model/candle-placement';
-import { RIP_TEXT, engravingFor } from '../src/model/engraving';
+import { RIP_TEXT, engravingBoxes, engravingFor } from '../src/model/engraving';
 import { buildSceneModel } from '../src/model/scene-model';
-import { STONE_W } from '../src/model/layout-constants';
+import { STONE_D, STONE_W } from '../src/model/layout-constants';
 import { CANDLE_HEIGHT } from '../src/model/visual-constants';
 
 /** Task 25.02 thresholds for the default view at 1280 x 720, set from the tuned look (see design.md). */
@@ -268,5 +268,78 @@ for (const name of COUNT_FILES) {
     expect.soft(c.green + c.red, `green and red on fresh used ${fresh.file.path}`).toBeLessThanOrEqual(Math.max(2, c.area * 0.01));
     expect(byPath.size).toBe(m.stones.length);
     if (process.env.SHOW_COUNTS) console.log(report.join('\n'));
+  });
+}
+
+/**
+ * Follow-up to task 25: the engraving is readable up close on a fresh, a stale, an ancient and an unused stone. The box of the
+ * name (and of RIP) is projected from the model; in it the carved letters are the lightest pixels (the 95th percentile of the
+ * brightness stands clear of the median), and neither moss nor the crack glow shows in it.
+ */
+async function boxStats(page: Page, box: { x: number; y: number; w: number; h: number }, x: number, z: number) {
+  const front = z + STONE_D / 2;
+  const a = await page.evaluate(([px, py, pz]) => window.repoInPeace!.projectPoint(px!, py!, pz!), [x + box.x - box.w / 2, box.y + box.h / 2, front]);
+  const b = await page.evaluate(([px, py, pz]) => window.repoInPeace!.projectPoint(px!, py!, pz!), [x + box.x + box.w / 2, box.y - box.h / 2, front]);
+  if (!a || !b) throw new Error('the box is not on screen');
+  const png = (await page.screenshot()).toString('base64');
+  return page.evaluate(
+    async ({ data, a, b }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${data}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const x0 = Math.floor(Math.min(a.x, b.x));
+      const x1 = Math.ceil(Math.max(a.x, b.x));
+      const y0 = Math.floor(Math.min(a.y, b.y));
+      const y1 = Math.ceil(Math.max(a.y, b.y));
+      const { data: rgba } = context.getImageData(x0, y0, x1 - x0, y1 - y0);
+      const lum: number[] = [];
+      let green = 0;
+      let red = 0;
+      for (let i = 0; i < rgba.length; i += 4) {
+        const [r, g, bl] = [rgba[i]!, rgba[i + 1]!, rgba[i + 2]!];
+        lum.push(0.2126 * r + 0.7152 * g + 0.0722 * bl);
+        if (g > r + 12 && g > bl + 12 && g > 50) green++;
+        if (r > g + 40 && r > bl + 30 && r > 80) red++;
+      }
+      lum.sort((p, q) => p - q);
+      const at = (share: number) => lum[Math.min(lum.length - 1, Math.floor(share * lum.length))]!;
+      return { area: lum.length, median: at(0.5), p95: at(0.95), green, red };
+    },
+    { data: png, a, b },
+  );
+}
+
+const staleUsed = model.stones.find((s) => s.file.decayState === 'stale' && !s.file.unused && s.layout.height > 1.2) ?? mossy;
+
+for (const [label, stone] of [
+  ['fresh used', freshUsed],
+  ['stale used', staleUsed],
+  ['ancient and overgrown', mossy],
+  ['unused', freshUnused],
+  ['ancient and unused', ancientUnused],
+] as const) {
+  test(`the engraving reads up close on a stone that is ${label}: pale letters, no moss or crack glow over them`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(1200);
+    const { x, z, height } = stone.layout;
+    await page.evaluate((p) => window.repoInPeace!.setPose(p), { position: { x, y: height * 0.75 + 0.6, z: z + 2.1 }, target: { x, y: height * 0.7, z } });
+    await page.waitForTimeout(600);
+    await page.mouse.move(640, 5);
+    await page.waitForTimeout(300);
+    const { name, rip } = engravingBoxes(height);
+    const boxes = [['name', name], ...(stone.file.unused ? [['RIP', rip] as const] : [])] as const;
+    for (const [what, box] of boxes) {
+      const st = await boxStats(page, box, x, z);
+      expect(st.p95 - st.median, `${what} on ${stone.file.path}: letters should be lighter than the face (median ${st.median}, p95 ${st.p95})`).toBeGreaterThanOrEqual(20);
+      expect(st.green, `${what} on ${stone.file.path}: green pixels over the text band`).toBeLessThanOrEqual(st.area * 0.02);
+      expect(st.red, `${what} on ${stone.file.path}: red pixels over the text band`).toBeLessThanOrEqual(st.area * 0.02);
+    }
   });
 }

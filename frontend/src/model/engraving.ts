@@ -59,10 +59,14 @@ export function nameOpacity(distance: number): number {
  * "RIP" is centred RIP_ABOVE_SEAM above the seam between body and arch; the name is centred NAME_BELOW_SEAM below it. Both are
  * boxes of the given width (a share of the stone's width) and height. The shapes of every stone height fit (tested).
  */
-export const RIP_ABOVE_SEAM = 0.19;
-export const RIP_BOX = { w: 0.62, h: 0.22 };
+// Task 25 follow-up: larger. The name uses 93% of the face's width (it is drawn condensed to fit 18 characters) and RIP stands about
+// 0.2 tall. The boxes still fit every stone height and stay apart (tested); a text is drawn into its box by the atlas.
+export const RIP_ABOVE_SEAM = 0.24;
+export const RIP_BOX = { w: 0.7, h: 0.3 };
 export const NAME_BELOW_SEAM = 0.0;
-export const NAME_BOX = { w: 0.86, h: 0.12 };
+export const NAME_BOX = { w: 0.93, h: 0.17 };
+/** The clear margin kept round a text's box, in scene units, where moss and the crack glow do not go (`scene/stone-material.ts`). */
+export const TEXT_CLEAR_MARGIN = 0.04;
 /** The shortest body (MIN_STONE_H minus the arch) is this tall; the name box is kept at least this far above the ground. */
 export const NAME_MIN_BOTTOM = 0.02;
 

@@ -123,7 +123,8 @@ test.describe('screenshots to judge by eye', () => {
       await page.waitForTimeout(800);
       const unused = g.stones.find((s) => s.file.unused)!;
       const used = g.stones.find((s) => !s.file.unused && s.layout.height > 1.5) ?? g.stones.find((s) => !s.file.unused)!;
-      for (const [label, stone] of [['unused', unused], ['used', used]] as const) {
+      const mossy = [...g.stones].filter((s) => s.file.decayState !== 'fresh' && !s.file.unused && s.layout.height > 1.2).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0];
+      for (const [label, stone] of [['unused', unused], ['used', used], ...(mossy ? [['overgrown', mossy] as const] : [])] as const) {
         // Straight in front of the stone, a little above its top, close: nothing in the way.
         const { x, z, height } = stone.layout;
         await page.evaluate((p) => window.repoInPeace!.setPose(p), { position: { x, y: height * 0.75 + 0.6, z: z + 2.1 }, target: { x, y: height * 0.7, z } });
