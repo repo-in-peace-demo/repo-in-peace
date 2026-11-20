@@ -267,7 +267,7 @@ Status key: `[x]` done, `[ ]` not started.
     - Signs: only the nearest of overlapping signs (`placeSignsClear`); plaque boards 0.9 × 0.3 at 1.0. The sign fade checks moved to oikos_ledger, because spatialql's three signs cannot fade within the camera limits after task 25.
     - Cracks: a few long branching lines (kept borders of a jittered cell pattern) and a faint red glow over the stone, instead of noise contours that read as rust.
     - Step 4 of task 25 (moonlight rim) was not needed; it stays in `docs/backlog.md`.
-  - [ ] 25.5 **Open, found in the follow-up screenshots:** clearing moss from the whole width of the text band leaves a flat blue-grey stripe across mossy stones (purple on unused ones, under the faint red glow), which reads as a label rather than carving. Clear the moss only round the letters (as the crack glow does with `nearInk`), or keep the band but blend its edges.
+  - [x] 25.5 **Fixed in `d657611`:**  clearing moss from the whole width of the text band leaves a flat blue-grey stripe across mossy stones (purple on unused ones, under the faint red glow), which reads as a label rather than carving. Clear the moss only round the letters (as the crack glow does with `nearInk`), or keep the band but blend its edges. Moss now runs under the letters and only the letters differ from the stone; the atlas is read outside branches, so there is no edge line and no lighter box far away (`f5-` screenshots; `e2e/stones.spec.ts` checks the band against the stone around it). The same commit hides sign labels behind stones (`model/sign-occlusion.ts`) and draws stones at their true height (the shader's arch was still 0.5).
   - _Requirements: 3.6, 3.7_
 
 ---
