@@ -8,7 +8,7 @@
 // ---- Stone height (tombstone-height.ts) ----
 
 /** The height of the smallest stone: a file of 0 or 1 lines. */
-export const MIN_STONE_H = 0.6;
+export const MIN_STONE_H = 0.8; // task 25: 0.6 read as a pebble from the overview
 
 /** The height of the largest stone: a file of LOC_AT_MAX_HEIGHT lines or more. */
 export const MAX_STONE_H = 4.0;
@@ -22,21 +22,21 @@ export const LOC_AT_MAX_HEIGHT = 5000;
 // ---- Stones and cells ----
 
 /** The base of a tombstone slab, along x and along z. */
-export const STONE_W = 1.0;
-export const STONE_D = 0.4;
+export const STONE_W = 1.4; // task 25: 1.0 by 0.4 left most of each cell bare
+export const STONE_D = 0.5;
 
 /**
  * The largest lean any stone can have, in degrees. Only ancient stones lean (visual-params.ts), and
  * never by more than this.
  */
-export const MAX_LEAN_DEG = 10;
+export const MAX_LEAN_DEG = 8; // task 25: from 10, so the reservation for the lean (below) takes less of each cell
 
 /**
  * How far a leaning stone's top can reach beyond its base on the ground, reserved around every stone so that a
- * leaning stone never reaches into a neighbour. It must be at least `MAX_STONE_H * sin(MAX_LEAN_DEG)` (0.69).
+ * leaning stone never reaches into a neighbour. It must be at least `MAX_STONE_H * sin(MAX_LEAN_DEG)` (0.557).
  * The reservation is the same for every stone, whether it leans or not, so the rows stay regular.
  */
-export const LEAN_REACH = 0.7;
+export const LEAN_REACH = 0.56;
 
 /** A cell is the ground one stone (or ghost) reserves: its base plus the reach on every side. */
 export const CELL_W = STONE_W + 2 * LEAN_REACH;
