@@ -1,5 +1,5 @@
 import { DEFAULT_FOV_Y } from './camera-pose';
-import { DEFAULT_ASPECT, ESTABLISHING_ELEVATION_DEG, HORIZON_FROM_TOP, safeEstablishingShot } from './framing';
+import { DEFAULT_ASPECT, ESTABLISHING_ELEVATION_DEG, HORIZON_FROM_TOP, SHOT_MIN_ASPECT, openingShot, safeEstablishingShot } from './framing';
 import { hash01 } from './hash';
 import type { Rect } from './rect';
 import { MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG, MOON_GLOW_ANGULAR_RADIUS_DEG } from './atmosphere';
@@ -58,7 +58,7 @@ export const FOREST_ROW_HAZE: readonly number[] = [0.3, 0.38, 0.46]; // the far 
  * (negative to the left), a little in front of the forest, reaching well above it into the sky.
  */
 export const FRAMING_TREE_AZIMUTHS_DEG: readonly number[] = [-41, -35, 29, 34, 40]; // 29: in view beside the legend panel on a wide screen
-const FRAMING_TREE_TOP_DEG = 6.2;
+const FRAMING_TREE_TOP_DEG = 6.6; // from 6.2 when the ring moved out for narrow windows, so they still rise clear of the pines beside them
 
 /** The clearing under the moon: its treetops are at most this many degrees above the design eye's level (below the horizon). */
 const CLEARING_TOP_DEG = -1.5;
@@ -116,7 +116,17 @@ export function horizonPlan(bounds: Rect): HorizonPlan {
   const radius = Math.hypot(halfW, halfD);
   const gap = HILL_GAP_SHARE * radius + 1;
   const eyeAlong = Math.hypot(eye.x - centre.x, eye.z - centre.z);
-  const ridgeRadius = Math.max(eyeAlong * RIDGE_BEYOND_EYE, (radius + gap) * 1.3);
+  // The ring is beyond the furthest camera of the first frame, Reset view and the opening move, for any window shape the scene is
+  // composed for: the establishing shot at the narrowest shape (SHOT_MIN_ASPECT), which a wide graveyard such as oikos_ledger pulls
+  // far back for, and the opening move's low start, which is never nearer than MIN_SHOT_DISTANCE (further out than the ring of a
+  // tiny graveyard). The look is still composed from the design eye (the default shape): the ridge and the treetops are set by
+  // angles seen from it, so moving the ring out keeps them in place on the screen.
+  const alongOf = (p: Vec3): number => Math.hypot(p.x - centre.x, p.z - centre.z);
+  const furthestAlong = Math.max(
+    eyeAlong,
+    ...[DEFAULT_ASPECT, SHOT_MIN_ASPECT].flatMap((aspect) => [safeEstablishingShot(bounds, DEFAULT_FOV_Y, aspect).pose.position, openingShot(bounds, DEFAULT_FOV_Y, aspect).pose.position]).map(alongOf),
+  );
+  const ridgeRadius = Math.max(furthestAlong * RIDGE_BEYOND_EYE, (radius + gap) * 1.3);
 
   // The ridge straight behind the middle, seen from the eye, is RIDGE_BELOW_HORIZON under the horizon in the frame. In the middle
   // column of the frame a point `beta` degrees above the view axis is at 0.5 + shift - tan(beta) / (2 tan(fov / 2)) from the top,

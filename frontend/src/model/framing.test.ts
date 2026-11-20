@@ -13,6 +13,7 @@ import {
   HORIZON_FROM_TOP,
   MIN_SHOT_DISTANCE,
   OPENING_ELEVATION_DEG,
+  SHOT_MIN_ASPECT,
   blendShots,
   establishingShot,
   horizonInFrame,
@@ -107,14 +108,26 @@ describe('the establishing shot', () => {
     );
   });
 
-  it('has all four corners of the graveyard in the frame, for any graveyard and any window shape, wide or narrow', () => {
+  it('has all four corners of the graveyard in the frame, for any graveyard and any window shape from SHOT_MIN_ASPECT up, wide or narrow', () => {
     fc.assert(
-      fc.property(boundsArb, aspectArb, (b, a) => {
+      fc.property(boundsArb, fc.double({ min: SHOT_MIN_ASPECT, max: 3, noNaN: true }), (b, a) => {
         const { pose, viewShift } = establishingShot(b, FOV, a);
         return cornersOf(b).every((c) => {
           const at = projectToFrame(pose, FOV, a, viewShift, c);
           return at !== null && at.x >= FRAME_MARGIN_X - 1e-9 && at.x <= 1 - FRAME_MARGIN_X + 1e-9 && at.y <= FRAME_BOTTOM + 1e-9 && at.y >= 0 && at.y > HORIZON_FROM_TOP;
         });
+      }),
+    );
+  });
+
+  it('is the shot for SHOT_MIN_ASPECT in a narrower window: it does not pull back further, and only the sides are cropped', () => {
+    fc.assert(
+      fc.property(boundsArb, fc.double({ min: 0.3, max: SHOT_MIN_ASPECT, noNaN: true }), (b, a) => {
+        const shot = establishingShot(b, FOV, a);
+        const at = establishingShot(b, FOV, SHOT_MIN_ASPECT);
+        if (JSON.stringify(shot) !== JSON.stringify(at)) return false;
+        // The near edge is still above the bottom of the frame: the crop is at the sides.
+        return cornersOf(b).every((c) => projectToFrame(shot.pose, FOV, a, shot.viewShift, c)!.y <= FRAME_BOTTOM + 1e-9);
       }),
     );
   });

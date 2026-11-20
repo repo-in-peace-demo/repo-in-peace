@@ -5,7 +5,7 @@ import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { ORBIT_HALF_ANGLE_DEG, ZOOM_OUT_SHARE, sceneCameraLimits } from './camera-bounds';
 import { DEFAULT_FOV_Y, type CameraPose } from './camera-pose';
 import { clampPose } from './fly-controls';
-import { establishingShot, safeEstablishingShot } from './framing';
+import { SHOT_MAX_ASPECT, SHOT_MIN_ASPECT, establishingShot, safeEstablishingShot } from './framing';
 import { forestTrees, horizonPlan, nearTrees } from './horizon';
 import { treesInTheWay } from './tree-sightline';
 import { layout } from './layout';
@@ -39,16 +39,18 @@ describe('sceneCameraLimits', () => {
   it.each(REAL_GRAVEYARDS)('%s: every tree stands outside the region the camera is kept in: the ring\'s trees outside the circle, the nearer trees behind the line', (name) => {
     const b = layout(loadRealGraveyard(name)).bounds;
     const plan = horizonPlan(b);
-    const l = sceneCameraLimits(b, 16 / 9);
-    for (const t of forestTrees(plan)) expect(Math.hypot(t.base.x - plan.centre.x, t.base.z - plan.centre.z)).toBeGreaterThan(l.keepInside!.radius);
-    for (const t of nearTrees(plan)) expect(t.base.z).toBeLessThan(l.minZ!);
+    // For every window shape the scene is composed for: the limits (the circle grows with the establishing shot) stay inside the trees.
+    for (const aspect of [SHOT_MIN_ASPECT, 1200 / 1450, 1, 16 / 9, SHOT_MAX_ASPECT]) {
+      const l = sceneCameraLimits(b, aspect);
+      for (const t of forestTrees(plan)) expect(Math.hypot(t.base.x - plan.centre.x, t.base.z - plan.centre.z)).toBeGreaterThan(l.keepInside!.radius);
+      for (const t of nearTrees(plan)) expect(t.base.z).toBeLessThan(l.minZ!);
+    }
   });
 
   it.each(REAL_GRAVEYARDS)('%s: wherever the mouse, the keys or a flight take the camera, it never reaches a tree, never gets behind one, and no tree is between it and the graveyard', (name) => {
     const b = layout(loadRealGraveyard(name)).bounds;
     const plan = horizonPlan(b);
     const trees = [...forestTrees(plan), ...nearTrees(plan)];
-    const l = sceneCameraLimits(b, 16 / 9);
     const span = plan.ridgeRadius * 4;
     const coord = (c: number) => fc.double({ min: c - span, max: c + span, noNaN: true });
     const pose: fc.Arbitrary<CameraPose> = fc.record({
@@ -56,7 +58,8 @@ describe('sceneCameraLimits', () => {
       target: fc.record({ x: coord(plan.centre.x), y: fc.double({ min: -10, max: 20, noNaN: true }), z: coord(plan.centre.z) }),
     });
     fc.assert(
-      fc.property(pose, (p) => {
+      fc.property(pose, fc.double({ min: SHOT_MIN_ASPECT, max: SHOT_MAX_ASPECT, noNaN: true }), (p, aspect) => {
+        const l = sceneCameraLimits(b, aspect);
         const clamped = clampPose(p, l);
         const { position } = clampPose(p, l);
         // Never round to the sides or the back: within ORBIT_HALF_ANGLE_DEG of the establishing shot's direction (+z, the front).

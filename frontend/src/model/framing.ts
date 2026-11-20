@@ -43,6 +43,16 @@ export const MIN_SHOT_DISTANCE = 20;
 /** The shape of the window to compose for when it is not known (the tests and the model's own start pose). */
 export const DEFAULT_ASPECT = 1.6;
 
+/**
+ * The window shapes the scene is composed for, width over height: from a tall window (a laptop with DevTools docked at the side, or
+ * a portrait screen) to an ultra-wide one. Within them the whole graveyard is in the establishing shot and the trees stand beyond
+ * the furthest camera (`horizonPlan` plans the forest for the shot at SHOT_MIN_ASPECT, the one that stands furthest back; wider
+ * windows than about 1.6 are limited by the height, so they stand where 1.6 does). A window narrower than SHOT_MIN_ASPECT gets the
+ * shot for SHOT_MIN_ASPECT, so the camera never pulls back past the trees, and the sides of the graveyard are cropped a little.
+ */
+export const SHOT_MIN_ASPECT = 0.75;
+export const SHOT_MAX_ASPECT = 2.4;
+
 /** The opening move starts this many degrees above the horizontal, seen from the front of the graveyard: close to eye level. */
 export const OPENING_ELEVATION_DEG = 10;
 
@@ -109,15 +119,18 @@ const corners = (bounds: Rect): Vec3[] => [
 
 const centreOf = (bounds: Rect): Vec3 => vec3(bounds.x + bounds.w / 2, 0, bounds.z + bounds.d / 2);
 
-/** The establishing shot for a graveyard with these bounds, a camera with this vertical field of view, and a window of this shape (width over height). */
+/** The establishing shot for a graveyard with these bounds, a camera with this vertical field of view, and a window of this shape (width over height; composed for at least SHOT_MIN_ASPECT). */
 export function establishingShot(bounds: Rect, fovY: number, aspect: number = DEFAULT_ASPECT): Shot {
   const target = centreOf(bounds);
   const direction = normalize(vec3(0, Math.tan(ESTABLISHING_ELEVATION_DEG * RAD), 1)); // toward the camera from the middle: in front, and up
   const shift = shiftForHorizon(fovY, ESTABLISHING_ELEVATION_DEG);
+  // Composed for SHOT_MIN_ASPECT at the narrowest: a narrower window is cropped at the sides instead of pulling back past the trees.
+  // (A shape that is not a positive number is left as it is, so the search still fails for it and the caller falls back.)
+  const fitAspect = aspect > 0 ? Math.max(aspect, SHOT_MIN_ASPECT) : aspect;
   const poseAt = (distance: number): CameraPose => ({ position: add(target, scale(direction, distance)), target });
   const fits = (distance: number): boolean =>
     corners(bounds).every((corner) => {
-      const at = projectToFrame(poseAt(distance), fovY, aspect, shift, corner);
+      const at = projectToFrame(poseAt(distance), fovY, fitAspect, shift, corner);
       return at !== null && at.x >= FRAME_MARGIN_X && at.x <= 1 - FRAME_MARGIN_X && at.y <= FRAME_BOTTOM;
     });
 

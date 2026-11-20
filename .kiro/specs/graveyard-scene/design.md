@@ -497,3 +497,8 @@ Because rendering is not unit-tested, the tasks end with a short checklist for y
 | `SIGN_MINOR_FAR_SCALE` | 0.55 (from 0.7) | `model/signs.ts` | the smallest folders' labels are gone by about 22 units instead of 28; majors (share 0.1 and up) unchanged, and the scale still rises with the area, so a larger plot's label is never hidden while a smaller sibling's shows |
 
 Input: the wheel zooms toward the pointer; a double-click on a stone or ghost flies to it (`flyTo`); a double-click anywhere else calls `resetView`.
+
+### Window shapes (task 28 fixes)
+
+The scene is composed for windows from `SHOT_MIN_ASPECT` 0.75 to `SHOT_MAX_ASPECT` 2.4 wide to tall (`model/framing.ts`). A narrow window's establishing shot stands further back (it is limited by the width), so `horizonPlan` puts the ring of trees beyond the furthest camera of the first frame, Reset view and the opening move over that range: the establishing shot at 0.75 and the opening shot, whose start is never nearer than `MIN_SHOT_DISTANCE`. The look is still composed from the design eye at 1.6 (ridge and treetops are set by angles seen from it), so the default view keeps its composition; the framing trees' tops went from 6.2 to 6.6 degrees to stay clear of the pines beside them. A window narrower than 0.75 gets the shot for 0.75 and is cropped at the sides. `model/tree-placement.property.test.ts` checks, for both files and any graveyard size, at every shape in the range: no tree between the camera and the graveyard, the camera inside the ring, and no tree in the frame nearer than the front fence (`treeProblems` in `model/tree-sightline.ts`); `e2e/trees.spec.ts` checks the same at 1200 × 1450 and 900 × 1200.
+

@@ -5,7 +5,8 @@ import type { Graveyard } from '@shared/graveyard-schema';
 import type { CameraPose } from '../src/model/camera-pose';
 import { forestTrees, horizonPlan, nearTrees } from '../src/model/horizon';
 import { buildSceneModel } from '../src/model/scene-model';
-import { treesInTheWay } from '../src/model/tree-sightline';
+import { DEFAULT_FOV_Y } from '../src/model/camera-pose';
+import { treeProblems, treesInTheWay } from '../src/model/tree-sightline';
 
 /**
  * The camera can never get past the trees around the graveyard, in the real app: zoom out as far as the wheel goes and fly back
@@ -65,4 +66,43 @@ for (const name of ['demo.oikosledger', 'demo.spatialql']) {
       await check(`orbited to ${label} and flown sideways`);
     }
   });
+}
+
+/**
+ * Narrow windows (a laptop with DevTools docked at the side, a portrait screen): the establishing shot stands further back there, and
+ * the trees are planned beyond it. From the first frame, zoomed out fully, and during and after Reset view, no tree is between the
+ * camera and the graveyard, the camera is inside the ring of trees, and no tree shows in the frame nearer than the front fence.
+ */
+for (const [width, height] of [[1200, 1450], [900, 1200]] as const) {
+  for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+    test(`${name} at ${width} × ${height}: the first frame, zooming out and Reset view keep every tree beyond the camera and out of the way`, async ({ page }) => {
+      const graveyard = JSON.parse(readFileSync(fileURLToPath(new URL(`../public/graveyards/${name}.graveyard.json`, import.meta.url)), 'utf8')) as Graveyard;
+      const bounds = buildSceneModel(graveyard).layout.bounds;
+      const plan = horizonPlan(bounds);
+      const ring = forestTrees(plan);
+      const trees = [...ring, ...nearTrees(plan)];
+      await page.setViewportSize({ width, height });
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      const check = async (what: string): Promise<void> => {
+        const p = await pose(page);
+        const viewShift = await page.evaluate(() => window.repoInPeace!.getViewShift());
+        expect(treeProblems(bounds, trees, ring, { pose: p, viewShift }, width / height, DEFAULT_FOV_Y), `${what}: camera at ${JSON.stringify(p.position)}`).toEqual([]);
+      };
+      await check('the first frame');
+      await zoomOutFully(page);
+      await check('zoomed out fully');
+      await hold(page, ['Shift', 'KeyS'], 3000);
+      await check('then flown back');
+      // Reset view: during the flight back and at its end.
+      await page.keyboard.press('Home');
+      for (let i = 0; i < 6; i++) {
+        await page.waitForTimeout(250);
+        await check(`Reset view, ${(i + 1) * 250} ms in`);
+      }
+      await page.waitForTimeout(800);
+      await check('after Reset view');
+    });
+  }
 }
