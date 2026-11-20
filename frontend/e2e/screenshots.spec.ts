@@ -41,6 +41,18 @@ test.describe('screenshots to judge by eye', () => {
       await page.evaluate((p) => window.repoInPeace!.flyTo(p), front.file.path);
       await page.waitForTimeout(1700);
       await page.screenshot({ path: `${OUT}${tag}-${name}-close.png` });
+      // Orbited as far to the side as the camera goes (the limit), from the opening view: the side trees and the stones' sides.
+      await page.evaluate(() => window.repoInPeace!.resetView());
+      await page.waitForTimeout(1600);
+      for (let i = 0; i < 4; i++) {
+        await page.mouse.move(640, 360);
+        await page.mouse.down();
+        await page.mouse.move(1250, 360, { steps: 15 });
+        await page.mouse.up();
+      }
+      await page.mouse.move(640, 10);
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: `${OUT}${tag}-${name}-side.png` });
       console.log(`${name}: ${OUT}${tag}-${name}-*.png`);
     });
   }

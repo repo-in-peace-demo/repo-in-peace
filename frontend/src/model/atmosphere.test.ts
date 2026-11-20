@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { graveyardArb } from '../../test/arbitraries';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import {
+  AMBIENT_INTENSITY,
   FOG_COLOR,
   FOG_K,
   FOG_MIN_RADIUS,
@@ -175,5 +176,13 @@ describe('the fog', () => {
         return fogVisibility(Math.max(farthestEdge, 0) , fogDensity(r)) < 0.05 && maxCameraDistance(r) >= 100;
       }),
     );
+  });
+});
+
+describe('the fill light', () => {
+  it('is a little, even light: weaker than the sky light and the moonlight, but there, so no face of a stone is pitch black', () => {
+    expect(AMBIENT_INTENSITY).toBeGreaterThan(0.2);
+    expect(AMBIENT_INTENSITY).toBeLessThan(HEMISPHERE_INTENSITY);
+    expect(AMBIENT_INTENSITY).toBeLessThan(MOONLIGHT_INTENSITY);
   });
 });

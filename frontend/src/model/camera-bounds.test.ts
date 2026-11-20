@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { graveyardArb } from '../../test/arbitraries';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
-import { ZOOM_OUT_SHARE, sceneCameraLimits } from './camera-bounds';
+import { ORBIT_HALF_ANGLE_DEG, ZOOM_OUT_SHARE, sceneCameraLimits } from './camera-bounds';
 import { DEFAULT_FOV_Y, type CameraPose } from './camera-pose';
 import { clampPose } from './fly-controls';
 import { establishingShot, safeEstablishingShot } from './framing';
@@ -57,7 +57,12 @@ describe('sceneCameraLimits', () => {
     });
     fc.assert(
       fc.property(pose, (p) => {
+        const clamped = clampPose(p, l);
         const { position } = clampPose(p, l);
+        // Never round to the sides or the back: within ORBIT_HALF_ANGLE_DEG of the establishing shot's direction (+z, the front).
+        const ox = clamped.position.x - clamped.target.x;
+        const oz = clamped.position.z - clamped.target.z;
+        if (Math.hypot(ox, oz) > 1e-6 && Math.abs((Math.atan2(ox, oz) * 180) / Math.PI) > ORBIT_HALF_ANGLE_DEG + 1e-6) return false;
         // Inside the ring of trees, and in front of the trees behind the back fence: every tree stands outside that region.
         const inside = Math.hypot(position.x - plan.centre.x, position.z - plan.centre.z) <= l.keepInside!.radius + 1e-9 && position.z >= l.minZ! - 1e-9;
         return inside && treesInTheWay(position, b, trees).length === 0;

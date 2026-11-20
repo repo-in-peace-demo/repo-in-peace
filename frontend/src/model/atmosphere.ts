@@ -46,6 +46,14 @@ export const MOONLIGHT_INTENSITY = 1.6;
 export const HEMISPHERE_INTENSITY = 0.95;
 
 /**
+ * A little even fill light from every side (the night sky's glow scattered about), so the backs and sides of the stones, which
+ * neither the moonlight nor the sky light reaches much, are dim rather than pitch black. Small, so the moonlit faces still read
+ * clearly brighter.
+ */
+export const AMBIENT_COLOR = '#5a6a90';
+export const AMBIENT_INTENSITY = 0.45;
+
+/**
  * Where the moonlight comes from: from high up in front of the opening camera and to the left (+z is toward the camera, which
  * looks toward -z), so that the faces of the stones that the opening view sees are lit and their moss, cracks and candles can be
  * read. The moon in the sky is drawn elsewhere (MOON_DIRECTION, behind the graveyard, where it is seen when looking along the

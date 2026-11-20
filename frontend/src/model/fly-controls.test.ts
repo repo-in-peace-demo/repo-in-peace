@@ -8,6 +8,7 @@ import {
   MIN_CAMERA_HEIGHT,
   MIN_TILT_DEG,
   WANDER_MARGIN_SHARE,
+  AZIMUTH_OVERHEAD,
   boundsRadius,
   cameraLimits,
   clampPose,
@@ -474,7 +475,12 @@ describe('clampPose for any pose', () => {
     fc.assert(
       fc.property(anyPose, limitsArb, (pose, l) => {
         const next = clampPose(pose, l);
-        const together = Math.hypot(next.position.x - next.target.x, next.position.y - next.target.y, next.position.z - next.target.z) < 1e-9; // no direction to measure
+        // No direction to measure: the camera is on its look-at point, or so nearly above it that the rounding of the coordinates
+        // is a large part of the offset.
+        const scaleOf = 1 + Math.abs(next.target.x) + Math.abs(next.target.y) + Math.abs(next.target.z);
+        const together =
+          Math.hypot(next.position.x - next.target.x, next.position.y - next.target.y, next.position.z - next.target.z) < 1e-9 ||
+          Math.hypot(next.position.x - next.target.x, next.position.z - next.target.z) <= AZIMUTH_OVERHEAD * scaleOf;
         return l.minTiltDeg === 0 || together || elevationDeg(next) >= l.minTiltDeg - 1e-7;
       }),
       { numRuns: 500 },
@@ -561,8 +567,11 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
       lineShare: fc.double({ min: 0.5, max: 1.4, noNaN: true }),
       maxDistance: fc.double({ min: 5, max: 1500, noNaN: true }),
       minTiltDeg: fc.oneof(fc.constant(0), fc.constant(20)),
+      refAngle: fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
+      maxDeg: fc.oneof(fc.constant(50), fc.double({ min: 5, max: 170, noNaN: true })),
+      withAzimuth: fc.boolean(),
     })
-    .map(({ half, ring, lineShare, maxDistance, minTiltDeg }) => ({
+    .map(({ half, ring, lineShare, maxDistance, minTiltDeg, refAngle, maxDeg, withAzimuth }) => ({
       area: { x: -half, z: -half, w: 2 * half, d: 2 * half },
       minCameraHeight: 1,
       maxCameraHeight: 2000,
@@ -571,7 +580,16 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
       maxDistance,
       keepInside: { x: 0, z: 0, radius: half * ring },
       minZ: -half * Math.min(lineShare, ring * 0.99),
+      ...(withAzimuth ? { azimuth: { x: Math.sin(refAngle), z: Math.cos(refAngle), maxDeg } } : {}),
     }));
+  /** The camera's angle around its look-at point from the reference direction, in degrees, or null when it is right above it. */
+  const azimuthOff = (p: CameraPose, a: { x: number; z: number }): number | null => {
+    const ox = p.position.x - p.target.x;
+    const oz = p.position.z - p.target.z;
+    if (Math.hypot(ox, oz) <= AZIMUTH_OVERHEAD * (1 + Math.abs(p.target.x) + Math.abs(p.target.z))) return null; // right above it
+    const d = Math.atan2(ox, oz) - Math.atan2(a.x, a.z);
+    return Math.abs((Math.atan2(Math.sin(d), Math.cos(d)) * 180) / Math.PI);
+  };
   const anyPose: fc.Arbitrary<CameraPose> = fc.record({
     position: fc.record({ x: coord(3000), y: coord(1500), z: coord(3000) }),
     target: fc.record({ x: coord(3000), y: coord(1500), z: coord(3000) }),
@@ -591,7 +609,7 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
     );
     fc.assert(
       fc.property(slid, ({ l, pose }) => {
-        const next = clampPose(pose, { ...l, maxDistance: undefined, minZ: undefined, minTiltDeg: 0 }, 'slide');
+        const next = clampPose(pose, { ...l, maxDistance: undefined, minZ: undefined, minTiltDeg: 0, azimuth: undefined }, 'slide');
         const before = sub(pose.position, pose.target);
         const after = sub(next.position, next.target);
         const moved = next.target.x !== pose.target.x || next.target.z !== pose.target.z;
@@ -599,6 +617,37 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
         return !moved || (Math.abs(after.x - before.x) < 1e-6 && Math.abs(after.y - before.y) < 1e-6 && Math.abs(after.z - before.z) < 1e-6);
       }),
       { numRuns: 500 },
+    );
+  });
+
+  it('P-clamp-8: the camera stays within the orbit angle of the reference direction', () => {
+    fc.assert(
+      fc.property(anyPose, extrasArb, modeArb, (pose, l, mode) => {
+        const off = l.azimuth ? azimuthOff(clampPose(pose, l, mode), l.azimuth) : null;
+        return off === null || off <= l.azimuth!.maxDeg + 1e-6;
+      }),
+      { numRuns: 800 },
+    );
+  });
+
+  it('P-clamp-8b: turning the camera back within the angle keeps its look-at point, its distance and its height, so its tilt', () => {
+    const wide = { area: { x: -1e6, z: -1e6, w: 2e6, d: 2e6 }, minCameraHeight: -1e6, maxCameraHeight: 1e6, maxTargetHeight: 1e6, minTiltDeg: 0 };
+    fc.assert(
+      fc.property(
+        fc.record({ x: coord(3000), y: coord(1500), z: coord(3000) }),
+        fc.record({ x: coord(3000), y: fc.double({ min: 0, max: 1000, noNaN: true }), z: coord(3000) }),
+        fc.double({ min: -Math.PI, max: Math.PI, noNaN: true }),
+        fc.double({ min: 5, max: 170, noNaN: true }),
+        (position, target, ref, maxDeg) => {
+          const pose = { position, target } as CameraPose;
+          const next = clampPose(pose, { ...wide, azimuth: { x: Math.sin(ref), z: Math.cos(ref), maxDeg } });
+          const dist = (p: CameraPose) => Math.hypot(p.position.x - p.target.x, p.position.y - p.target.y, p.position.z - p.target.z);
+          return next.target === pose.target || (next.target.x === target.x && next.target.y === target.y && next.target.z === target.z)
+            ? next.position.y === position.y && Math.abs(dist(next) - dist(pose)) <= 1e-6 * Math.max(1, dist(pose))
+            : false;
+        },
+      ),
+      { numRuns: 800 },
     );
   });
 
@@ -626,7 +675,7 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
         expect(clampPose(once, l, mode)).toEqual(once);
         const along = Math.hypot(once.position.x - once.target.x, once.position.z - once.target.z);
         const up = once.position.y - once.target.y;
-        if (l.minTiltDeg > 0 && Math.hypot(along, up) > 1e-6 && once.position.y < l.maxCameraHeight) {
+        if (l.minTiltDeg > 0 && along > AZIMUTH_OVERHEAD * (1 + Math.abs(once.target.x) + Math.abs(once.target.z)) && Math.hypot(along, up) > 1e-6 && once.position.y < l.maxCameraHeight) {
           expect((Math.atan2(up, along) * 180) / Math.PI).toBeGreaterThanOrEqual(l.minTiltDeg - 1e-6);
         }
       }),

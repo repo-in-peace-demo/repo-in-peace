@@ -5,6 +5,9 @@ import { forestMesh, forestTrees, hazeRingMesh, horizonPlan, nearTrees } from '.
 import type { SceneModel } from '../model/scene-model';
 import { noRaycast } from './instances';
 
+/** The trees fade into the haze this many times as fast as the scene's fog: a little more than the stones (aerial perspective). */
+const TREE_FOG_FACTOR = 1.5;
+
 /**
  * What stands around the graveyard (`model/horizon.ts`), on the flat ground: the far forest in a ring, with a clearing under the
  * moon; a nearer layer of trees behind the back fence; the bare trees that frame the view; and a pale haze at the far forest's foot.
@@ -74,7 +77,7 @@ void main() {
     const forestMaterial = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.merge([
         THREE.UniformsLib.fog,
-        { uColor: { value: new THREE.Color(FOREST_COLOR) }, uEdge: { value: new THREE.Color(FOREST_EDGE_COLOR) }, uHaze: { value: hazeColour } },
+        { uColor: { value: new THREE.Color(FOREST_COLOR) }, uEdge: { value: new THREE.Color(FOREST_EDGE_COLOR) } },
       ]),
       vertexShader: /* glsl */ `
 attribute float aUp;
@@ -93,20 +96,26 @@ void main() {
   #include <fog_vertex>
 }`,
       fragmentShader: /* glsl */ `
+#define TREE_FOG ${TREE_FOG_FACTOR.toFixed(3)}
 uniform vec3 uColor;
 uniform vec3 uEdge;
-uniform vec3 uHaze;
 varying float vUp;
 varying float vMoonward;
 varying float vHaze;
 #include <fog_pars_fragment>
 void main() {
+  // Dark, a touch lighter on the trees that face the moon, with a faint moonlit edge along the tops.
   float edge = smoothstep(0.9, 1.0, vUp) * (0.25 + 0.75 * vMoonward);
-  vec3 colour = mix(uColor, uEdge, edge * 0.4);
-  colour = mix(colour, uHaze * 0.22, vHaze);
+  vec3 colour = uColor * (1.0 + 0.8 * vMoonward);
+  colour = mix(colour, uEdge, edge * 0.4);
   gl_FragColor = vec4(colour, 1.0);
   #include <colorspace_fragment>
-  #include <fog_fragment>
+#ifdef USE_FOG
+  // Into the haze with distance, like everything else but a little more (aerial perspective): the scene's own fog, 1.5 times as
+  // thick for the trees, toward the fog's colour (the sky at the horizon). A tree's own haze (its row) only adds a little to it.
+  float far = 1.0 - exp(-pow(fogDensity * TREE_FOG * vFogDepth, 2.0));
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, clamp(far + vHaze * 0.3 * (1.0 - far), 0.0, 1.0));
+#endif
 }`,
       side: THREE.DoubleSide,
       fog: true,

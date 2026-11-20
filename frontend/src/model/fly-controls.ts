@@ -79,6 +79,11 @@ export interface CameraLimits {
   keepInside?: { x: number; z: number; radius: number };
   /** The camera and its look-at point stay at or in front of this line, z at least this (in front of the trees behind the back fence). */
   minZ?: number;
+  /**
+   * The camera stays within `maxDeg` degrees, around its look-at point, of this direction on the ground (the establishing shot's,
+   * from the look-at point toward the camera): it cannot swing round to the sides or the back.
+   */
+  azimuth?: { x: number; z: number; maxDeg: number };
 }
 
 /** The limits for a graveyard with these bounds. */
@@ -104,8 +109,9 @@ const clamp = (value: number, low: number, high: number): number => Math.min(hig
  * - The look-at point's height is held between 0 and `maxTargetHeight`. The camera does not move for this, so a
  *   camera that keeps rising tilts down onto the graveyard.
  * - The camera's height is held between `minCameraHeight` and `maxCameraHeight`.
- * - With the scene's extra limits: the look-at point and the camera are brought in front of `minZ` and inside `keepInside`
- *   (the look-at point's move carries the camera with it, like the area's).
+ * - With the scene's extra limits: the look-at point is brought in front of `minZ` and inside `keepInside` (carrying the camera
+ *   with it, like the area's); the camera is turned around it to within `azimuth`; and the camera is brought in front of `minZ`
+ *   and inside `keepInside`, straight toward its look-at point ('pull') or together with it ('slide').
  * - The camera is held at least `minTiltDeg` above the horizontal, seen from the look-at point: if it is lower, it is lifted
  *   (the stronger of this and the floor wins). If the ceiling would stop the lift, the camera is brought nearer to the look-at
  *   point along the ground instead, to where the angle is just right at the ceiling.
@@ -128,13 +134,13 @@ export function clampPose(pose: CameraPose, limits: CameraLimits, mode: ClampMod
   const cz = dz === 0 ? pose.position.z : pose.position.z + dz;
   let cx2 = cx;
   let cz2 = cz;
+  // Around the look-at point, back within the allowed angle of the reference direction: the distance and the height stay, so the
+  // tilt does too. Every later step moves the camera straight toward its look-at point or moves both together, so the angle stays.
+  if (limits.azimuth) [cx2, cz2] = intoAzimuth(cx2, cz2, tx2, tz2, limits.azimuth);
   let cy = clamp(pose.position.y, limits.minCameraHeight, limits.maxCameraHeight);
-  // The camera into the half-plane and the circle. Both hold the look-at point, and bringing a point into a convex region never
-  // takes it further from a point inside it, so the camera only comes nearer its look-at point here and the tilt only grows.
-  let px = cx2;
-  let pz = cz2;
-  if (limits.minZ !== undefined && pz < limits.minZ) pz = limits.minZ;
-  if (limits.keepInside) [px, pz] = intoCircle(px, pz, limits.keepInside);
+  // The camera into the half-plane and the circle, straight toward its look-at point (which is inside both, so there is a place on
+  // the way): its direction around the look-at point stays, it only comes nearer, and the tilt only grows.
+  const [px, pz] = towardTargetInside(cx2, cz2, tx2, tz2, limits);
   if (px !== cx2 || pz !== cz2) {
     // 'slide' (the camera and its look-at point moved together: a pan or a flight): stop both, by the same amount, so the view
     // slides to a stop and its direction does not change, as long as the look-at point stays where it may be. Otherwise ('pull',
@@ -213,6 +219,50 @@ function targetAllowed(x: number, z: number, limits: CameraLimits): boolean {
   if (limits.minZ !== undefined && z < limits.minZ) return false;
   if (limits.keepInside && Math.hypot(x - limits.keepInside.x, z - limits.keepInside.z) > limits.keepInside.radius) return false;
   return true;
+}
+
+/** A camera this close to straight above its look-at point (as a share of the size of the coordinates) has no direction around it. */
+export const AZIMUTH_OVERHEAD = 1e-6;
+
+/** The camera's position on the ground, turned around the look-at point to within `maxDeg` of the reference direction. */
+function intoAzimuth(cx: number, cz: number, tx: number, tz: number, a: { x: number; z: number; maxDeg: number }): [number, number] {
+  const ox = cx - tx;
+  const oz = cz - tz;
+  const along = Math.hypot(ox, oz);
+  // Right above the look-at point, up to rounding: there is no direction around it to limit.
+  if (along <= AZIMUTH_OVERHEAD * (1 + Math.abs(tx) + Math.abs(tz))) return [cx, cz];
+  const ref = Math.atan2(a.x, a.z);
+  let angle = Math.atan2(ox, oz) - ref;
+  angle = Math.atan2(Math.sin(angle), Math.cos(angle)); // -pi to pi
+  const max = (a.maxDeg * Math.PI) / 180;
+  if (Math.abs(angle) <= max) return [cx, cz];
+  const to = ref + Math.sign(angle) * max * (1 - 1e-9);
+  return [tx + Math.sin(to) * along, tz + Math.cos(to) * along];
+}
+
+/**
+ * The camera brought straight toward its look-at point until it is in front of `minZ` and inside `keepInside` (left alone when it
+ * is). The look-at point is in both, so the nearest such place on the way exists.
+ */
+function towardTargetInside(cx: number, cz: number, tx: number, tz: number, limits: CameraLimits): [number, number] {
+  const ox = cx - tx;
+  const oz = cz - tz;
+  let k = 1;
+  if (limits.minZ !== undefined && cz < limits.minZ && oz < 0) k = Math.min(k, (tz - limits.minZ) / -oz);
+  const c = limits.keepInside;
+  if (c && Math.hypot(cx - c.x, cz - c.z) > c.radius) {
+    // |t - c + k o| = r: a k² + b k + q = 0, with q < 0 (the look-at point is inside), so one root in (0, 1).
+    const qx = tx - c.x;
+    const qz = tz - c.z;
+    const a = ox * ox + oz * oz;
+    const b = 2 * (qx * ox + qz * oz);
+    const q = qx * qx + qz * qz - c.radius * c.radius;
+    const root = a > 0 ? (-b + Math.sqrt(Math.max(0, b * b - 4 * a * q))) / (2 * a) : 0;
+    k = Math.min(k, Math.max(0, root));
+  }
+  if (k >= 1) return [cx, cz];
+  k *= 1 - 1e-12;
+  return [tx + ox * k, tz + oz * k];
 }
 
 /** A point on the ground brought just inside a circle (left alone when it is inside). */

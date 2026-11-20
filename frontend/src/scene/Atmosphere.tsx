@@ -2,6 +2,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
+  AMBIENT_COLOR,
+  AMBIENT_INTENSITY,
   CLOUD_COLOR,
   FOG_COLOR,
   HEMISPHERE_GROUND_COLOR,
@@ -27,7 +29,7 @@ import { animationTime } from './animation-clock';
 
 /**
  * The night (requirement 6): a dark sky with a gradient, about 900 stars, a moon with a soft glow, moonlight (one directional
- * light, no shadows), a dim light from the sky, and exponential fog that hides the far edge of the ground. The sky, the stars
+ * light, no shadows), a dim light from the sky and a little even fill (so the backs of stones are dim, not black), and exponential fog that hides the far edge of the ground. The sky, the stars
  * and the moon are drawn around the camera, first, without depth, so they are always behind everything and always far away: three
  * draw calls. Nothing here depends on a file's facts; the only thing taken from the data file is the size of the graveyard, for the fog.
  */
@@ -240,6 +242,7 @@ export function Atmosphere({ model }: { model: SceneModel }) {
     <>
       <fogExp2 attach="fog" args={[FOG_COLOR, density]} />
       <hemisphereLight args={[HEMISPHERE_SKY_COLOR, HEMISPHERE_GROUND_COLOR, HEMISPHERE_INTENSITY]} />
+      <ambientLight args={[AMBIENT_COLOR, AMBIENT_INTENSITY]} />
       <directionalLight position={[MOONLIGHT_DIRECTION.x * 100, MOONLIGHT_DIRECTION.y * 100, MOONLIGHT_DIRECTION.z * 100]} intensity={MOONLIGHT_INTENSITY} color={MOONLIGHT_COLOR} />
       <group ref={group}>
         <mesh geometry={assets.skyGeometry} material={assets.skyMaterial} renderOrder={-30} frustumCulled={false} raycast={() => undefined} />

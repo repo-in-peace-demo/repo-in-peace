@@ -161,4 +161,24 @@ test.describe('camera limits, in the real app', () => {
       .toBeLessThan(0.5);
     expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toBeNull();
   });
+
+  test('7. orbiting round as far as the mouse goes, both ways, stops within 50 degrees of the opening direction: never round to the sides or back', async ({ page }) => {
+    await openApp(page);
+    const offFront = (p: CameraPose): number => {
+      const k = limits.azimuth!;
+      const d = Math.atan2(p.position.x - p.target.x, p.position.z - p.target.z) - Math.atan2(k.x, k.z);
+      return Math.abs((Math.atan2(Math.sin(d), Math.cos(d)) * 180) / Math.PI);
+    };
+    expect(limits.azimuth!.maxDeg).toBe(50);
+    for (const [label, to] of [['right', 1250], ['left', 30]] as const) {
+      for (let i = 0; i < 4; i++) await drag(page, [640, 360], [to, 360], 'left'); // a long orbit, four times over
+      await page.waitForTimeout(700);
+      const p = await pose(page);
+      expect(offFront(p), `orbited to the ${label}: ${JSON.stringify(p)}`).toBeLessThanOrEqual(50 + 0.5);
+      expect(offFront(p), `orbited to the ${label}: it should have reached the limit`).toBeGreaterThan(45);
+      // And flying from there keeps it inside too.
+      await hold(page, ['Shift', 'KeyS'], 1500);
+      expect(offFront(await pose(page)), `flown back after orbiting to the ${label}`).toBeLessThanOrEqual(50 + 0.5);
+    }
+  });
 });
