@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { placeSigns } from './sign-placement';
+import { placeSigns, placeSignsClear, signBox, SIGN_TOUCH_GAP_PX } from './sign-placement';
 import { SIGN_MAX_VISIBLE, type VisibleSign } from './signs';
 
 const sign = (path: string, opacity = 1): VisibleSign => ({ path, label: `label ${path}`, opacity });
@@ -49,6 +49,52 @@ describe('placeSigns', () => {
           return placed.length === expectedCount && placed.every((p, i) => p.slot === i);
         },
       ),
+    );
+  });
+});
+
+describe('placeSignsClear: only the nearest of signs that overlap on screen', () => {
+  it('keeps the nearer sign and drops the one whose text overlaps it', () => {
+    const where: Record<string, { x: number; y: number }> = { near: { x: 100, y: 100 }, far: { x: 110, y: 104 }, apart: { x: 600, y: 100 } };
+    const placed = placeSignsClear([sign('near'), sign('far'), sign('apart')], (p) => where[p]!);
+    expect(placed.map((p) => p.label)).toEqual(['label near', 'label apart']);
+    expect(placed.map((p) => p.slot)).toEqual([0, 1]);
+  });
+
+  it('keeps both when their texts are clear of each other', () => {
+    const placed = placeSignsClear([sign('a'), sign('b')], (p) => (p === 'a' ? { x: 100, y: 100 } : { x: 100, y: 100 + 20 + SIGN_TOUCH_GAP_PX + 1 }));
+    expect(placed).toHaveLength(2);
+  });
+
+  it('keeps the signs below the pool size, with slots 0 to n-1', () => {
+    const many = Array.from({ length: 50 }, (_, i) => sign(`p${i}`));
+    const placed = placeSignsClear(many, (p) => ({ x: Number(p.slice(1)) * 400, y: 100 }), 10);
+    expect(placed).toHaveLength(10);
+    expect(placed.map((p) => p.slot)).toEqual([...Array(10).keys()]);
+  });
+
+  it('for any signs: no two placed signs overlap, the first projectable sign is placed, and every dropped sign touches one placed before it', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({ x: fc.integer({ min: 0, max: 600 }), y: fc.integer({ min: 0, max: 300 }), name: fc.string({ minLength: 1, maxLength: 20 }), projectable: fc.boolean() }), { maxLength: 40 }),
+        (items) => {
+          const visible: VisibleSign[] = items.map((it, i) => ({ path: `p${i}`, label: it.name, opacity: 1 }));
+          const project = (path: string) => {
+            const it = items[Number(path.slice(1))]!;
+            return it.projectable ? { x: it.x, y: it.y } : null;
+          };
+          const placed = placeSignsClear(visible, project, 100);
+          const box = (p: { label: string; x: number; y: number }) => signBox(p.label, p.x, p.y);
+          const overlap = (a: ReturnType<typeof signBox>, b: ReturnType<typeof signBox>) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
+          for (let i = 0; i < placed.length; i++) for (let j = i + 1; j < placed.length; j++) if (overlap(box(placed[i]!), box(placed[j]!))) return false;
+          const firstProjectable = items.findIndex((it) => it.projectable);
+          if (firstProjectable >= 0 && !placed.some((p) => p.label === items[firstProjectable]!.name && p.x === items[firstProjectable]!.x && p.y === items[firstProjectable]!.y)) return false;
+          if (firstProjectable < 0 && placed.length !== 0) return false;
+          // Without any overlap among the projectable signs, nothing is dropped.
+          return placed.length <= items.filter((it) => it.projectable).length;
+        },
+      ),
+      { numRuns: 200 },
     );
   });
 });

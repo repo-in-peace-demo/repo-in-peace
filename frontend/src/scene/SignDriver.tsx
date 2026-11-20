@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
-import { placeSigns } from '../model/sign-placement';
+import { placeSignsClear } from '../model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../model/signs';
 import { sameView, type ViewSignature } from '../model/view-signature';
 import { vec3 } from '../model/vec3';
@@ -10,7 +10,7 @@ import { vec3 } from '../model/vec3';
 /**
  * Keeps the pool of sign elements (ui/SignLayer.tsx) up to date. Each frame it only compares the camera with the last
  * one it worked out; when the camera, its lens and the size of the scene are all unchanged it does nothing at all.
- * Otherwise it asks `visibleSigns` which signs show, projects their anchors to the screen, and writes the text,
+ * Otherwise it asks `visibleSigns` which signs show, projects their anchors to the screen, drops a sign whose text would overlap a nearer one, and writes the text,
  * place and opacity into the pool's elements, touching only what changed. No element is created or removed.
  */
 export function SignDriver({ model, container }: { model: SceneModel; container: RefObject<HTMLDivElement | null> }) {
@@ -60,7 +60,7 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
       { position: vec3(view.px, view.py, view.pz), forward: vec3(view.fx, view.fy, view.fz), fovY: view.fovY, aspect: view.aspect },
       SIGN_MAX_VISIBLE,
     );
-    const placements = placeSigns(visible, (path) => {
+    const placements = placeSignsClear(visible, (path) => {
       const source = sources.get(path);
       if (!source) return null;
       point.set(source.x, source.y, source.z).project(camera);

@@ -9,7 +9,13 @@ import { distance, dot, normalize, sub, vec3, type Vec3 } from './vec3';
  */
 
 /** How high above the ground the text is anchored: the face of the plaque. */
-export const SIGN_HEIGHT = 1.4;
+export const SIGN_HEIGHT = 1.0; // task 25 follow-up: from 1.4, with a smaller board, so a plaque does not hide the stones behind it up close
+
+/** The plaque's board (width, height, thickness), centred at SIGN_HEIGHT on a post. Task 25: from 1.4 by 0.6 by 0.08. */
+export const PLAQUE_BOARD = { w: 0.9, h: 0.3, d: 0.06 };
+
+/** The post under the board: it ends at the board's lower edge. */
+export const PLAQUE_POST = { w: 0.08, h: SIGN_HEIGHT - PLAQUE_BOARD.h / 2 };
 
 /**
  * A sign is fully readable within `SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE × (the size of its plot)` units, where the size is the

@@ -2,15 +2,15 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { SceneModel } from '../model/scene-model';
-import { SIGN_HEIGHT } from '../model/signs';
+import { PLAQUE_BOARD, PLAQUE_POST, SIGN_HEIGHT } from '../model/signs';
 import { PLAQUE_COLOR } from './colors';
 import { noRaycast, placement } from './instances';
 
 /** A post with a board on it, as one shape, so all the plaques are one draw call. */
 function makePlaqueGeometry(): THREE.BufferGeometry {
-  const post = new THREE.BoxGeometry(0.1, 1.4, 0.1);
-  post.translate(0, 0.7, 0);
-  const board = new THREE.BoxGeometry(1.4, 0.6, 0.08);
+  const post = new THREE.BoxGeometry(PLAQUE_POST.w, PLAQUE_POST.h, PLAQUE_POST.w);
+  post.translate(0, PLAQUE_POST.h / 2, 0);
+  const board = new THREE.BoxGeometry(PLAQUE_BOARD.w, PLAQUE_BOARD.h, PLAQUE_BOARD.d);
   board.translate(0, SIGN_HEIGHT, 0);
   const merged = mergeGeometries([post, board]);
   post.dispose();

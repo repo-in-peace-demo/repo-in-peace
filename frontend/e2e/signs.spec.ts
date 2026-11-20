@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
 import { buildSceneModel } from '../src/model/scene-model';
+import { placeSignsClear } from '../src/model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../src/model/signs';
 import { sub } from '../src/model/vec3';
 
@@ -34,19 +35,25 @@ const shown = (page: Page): Promise<Array<{ text: string; opacity: number }>> =>
       .map((element) => ({ text: element.textContent ?? '', opacity: Number.parseFloat(element.style.opacity) })),
   );
 
-/** What the page should show for a camera pose, from the same pure function the app uses. */
-function expectedFor(p: CameraPose): Array<{ text: string; opacity: number }> {
-  return visibleSigns(model.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height }).map((s) => ({
-    text: s.label,
-    opacity: s.opacity,
-  }));
+/**
+ * What the page should show for a camera pose, from the same pure functions the app uses: the signs in range, then (as the app does)
+ * only the nearest of any whose texts overlap on screen. The anchors are projected by the page's own camera.
+ */
+async function expectedFor(page: Page, p: CameraPose): Promise<Array<{ text: string; opacity: number }>> {
+  const visible = visibleSigns(model.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
+  const sources = new Map(model.signSources.map((s) => [s.path, s] as const));
+  const where = await page.evaluate(
+    (anchors) => Object.fromEntries(anchors.map((a) => [a.path, window.repoInPeace!.projectPoint(a.x, a.y, a.z)])),
+    visible.map((v) => ({ path: v.path, x: sources.get(v.path)!.x, y: sources.get(v.path)!.y, z: sources.get(v.path)!.z })),
+  );
+  return placeSignsClear(visible, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
 }
 
 /** Waits until the camera is still, then checks the page against the pose. */
 async function expectPageMatchesCamera(page: Page): Promise<Array<{ text: string; opacity: number }>> {
   await page.waitForTimeout(1600);
   const p = await pose(page);
-  const expected = expectedFor(p);
+  const expected = await expectedFor(page, p);
   await expect
     .poll(async () => (await shown(page)).map((s) => s.text), { message: 'the signs on the page should be the signs for the camera, nearest first' })
     .toEqual(expected.map((s) => s.text));
@@ -141,5 +148,38 @@ test.describe('folder signs, in the real app', () => {
     await page.waitForTimeout(800);
     const pointerEvents = await page.evaluate(() => getComputedStyle(document.querySelector('.signs .sign')!).pointerEvents);
     expect(pointerEvents).toBe('none'); // inherited from the layer
+  });
+});
+
+test.describe('folder signs up close on oikos_ledger', () => {
+  test('no two signs overlap on the page, wherever the camera flies to (e.g. accounts/compare and [upload_id])', async ({ page }) => {
+    const oikos = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL('../public/graveyards/demo.oikosledger.graveyard.json', import.meta.url)), 'utf8')) as Graveyard);
+    await page.setViewportSize(VIEWPORT);
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(800);
+    // The front stone of every fifth plot, so the flights land in many different folders.
+    const stops = oikos.layout.plots.filter((_, i) => i % 5 === 0).map((plot) => oikos.stones.filter((s) => s.layout.folder === plot.path).sort((a, b) => b.layout.z - a.layout.z)[0]).filter((s) => s !== undefined);
+    expect(stops.length).toBeGreaterThan(3);
+    for (const stone of stops) {
+      await page.evaluate((path) => window.repoInPeace!.flyTo(path), stone!.file.path);
+      await page.waitForTimeout(1800);
+      const boxes = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>('.signs .sign'))
+          .filter((e) => e.style.display === 'block')
+          .map((e) => {
+            const r = e.getBoundingClientRect();
+            return { text: e.textContent ?? '', x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+          }),
+      );
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i]!;
+          const b = boxes[j]!;
+          const overlap = a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
+          expect(overlap, `near ${stone!.file.path}: the signs "${a.text}" and "${b.text}" overlap`).toBe(false);
+        }
+      }
+    }
   });
 });

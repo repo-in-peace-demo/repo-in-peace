@@ -175,4 +175,20 @@ test.describe('screenshots to judge by eye', () => {
       await page.screenshot({ path: `${OUT}dblclick-${name}.png` });
     });
   }
+
+  // Task 25 follow-up 3: signs up close on oikos_ledger, near accounts/compare, where two signs used to overlap.
+  test('signs up close: only the nearest of overlapping signs, smaller plaque boards', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    const g = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL('../public/graveyards/demo.oikosledger.graveyard.json', import.meta.url)), 'utf8')) as Graveyard);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(1000);
+    const stone = [...g.stones].filter((s) => s.layout.folder.includes('compare')).sort((a, b) => b.layout.z - a.layout.z)[0] ?? g.stones[0]!;
+    await page.evaluate((p) => window.repoInPeace!.flyTo(p), stone.file.path);
+    await page.waitForTimeout(1900);
+    await page.mouse.move(640, 8);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}signs-close-oikosledger.png` });
+  });
 });
