@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
+  CLOUD_COLOR,
   FOG_COLOR,
   HEMISPHERE_GROUND_COLOR,
   HEMISPHERE_INTENSITY,
@@ -42,11 +43,23 @@ void main() {
 `;
 
 const SKY_FRAGMENT = /* glsl */ `
+uniform float uTime;
+uniform vec3 uCloudColor;
 uniform vec3 uTop;
 uniform vec3 uHorizon;
 uniform vec3 uMoonDirection;
 uniform vec3 uMoonColor;
 varying vec3 vDirection;
+float cHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float cNoise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(cHash(i), cHash(i + vec2(1.0, 0.0)), f.x), mix(cHash(i + vec2(0.0, 1.0)), cHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float cFbm(vec2 p) {
+  float v = 0.0; float a = 0.5;
+  for (int k = 0; k < 4; k++) { v += a * cNoise(p); p = p * 2.03 + 7.1; a *= 0.5; }
+  return v;
+}
 void main() {
   vec3 d = normalize(vDirection);
   float up = clamp(d.y, 0.0, 1.0);
@@ -54,6 +67,20 @@ void main() {
   // A faint halo of moonlight in the sky around the moon.
   float halo = pow(max(dot(d, uMoonDirection), 0.0), 24.0);
   colour += uMoonColor * halo * 0.08;
+  // Clouds: thin, torn strips drifting slowly past the moon, only in the part of the sky around it, low above the horizon.
+  float near = dot(d, uMoonDirection);
+  float around = smoothstep(0.93, 0.985, near) * smoothstep(0.0, 0.05, d.y) * (1.0 - smoothstep(0.32, 0.45, d.y));
+  if (around > 0.0) {
+    vec2 plane = d.xz / max(d.y + 0.08, 0.05);          // a flat cloud layer seen from below
+    plane = vec2(plane.x * 0.9 + plane.y * 0.4, plane.y * 2.6); // stretched along the wind
+    plane += vec2(uTime * 0.035, 0.0);
+    float c = cFbm(plane * 1.4);
+    float cover = smoothstep(0.5, 0.72, c) * around;
+    // Lit from the moon: the edges near it are silver, the bodies a dark grey-blue that hides the stars behind them.
+    float lit = pow(smoothstep(0.95, 0.9995, near), 1.5);
+    vec3 cloud = mix(uCloudColor, uMoonColor * 0.55, lit * (1.0 - smoothstep(0.55, 0.8, c)) + 0.15 * lit);
+    colour = mix(colour, cloud, cover * 0.85);
+  }
   gl_FragColor = vec4(colour, 1.0);
   #include <colorspace_fragment>
 }
@@ -158,6 +185,8 @@ export function Atmosphere({ model }: { model: SceneModel }) {
 
     const skyMaterial = new THREE.ShaderMaterial({
       uniforms: {
+        uTime: { value: 0 },
+        uCloudColor: { value: new THREE.Color(CLOUD_COLOR) },
         uTop: { value: new THREE.Color(SKY_TOP_COLOR) },
         uHorizon: { value: new THREE.Color(SKY_HORIZON_COLOR) },
         uMoonDirection: { value: MOON.clone() },
@@ -201,7 +230,9 @@ export function Atmosphere({ model }: { model: SceneModel }) {
 
   useFrame(({ clock }) => {
     group.current?.position.copy(camera.position); // the sky is always the same distance away
-    assets.starMaterial.uniforms.uTime!.value = animationTime(clock.elapsedTime);
+    const time = animationTime(clock.elapsedTime);
+    assets.starMaterial.uniforms.uTime!.value = time;
+    assets.skyMaterial.uniforms.uTime!.value = time;
     assets.starMaterial.uniforms.uPixelRatio!.value = pixelRatio;
   });
 

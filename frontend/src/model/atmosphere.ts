@@ -34,6 +34,9 @@ export const HILL_HAZE = 0.35;
 
 export const MOON_COLOR = '#c4d2e6'; // pale blue-grey: not pure white, so it is not the brightest thing on the screen
 export const MOONLIGHT_COLOR = '#b9c9ff';
+
+/** The clouds that drift near the moon: a dark grey-blue, a little lighter than the sky, so they show as shapes against it. */
+export const CLOUD_COLOR = '#1c2434';
 export const HEMISPHERE_SKY_COLOR = '#2c3c6a';
 export const HEMISPHERE_GROUND_COLOR = '#0a0d12';
 export const STAR_COLOR = '#dbe6ff';
