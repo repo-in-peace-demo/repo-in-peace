@@ -101,13 +101,15 @@ Constants (all in one module, each with a comment):
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
-| `STONE_W`, `STONE_D` | 1.0, 0.4 | the slab's base |
-| `MAX_LEAN_DEG` | 10 | the largest lean any stone can have |
-| `LEAN_REACH` | 0.7 | at least `MAX_STONE_H × sin(MAX_LEAN_DEG)` (0.69); a test checks this |
-| `CELL_W`, `CELL_D` | `STONE_W + 2·LEAN_REACH` = 2.4, `STONE_D + 2·LEAN_REACH` = 1.8 | a cell: the footprint that includes the lean reach |
-| `CELL_GAP` | 0.3 | between cells (pitch 2.7 × 2.1) |
-| `FENCE_BAND` | 1.5 | the inset between a plot's outer rectangle and what it holds |
-| `ITEM_GAP` | 2.5 | between the stone block and child plots, and between child plots |
+| `STONE_W`, `STONE_D` | 1.4, 0.5 | the slab's base (task 25: 1.0 by 0.4 left most of each cell bare) |
+| `MAX_LEAN_DEG` | 8 | the largest lean any stone can have (task 25: from 10, so the reservation takes less of each cell) |
+| `LEAN_REACH` | 0.56 | at least `MAX_STONE_H × sin(MAX_LEAN_DEG)` (0.557); a test checks this |
+| `CELL_W`, `CELL_D` | `STONE_W + 2·LEAN_REACH` = 2.52, `STONE_D + 2·LEAN_REACH` = 1.62 | a cell: the footprint that includes the lean reach |
+| `CELL_GAP` | 0.3 | between cells (pitch 2.82 × 1.92) |
+| `FENCE_BAND` | 1.0 | the inset between a plot's outer rectangle and what it holds (task 25: from 1.5; the 0.5-deep plaque still fits) |
+| `ITEM_GAP` | 1.4 | between the stone block and child plots, and between child plots (task 25: from 2.5) |
+| `MIN_STONE_H` | 0.8 | the shortest stone (task 25: from 0.6, which read as a pebble from the overview) |
+| `PACK_SIDE_SLACK`, `PACK_MAX_ASPECT`, `PACK_ASPECT_TRADE`, `PACK_DEEP_SLACK` | 0.15, 1.4, 0.15, 0.1 | the packer picks the least area among packings whose longer side is within 15% of the shortest, so no bare strip is left beside a big child plot (task 25: oikos right side, spatialql beside `src`) |
 | `SIGN_W`, `SIGN_D` | 1.6, 0.5 | a plaque's footprint |
 
 **Output** (all arrays sorted by path in code-point order):

@@ -89,6 +89,9 @@ uniform vec3 uCrackGlowColor;
 uniform vec3 uHoverColor;
 uniform vec3 uSelectedColor;
 float gCrack = 0.0;
+float gMoss = 0.0;
+// 0 up close, 1 from the overview: lets a stone a few pixels wide still show its moss and cracks.
+float gFar = 0.0;
 
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -142,18 +145,35 @@ const FRAGMENT_COLOR = /* glsl */ `
   diffuseColor.rgb *= 0.78 + 0.4 * grain;
 
   // Moss rises from the base: a pixel is mossy when its height up the stone, plus noise, is below the amount.
+  // The height still reads the amount (0.39 of the stone on the first stale day, 0.85 on the last, 0.9 and up when ancient);
+  // the 0.3 start keeps the least stale moss above the foot, which the row in front hides from the overview.
+  gFar = smoothstep(18.0, 70.0, length(vViewPosition));
   float mossNoise = fbm(uv2 * 4.0 + seedOffset * 1.7);
-  float mossEdge = vMoss * 1.3 - (vHeightFrac + (mossNoise - 0.5) * 0.45);
-  float moss = smoothstep(0.0, 0.14, mossEdge) * step(0.001, vMoss);
-  vec3 mossShade = uMossColor * (0.65 + 0.7 * fbm(uv2 * 9.0 + seedOffset));
-  diffuseColor.rgb = mix(diffuseColor.rgb, mossShade, moss * 0.92);
+  float mossEdge = 0.3 + vMoss * 0.85 - (vHeightFrac + (mossNoise - 0.5) * 0.4);
+  float moss = smoothstep(0.0, 0.1, mossEdge) * step(0.001, vMoss);
+  // A cap of moss on the top, deeper the older (0.15 of the stone on the first stale day, 0.35 when ancient): from the
+  // overview a stone in a back row shows only its top. Still the age alone, and the foot still shows the amount as height.
+  float capEdge = vHeightFrac - (1.0 - 0.1 - vMoss * 0.35) + (mossNoise - 0.5) * 0.25;
+  moss = max(moss, smoothstep(0.0, 0.08, capEdge) * step(0.001, vMoss));
+  vec3 mossShade = uMossColor * (0.85 + 0.5 * fbm(uv2 * 9.0 + seedOffset));
+  diffuseColor.rgb = mix(diffuseColor.rgb, mossShade, moss);
+  gMoss = moss;
 
   // Cracks, only on an unused stone: thin dark lines where the noise crosses a level; red glows inside them.
   if (vCrack > 0.5) {
     float c1 = abs(fbm(uv2 * 4.0 + seedOffset * 2.3) - 0.5);
     float c2 = abs(fbm(uv2 * 7.0 + seedOffset * 3.1 + 7.0) - 0.5);
-    float line = max(1.0 - smoothstep(0.0, 0.016, c1), 0.8 * (1.0 - smoothstep(0.0, 0.010, c2)));
-    gCrack = line * (1.0 - 0.6 * moss);
+    // Each line is widened toward a pixel on screen (fwidth), capped so the stone stays mostly grey; it does not vanish from the overview.
+    float w1 = clamp(1.2 * fwidth(c1), 0.022, 0.04);
+    float w2 = clamp(1.2 * fwidth(c2), 0.014, 0.03);
+    float c3 = abs(fbm(uv2 * 2.5 + seedOffset * 5.3 + 13.0) - 0.5);
+    float w3 = clamp(1.2 * fwidth(c3), 0.018, 0.035);
+    float line = max(max(1.0 - smoothstep(0.0, w1, c1), 0.8 * (1.0 - smoothstep(0.0, w2, c2))), 1.0 - smoothstep(0.0, w3, c3));
+    // A stone only a few pixels tall on screen: coarser lines, about half its face, so it still shows red (and its moss between).
+    float tiny = smoothstep(0.025, 0.07, fwidth(vHeightFrac));
+    float coarse = vnoise(uv2 * 7.0 + seedOffset * 4.1 + 3.0);
+    line = max(line, tiny * smoothstep(0.5, 0.6, coarse));
+    gCrack = line * (1.0 - 0.25 * moss);
     diffuseColor.rgb *= 1.0 - 0.85 * gCrack;
   }
 
@@ -176,7 +196,10 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 #include <emissivemap_fragment>
 {
   // The glow inside the cracks: the same strength for every unused stone, so it means "unused" and nothing else.
-  totalEmissiveRadiance += uCrackGlowColor * (uGlow * 1.1) * gCrack;
+  // From far away it is boosted by distance alone, so it is still the same for every unused stone at a given distance.
+  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (1.6 + 1.6 * gFar)) * gCrack;
+  // A little of the moss's own colour from far away, so it is still green under the dim moonlight (age only: gMoss reads vMoss).
+  totalEmissiveRadiance += uMossColor * (0.06 + 0.14 * gFar) * gMoss;
 
   // The rim, an edge glow and not a tint: pale for the stone under the pointer, the ring's colour and a slow pulse for the selected one.
   if (vHighlight > 0.01) {
@@ -214,6 +237,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v2';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v3';
   return { material, uniforms };
 }
