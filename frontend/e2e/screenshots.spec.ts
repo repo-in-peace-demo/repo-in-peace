@@ -122,7 +122,8 @@ test.describe('screenshots to judge by eye', () => {
       await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
       await page.waitForTimeout(800);
       const unused = g.stones.find((s) => s.file.unused)!;
-      const used = g.stones.find((s) => !s.file.unused && s.layout.height > 1.5) ?? g.stones.find((s) => !s.file.unused)!;
+      // A fresh used stone (clean blue-grey), so the three pictures are three different looks: fresh, overgrown and unused.
+      const used = g.stones.find((s) => s.file.decayState === 'fresh' && !s.file.unused && s.layout.height > 1.5) ?? g.stones.find((s) => !s.file.unused)!;
       const mossy = [...g.stones].filter((s) => s.file.decayState !== 'fresh' && !s.file.unused && s.layout.height > 1.2).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0];
       for (const [label, stone] of [['unused', unused], ['used', used], ...(mossy ? [['overgrown', mossy] as const] : [])] as const) {
         // Straight in front of the stone, a little above its top, close: nothing in the way.
