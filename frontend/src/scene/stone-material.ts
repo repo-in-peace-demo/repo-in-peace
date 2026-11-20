@@ -96,6 +96,7 @@ float gMoss = 0.0;
 // 0 up close, 1 from the overview: lets a stone a few pixels wide still show its moss and cracks.
 float gFar = 0.0;
 float gInk = 0.0;
+float gFaint = 0.0;
 
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -142,6 +143,37 @@ float nearInk(float cell, float boxY, float boxW, float boxH, float reach) {
   vec2 here = engraveAt(cell, boxY, boxW, boxH, vec2(0.0));
   if (here.x >= 0.0) m = max(m, texture2D(uEngrave, here).a);
   return smoothstep(0.0, 0.6, m);
+}
+// Cracks: the borders of a jittered cell pattern, a few of them kept, so they run as long thin lines that branch, not as
+// contours of noise (which closed into specks all over the stone). The distance to the nearest kept border, in the pattern's units.
+vec2 crackPoint(vec2 id) {
+  return id + vec2(hash21(id + 7.3), hash21(id + 19.1));
+}
+float crackEdge(vec2 p) {
+  vec2 id = floor(p);
+  vec2 nearest = vec2(0.0);
+  vec2 nearestId = id;
+  float best = 1e9;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 g = id + vec2(float(i), float(j));
+      vec2 pt = crackPoint(g);
+      float d = dot(pt - p, pt - p);
+      if (d < best) { best = d; nearest = pt; nearestId = g; }
+    }
+  }
+  float edge = 1e9;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 g = nearestId + vec2(float(i), float(j));
+      if (g == nearestId) continue;
+      // The same for both cells either side of a border, so a kept border is kept all along its length.
+      if (hash21((nearestId + g) * 0.37 + 11.0) < 0.45) continue;
+      vec2 pt = crackPoint(g);
+      edge = min(edge, dot(0.5 * (nearest + pt) - p, normalize(pt - nearest)));
+    }
+  }
+  return edge;
 }
 float fbm(vec2 p) {
   float v = 0.0;
@@ -199,21 +231,17 @@ const FRAGMENT_COLOR = /* glsl */ `
   diffuseColor.rgb = mix(diffuseColor.rgb, mossShade, moss);
   gMoss = moss;
 
-  // Cracks, only on an unused stone: thin dark lines where the noise crosses a level; red glows inside them.
+  // Cracks, only on an unused stone: a few thin lines, jagged and branching, dark with a red glow inside them, and a faint red
+  // glow over the whole stone, so it still reads as unused from the overview where the lines are only a pixel or two wide.
   if (vCrack > 0.5) {
-    float c1 = abs(fbm(uv2 * 4.0 + seedOffset * 2.3) - 0.5);
-    float c2 = abs(fbm(uv2 * 7.0 + seedOffset * 3.1 + 7.0) - 0.5);
-    // Each line is widened toward a pixel on screen (fwidth), capped so the stone stays mostly grey; it does not vanish from the overview.
-    float w1 = clamp(1.2 * fwidth(c1), 0.022, 0.04);
-    float w2 = clamp(1.2 * fwidth(c2), 0.014, 0.03);
-    float c3 = abs(fbm(uv2 * 2.5 + seedOffset * 5.3 + 13.0) - 0.5);
-    float w3 = clamp(1.2 * fwidth(c3), 0.018, 0.035);
-    float line = max(max(1.0 - smoothstep(0.0, w1, c1), 0.8 * (1.0 - smoothstep(0.0, w2, c2))), 1.0 - smoothstep(0.0, w3, c3));
-    // A stone only a few pixels tall on screen: coarser lines, about half its face, so it still shows red (and its moss between).
+    vec2 warp = vec2(vnoise(uv2 * 6.0 + seedOffset), vnoise(uv2 * 6.0 + seedOffset + 9.0)) - 0.5;
+    float edge = crackEdge(uv2 * 1.7 + seedOffset * 0.1 + 0.3 * warp);
+    // Widened toward a pixel on screen (fwidth), and more for a stone only a few pixels tall, so it does not vanish from the overview.
     float tiny = smoothstep(0.025, 0.07, fwidth(vHeightFrac));
-    float coarse = vnoise(uv2 * 7.0 + seedOffset * 4.1 + 3.0);
-    line = max(line, tiny * smoothstep(0.5, 0.6, coarse));
+    float w = clamp(1.2 * fwidth(edge), 0.016, 0.04) * (1.0 + 1.5 * tiny);
+    float line = 1.0 - smoothstep(0.0, w, edge);
     gCrack = line * (1.0 - 0.25 * moss);
+    gFaint = 1.0;
     // Not on the letters or within a hair of them: RIP always, the name when it shows.
     if (frontness > 0.01) {
       float keepOff = nearInk(0.0, seam + uRipBox.x, uRipBox.y, uRipBox.z, 0.035);
@@ -244,6 +272,8 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
   // The glow inside the cracks: the same strength for every unused stone, so it means "unused" and nothing else.
   // From far away it is boosted by distance alone, so it is still the same for every unused stone at a given distance.
   totalEmissiveRadiance += uCrackGlowColor * (uGlow * (1.6 + 1.6 * gFar)) * gCrack;
+  // The faint red glow over a whole unused stone: the same for every unused stone (distance only), dimmer under the letters.
+  totalEmissiveRadiance += uCrackGlowColor * (uGlow * (0.22 + 0.3 * gFar)) * gFaint * (1.0 - gInk);
   // A little light in the letters, so they read under the dim moonlight.
   totalEmissiveRadiance += uLetterColor * 0.16 * gInk;
   // A little of the moss's own colour from far away, so it is still green under the dim moonlight (age only: gMoss reads vMoss).
@@ -287,6 +317,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v4';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v5';
   return { material, uniforms };
 }
