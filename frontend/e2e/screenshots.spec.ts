@@ -121,10 +121,13 @@ test.describe('screenshots to judge by eye', () => {
       await page.goto(`/?graveyard=${name}`);
       await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
       await page.waitForTimeout(800);
-      const unused = g.stones.find((s) => s.file.unused)!;
+      // Only stones with nothing in front of them: the camera stands 2.1 in front, further than the 1.92 between rows, so a stone in a
+      // back row would be hidden by the back of the one in front.
+      const clear = (s: (typeof g.stones)[number]) => !g.stones.some((o) => o !== s && Math.abs(o.layout.x - s.layout.x) < 1.6 && o.layout.z > s.layout.z && o.layout.z - s.layout.z < 2.6);
+      const unused = g.stones.find((s) => s.file.unused && clear(s)) ?? g.stones.find((s) => s.file.unused)!;
       // A fresh used stone (clean blue-grey), so the three pictures are three different looks: fresh, overgrown and unused.
-      const used = g.stones.find((s) => s.file.decayState === 'fresh' && !s.file.unused && s.layout.height > 1.5) ?? g.stones.find((s) => !s.file.unused)!;
-      const mossy = [...g.stones].filter((s) => s.file.decayState !== 'fresh' && !s.file.unused && s.layout.height > 1.2).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0];
+      const used = g.stones.find((s) => s.file.decayState === 'fresh' && !s.file.unused && s.layout.height > 1.5 && clear(s)) ?? g.stones.find((s) => !s.file.unused)!;
+      const mossy = [...g.stones].filter((s) => s.file.decayState !== 'fresh' && !s.file.unused && s.layout.height > 1.2 && clear(s)).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0];
       for (const [label, stone] of [['unused', unused], ['used', used], ...(mossy ? [['overgrown', mossy] as const] : [])] as const) {
         // Straight in front of the stone, a little above its top, close: nothing in the way.
         const { x, z, height } = stone.layout;
