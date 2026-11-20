@@ -18,6 +18,6 @@
       "@shared/*": ["../shared/*"]
     }
   },
-  "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts", "../shared"],
+  "include": ["src", "test", "e2e", "vite-plugins", "vite.config.ts", "playwright.config.ts", "../shared"],
   "exclude": ["../shared/node_modules", "../shared/**/*.test.ts"]
 }

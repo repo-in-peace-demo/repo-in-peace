@@ -83,12 +83,14 @@ Status key: `[x]` done, `[ ]` not started.
 Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. **Run** the named test, then tell me, and I copy the picture into `docs/screenshots/interface/` and commit it.
 
 - [ ] 5. Demo list plugin (`vite-plugins/graveyard-manifest.ts`)
-  - [ ] 5.1 The plugin:
+  - [x] 5.1 The plugin:
     - in the dev server, a middleware for `graveyards/index.json` that reads the folder on each request;
     - in builds, `generateBundle` emits the same file;
     - skipped files are printed as a warning.
 
     Register it in `vite.config.ts`. `ui/fetch-manifest.ts` loads the file and checks it with `checkManifest`.
+
+    **Done.** `model/graveyard-load.ts` now imports the shared schema by a relative path, because Vite's config loader (which runs the plugin) does not apply the `@shared` alias. I checked that the config loads and that the plugin's build hook writes both demos with their counts, without a build.
   - [ ] 5.2 **Run:** `npm run dev`, then open `http://localhost:5173/graveyards/index.json`. You should see both demos with their counts. Then `npm run build && ls dist/graveyards/`, which should list `index.json` and the two data files.
   - _Requirements: 1.2, 1.9_
 
