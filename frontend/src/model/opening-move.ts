@@ -10,8 +10,20 @@ import { OPENING_DURATION_MS, blendShots, type Shot } from './framing';
  * picture does not jump.
  */
 
-/** How long the hand-over after an interrupted move takes, in milliseconds. */
-export const HANDOVER_MS = 300;
+/** How long the hand-over after an interrupted move takes, in milliseconds: the lens shift eases over it. */
+export const HANDOVER_MS = 1200;
+
+/**
+ * How quickly the camera is brought into its limits during the hand-over: each frame it goes this share of the rest of the way,
+ * `1 - exp(-seconds / HANDOVER_SETTLE_S)` for a frame of `seconds`, so it eases in at the same pace whatever the frame rate (about 99%
+ * of the way by the end of HANDOVER_MS). It does not fight the input that ended the move: that input still moves the camera.
+ */
+export const HANDOVER_SETTLE_S = 0.25;
+
+export function settleShare(seconds: number, settleS: number = HANDOVER_SETTLE_S): number {
+  if (!(seconds > 0)) return 0;
+  return 1 - Math.exp(-seconds / settleS);
+}
 
 /** Where the move is `elapsedMs` after it started: the shot, and whether it has arrived. At 0 the opening shot; from the duration on, exactly the establishing shot. */
 export function openingAt(from: Shot, to: Shot, elapsedMs: number, durationMs: number = OPENING_DURATION_MS): { shot: Shot; done: boolean } {

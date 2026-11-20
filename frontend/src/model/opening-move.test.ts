@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_FOV_Y } from './camera-pose';
 import { OPENING_DURATION_MS, openingShot, safeEstablishingShot } from './framing';
-import { HANDOVER_MS, handoverShare, openingAt, playsOpening } from './opening-move';
+import { HANDOVER_MS, HANDOVER_SETTLE_S, handoverShare, openingAt, playsOpening, settleShare } from './opening-move';
 import { distance } from './vec3';
 
 const bounds = { x: 0, z: 0, w: 62, d: 87 };
@@ -33,6 +33,20 @@ describe('the opening move', () => {
     expect(handoverShare(0)).toBe(0);
     expect(handoverShare(HANDOVER_MS)).toBe(1);
     fc.assert(fc.property(fc.double({ min: -100, max: 1000, noNaN: true }), fc.double({ min: 0, max: 500, noNaN: true }), (t, d) => handoverShare(t + d) >= handoverShare(t) && handoverShare(t) >= 0 && handoverShare(t) <= 1));
+  });
+
+  it('settles into the limits at the same pace whatever the frame rate, and nearly all the way by the end of the hand-over', () => {
+    const left = (fps: number) => {
+      let rest = 1;
+      for (let t = 0; t < HANDOVER_MS / 1000; t += 1 / fps) rest *= 1 - settleShare(1 / fps);
+      return rest;
+    };
+    expect(left(30)).toBeCloseTo(left(144), 2);
+    expect(left(60)).toBeLessThan(0.01);
+    // No big first step: one frame at 60 fps goes under 7% of the way.
+    expect(settleShare(1 / 60)).toBeLessThan(0.07);
+    expect(settleShare(0)).toBe(0);
+    expect(HANDOVER_SETTLE_S).toBeGreaterThan(0);
   });
 
   it('does not play under reduced motion, or when turned off for a test', () => {

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from '
 import * as THREE from 'three';
 import type { CameraPose } from '../model/camera-pose';
 import { openingShot, safeEstablishingShot, type Shot } from '../model/framing';
-import { handoverShare, openingAt, playsOpening } from '../model/opening-move';
+import { handoverShare, openingAt, playsOpening, settleShare } from '../model/opening-move';
 import { sceneCameraLimits } from '../model/camera-bounds';
 import { MIN_TILT_DEG, boundsRadius, clampPose, flySpeed, isFast, moveCamera, movementFromKeys } from '../model/fly-controls';
 import type { SceneModel } from '../model/scene-model';
@@ -258,8 +258,10 @@ export function CameraRig({ model }: { model: SceneModel }) {
     if (easing) {
       const k = handoverShare(performance.now() - easing.start);
       setShiftRef.current(easing.fromShift + (latestShot.current.viewShift - easing.fromShift) * k);
-      if (k < 1) clamped = { position: lerp(now.position, clamped.position, Math.max(k, 0.15)), target: lerp(now.target, clamped.target, Math.max(k, 0.15)) };
-      else handover.current = null;
+      if (k < 1) {
+        const share = settleShare(delta);
+        clamped = { position: lerp(now.position, clamped.position, share), target: lerp(now.target, clamped.target, share) };
+      } else handover.current = null;
     }
     lastTarget.current = clamped.target;
     if (clamped !== now) {

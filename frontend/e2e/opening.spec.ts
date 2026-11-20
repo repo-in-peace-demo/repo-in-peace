@@ -60,7 +60,7 @@ for (const [label, act] of [
     await page.mouse.move(640, 120);
     await page.waitForTimeout(900);
     await act(page);
-    await page.waitForTimeout(1000); // the hand-over, and the zoom's damping after a scroll
+    await page.waitForTimeout(1600); // the hand-over (HANDOVER_MS), and the zoom's damping after a scroll
     const settled = await pose(page);
     await page.waitForTimeout(OPENING_DURATION_MS);
     const later = await pose(page);
