@@ -27,6 +27,7 @@ uniform float uFlameHeight;
 varying vec2 vUv;
 varying float vGlow;
 varying float vHeight;
+varying float vFar;
 void main() {
   float flicker = 1.0 + 0.10 * sin(uTime * 9.0 + aPhase) + 0.06 * sin(uTime * 17.3 + aPhase * 1.7);
   vUv = uv;
@@ -38,8 +39,12 @@ void main() {
     vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
     vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
     vec3 centre = (modelMatrix * instanceMatrix * vec4(0.0, uBase + 0.5 * uFlameHeight, 0.0, 1.0)).xyz;
-    world = vec4(centre + (right * position.x + up * position.y) * (0.92 + 0.5 * (flicker - 1.0)), 1.0);
+    // From far away the glow grows with the distance (up to 2.6 times as wide), so a candle of a few pixels still reads as a lit spot
+    // from the overview; up close (within 18 units) it is the same as before. The same for every candle at a given distance.
+    vFar = smoothstep(18.0, 70.0, distance(cameraPosition, centre));
+    world = vec4(centre + (right * position.x + up * position.y) * (0.92 + 0.5 * (flicker - 1.0)) * (1.0 + 1.6 * vFar), 1.0);
   } else {
+    vFar = 0.0;
     vec3 p = position;
     p.y = uBase + (p.y - uBase) * flicker;
     p.x *= 2.0 - flicker;
@@ -58,10 +63,12 @@ uniform vec3 uColor;
 varying vec2 vUv;
 varying float vGlow;
 varying float vHeight;
+varying float vFar;
 void main() {
   if (vGlow > 0.5) {
     float d = length(vUv - 0.5) * 2.0;
-    float a = pow(clamp(1.0 - d, 0.0, 1.0), 2.4) * 0.55;
+    // Brighter and with a fuller core from far away (distance only), the same soft glow up close.
+    float a = pow(clamp(1.0 - d, 0.0, 1.0), mix(2.4, 1.7, vFar)) * (0.55 + 0.4 * vFar);
     gl_FragColor = vec4(uColor, a);
   } else {
     // A hotter, paler heart at the foot of the flame, the candle's own colour toward the tip.

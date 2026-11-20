@@ -414,3 +414,27 @@ test('from the default view of oikos_ledger, no unused stone shows a box round i
     expect(Math.abs(st.median - around), `RIP box on ${which[i]} from the default view ${JSON.stringify(st)}`).toBeLessThanOrEqual(BAND_TOLERANCE);
   });
 });
+
+/** The least yellow (lit candle) pixels round each candle from the default view. A guess to be set from the tuned look (task 25.3 fixes). */
+const CANDLE_MIN_YELLOW = 6;
+
+test('from the default view of oikos_ledger every one of the 7 candles shows as a lit spot', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(2500);
+  await page.evaluate(() => window.repoInPeace!.setAnimationTime(4)); // the same flicker every run
+  await page.mouse.move(640, 5);
+  await page.waitForTimeout(300);
+  const spots = candleSpots(model.stones);
+  expect(spots).toHaveLength(7);
+  const report: string[] = [];
+  for (const spot of spots) {
+    const at = await page.evaluate(([x, y, z]) => window.repoInPeace!.projectPoint(x!, y!, z!), [spot.x, CANDLE_HEIGHT + 0.1, spot.z]);
+    expect(at, `the candle of ${spot.path} should be in front of the camera`).not.toBeNull();
+    const lit = await countPixels(page, 'yellow', at!, 14);
+    report.push(`candle ${spot.path}: yellow ${lit}`);
+    expect.soft(lit, `yellow pixels round the candle of ${spot.path} from the default view`).toBeGreaterThanOrEqual(CANDLE_MIN_YELLOW);
+  }
+  if (process.env.SHOW_COUNTS) console.log(report.join('\n'));
+});
