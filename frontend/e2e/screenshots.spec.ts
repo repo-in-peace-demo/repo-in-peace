@@ -20,6 +20,31 @@ const OUT = fileURLToPath(new URL('../test-results/screenshots/', import.meta.ur
 test.describe('screenshots to judge by eye', () => {
   test.skip(process.env.SCREENSHOTS !== '1', 'set SCREENSHOTS=1 to take the pictures');
 
+  // The opening view of each graveyard at both laptop shapes (`SHOT` names the files, e.g. SHOT=mist), and one lower view.
+  for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+    test(`the opening view of ${name}`, async ({ page }) => {
+      mkdirSync(OUT, { recursive: true });
+      const tag = process.env.SHOT ?? 'view';
+      for (const [w, h] of [[1280, 800], [1280, 720]] as const) {
+        await page.setViewportSize({ width: w, height: h });
+        await page.goto(`/?graveyard=${name}`);
+        await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+        await page.waitForTimeout(1200);
+        await page.evaluate(() => window.repoInPeace!.setAnimationTime(4));
+        await page.mouse.move(w / 2, 10);
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: `${OUT}${tag}-${name}-${w}x${h}.png` });
+      }
+      // Lower and nearer: fly to a front stone, where the mist between the rows is seen across the ground.
+      const g = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL(`../public/graveyards/${name}.graveyard.json`, import.meta.url)), 'utf8')) as Graveyard);
+      const front = [...g.stones].sort((a, b) => b.layout.z - a.layout.z)[0]!;
+      await page.evaluate((p) => window.repoInPeace!.flyTo(p), front.file.path);
+      await page.waitForTimeout(1700);
+      await page.screenshot({ path: `${OUT}${tag}-${name}-close.png` });
+      console.log(`${name}: ${OUT}${tag}-${name}-*.png`);
+    });
+  }
+
   test('a ghost close up after flyTo, and its hem', async ({ page }) => {
     mkdirSync(OUT, { recursive: true });
     await page.setViewportSize({ width: 1280, height: 720 });

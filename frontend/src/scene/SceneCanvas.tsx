@@ -10,6 +10,7 @@ import { Fences } from './Fences';
 import { watchReducedMotion } from './reduced-motion';
 import { Ground, PlotFloors } from './Ground';
 import { Horizon } from './Horizon';
+import { Mist } from './Mist';
 import { Picker } from './Picker';
 import { Plaques } from './Plaques';
 import { SelectionRing } from './SelectionRing';
@@ -48,6 +49,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Stones model={model} />
         <Candles model={model} />
         <Ghosts model={model} />
+        <Mist model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />
         <SignDriver model={model} container={signs} />
