@@ -347,3 +347,56 @@ export function forestTriangles(trees: readonly Tree[]): Float32Array {
   }
   return Float32Array.from(out);
 }
+
+// ---- The haze where the hills meet the forest ----
+
+/**
+ * A pale band of haze that stands just in front of the forest's first row, from the upper slope to partway up the trees, densest
+ * a little above the ridge, at the foot of the trees, and fading in from nothing where it meets the land. It lifts the dark band between the forest and the graveyard. It stays below
+ * the design eye's level, so it is below the horizon and never in front of the moon.
+ */
+export interface HazeBand {
+  radius: number;
+  bottom: number;
+  peak: number;
+  top: number;
+}
+
+export function hazeBand(plan: HorizonPlan): HazeBand {
+  const typical = Math.max(1, plan.eye.y - plan.ridgeHeight);
+  return {
+    radius: plan.ridgeRadius * 0.995,
+    // Starting at the ground, with no haze there, so the land does not cut it off in a hard line.
+    bottom: plan.ridgeHeight - typical * 0.02,
+    peak: plan.ridgeHeight + typical * 0.2,
+    top: Math.min(plan.ridgeHeight + typical * 0.7, plan.eye.y - typical * 0.05),
+  };
+}
+
+/** The haze band as a ring of three rows of points (bottom, peak, top), with how dense the haze is at each (0, 1, 0). */
+export function hazeRingMesh(plan: HorizonPlan, segments = 256): { positions: Float32Array; density: Float32Array; indices: Uint32Array } {
+  const band = hazeBand(plan);
+  const heights = [band.bottom, band.peak, band.top];
+  const densities = [0, 1, 0];
+  const positions = new Float32Array(segments * 3 * 3);
+  const density = new Float32Array(segments * 3);
+  for (let row = 0; row < 3; row++) {
+    for (let i = 0; i < segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const k = row * segments + i;
+      positions[k * 3] = plan.centre.x + Math.cos(angle) * band.radius;
+      positions[k * 3 + 1] = heights[row]!;
+      positions[k * 3 + 2] = plan.centre.z + Math.sin(angle) * band.radius;
+      density[k] = densities[row]!;
+    }
+  }
+  const indices: number[] = [];
+  for (let row = 0; row < 2; row++) {
+    for (let i = 0; i < segments; i++) {
+      const a = row * segments + i;
+      const b = row * segments + ((i + 1) % segments);
+      indices.push(a, b, a + segments, b, b + segments, a + segments);
+    }
+  }
+  return { positions, density, indices: Uint32Array.from(indices) };
+}

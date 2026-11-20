@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
-import { horizonPlan, landHeightAt, landMesh } from './horizon';
+import { forestTrees, hazeBand, hazeRingMesh, horizonPlan, landHeightAt, landMesh } from './horizon';
 import { layout } from './layout';
 
 describe('landMesh', () => {
@@ -25,5 +25,21 @@ describe('landMesh', () => {
     for (let i = 0; i < positions.length; i += 3) {
       expect(positions[i + 1]!).toBeCloseTo(landHeightAt(plan, positions[i]!, positions[i + 2]!), 3);
     }
+  });
+});
+
+describe('the haze where the hills meet the forest', () => {
+  it.each(REAL_GRAVEYARDS)('%s: stands in front of the forest, from the upper slope up into the trees, below the horizon', (name) => {
+    const plan = horizonPlan(layout(loadRealGraveyard(name)).bounds);
+    const band = hazeBand(plan);
+    const trees = forestTrees(plan);
+    expect(band.radius).toBeLessThan(Math.min(...trees.map((t) => Math.hypot(t.base.x - plan.centre.x, t.base.z - plan.centre.z))));
+    expect(band.bottom).toBeLessThan(plan.ridgeHeight);
+    expect(band.peak).toBeGreaterThan(plan.ridgeHeight);
+    expect(band.top).toBeGreaterThan(band.peak);
+    expect(band.top).toBeLessThan(plan.eye.y); // below the design eye's level: below the horizon, never over the moon
+    const ring = hazeRingMesh(plan, 32);
+    expect(Math.max(...ring.indices)).toBeLessThan(ring.density.length);
+    expect(Math.max(...ring.density)).toBe(1);
   });
 });

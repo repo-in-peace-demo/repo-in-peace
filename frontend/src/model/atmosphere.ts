@@ -22,6 +22,16 @@ export const GROUND_BASE_COLOR = '#0a0e13';
 /** The forest on the ridge: flat, unlit, darker than the sky at the horizon, so it reads as a silhouette against it. */
 export const FOREST_COLOR = '#03050a';
 
+/** The hills: lighter than the graveyard's ground, so the moonlight shows on the slopes that face it. */
+export const HILL_COLOR = '#2b3547';
+
+/** The pale haze where the hills meet the forest, and the most of it there is (at the foot of the trees). */
+export const HAZE_COLOR = '#8796b0';
+export const HAZE_MAX_ALPHA = 0.32;
+
+/** The hills take on this much of the haze colour as they rise to the ridge (aerial perspective). */
+export const HILL_HAZE = 0.35;
+
 export const MOON_COLOR = '#c4d2e6'; // pale blue-grey: not pure white, so it is not the brightest thing on the screen
 export const MOONLIGHT_COLOR = '#b9c9ff';
 export const HEMISPHERE_SKY_COLOR = '#2c3c6a';
