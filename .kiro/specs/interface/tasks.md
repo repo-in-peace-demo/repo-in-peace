@@ -42,15 +42,15 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 2.4 **P7:** extend the `graveyard-load` tests so that every `schemaVersion` other than 2 gives the version message, and a valid version-2 file always loads. This is the path a local file takes.
   - _Requirements: 1.2, 1.3, 1.8, 3.1, 3.2_
 
-- [ ] 3. Shared wording and panel placement (`model/grave-facts.ts`, `model/panel-placement.ts`)
-  - [ ] 3.1 `stateName`, `stateSentence`, `calendarDay`, `linesText`, `hotText`, `fileType`, `stoneSummary`, `ghostSummary`, `buryOffered`, `shortenPath`.
+- [x] 3. Shared wording and panel placement (`model/grave-facts.ts`, `model/panel-placement.ts`)
+  - [x] 3.1 `stateName`, `stateSentence`, `calendarDay`, `linesText`, `hotText`, `fileType`, `stoneSummary`, `ghostSummary`, `buryOffered`, `shortenPath`.
     - **P5:** the state sentence names `decayState`, its day count is `ageDays`, and it quotes the right threshold, with random thresholds and dates.
     - **P11:** a stone's summary has exactly the flags that apply, and starts with its state word. A ghost's summary starts with "Ghost" and ends with its toe-tag type. The words are the same as the detail panel's.
     - **P12:** the file sets `process.env.TZ` to an offset zone. With dates near midnight UTC, the day is the UTC day, and the year appears exactly when it differs from the snapshot's.
     - **P13:** Bury is offered exactly when `unused`.
     - **P10:** a shortened path always keeps the whole file name and is never longer than asked, unless the name alone is longer.
     - **Examples:** the singulars ("1 line", "1 day", "hot (1 commit)"). The oikos stone `app/components/voice/index.ts` reads "Fresh · last commit … · unused" and is offered Bury. An ancient used stone is not.
-  - [ ] 3.2 `panelSide`, `nudgeNeeded`.
+  - [x] 3.2 `panelSide`, `nudgeNeeded`.
     - **P9:** the panel is always on the half away from the item.
     - **Property:** the nudge is 0 exactly when the boxes are apart by at least the margin, and after moving by the nudge they are apart.
   - _Requirements: 4.3 to 4.9, 4b.2 to 4b.6_

@@ -103,11 +103,12 @@ type StateName = 'Fresh' | 'Stale' | 'Ancient';
 function stateName(file: FileEntry): StateName;
 function stateSentence(file: FileEntry, meta: RepoMeta): string;
 //  "Fresh: last touched 3 days before the snapshot"
-//  "Stale: untouched 30 days before the snapshot (stale after 21 days)"
+//  "Stale: untouched 30 days before the snapshot (stale from 21 days)"
 //  "Ancient: untouched 65 days before the snapshot (ancient after 45 days)"
 function calendarDay(iso: string, snapshotIso: string): string;  // "Jun 13", or "Jun 13, 2025" when the year differs; UTC
 function linesText(n: number): string;                           // "1 line", "26 lines"
 function hotText(file: FileEntry): string | null;                // "hot (7 commits)" or null
+function hotDetail(file: FileEntry, meta: RepoMeta): string;     // the detail panel's row: "yes, 7 commits in the last 30 days"
 function fileType(path: string): string;                         // the toe-tag text (`ghostTagText`), ".ts" or "·"
 function stoneSummary(file: FileEntry, meta: RepoMeta): string;  // "Ancient · last commit Jun 13 · 26 lines · unused · hot (7 commits)"
 function ghostSummary(ghost: Ghost, meta: RepoMeta): string;     // "Ghost · deleted Oct 12 · .ts"
