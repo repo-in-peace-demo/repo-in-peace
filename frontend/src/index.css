@@ -372,3 +372,168 @@ body,
 .perf-dim {
   opacity: 0.6;
 }
+
+/* ---- Interface spec: the boot and digging screens, in our own green-phosphor terminal style ---- */
+
+:root {
+  --phosphor: #7dff9a;
+  --phosphor-dim: #3f9a57;
+  --phosphor-bg: #020604;
+  --amber: #ffb35c;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.terminal {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  padding: clamp(1.5rem, 6vh, 4rem) clamp(1.5rem, 8vw, 6rem);
+  color: var(--phosphor);
+  background:
+    repeating-linear-gradient(to bottom, rgba(125, 255, 154, 0.035) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 40%, #04140a 0%, var(--phosphor-bg) 70%);
+  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+  line-height: 1.6;
+  text-shadow: 0 0 6px rgba(125, 255, 154, 0.35);
+}
+
+.terminal-drop {
+  outline: 2px dashed var(--phosphor);
+  outline-offset: -1rem;
+}
+
+.terminal-text {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  margin-left: 0.1em;
+  vertical-align: text-bottom;
+  background: var(--phosphor);
+  animation: terminal-blink 1s steps(1) infinite;
+}
+
+@keyframes terminal-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.terminal-choices {
+  margin-top: 1.5rem;
+  max-width: 48rem;
+}
+
+.terminal-choices ul {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.terminal-choice {
+  display: block;
+  width: 100%;
+  margin: 0.15rem 0;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: none;
+  color: var(--phosphor);
+  font: inherit;
+  text-align: left;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+.terminal-choice::before {
+  content: '  ';
+  white-space: pre;
+}
+
+.terminal-choice:hover,
+.terminal-choice:focus-visible {
+  border-color: var(--phosphor-dim);
+  background: rgba(125, 255, 154, 0.08);
+  outline: none;
+}
+
+.terminal-choice:focus-visible::before {
+  content: '> ';
+}
+
+.terminal-choice-name {
+  font-weight: 600;
+}
+
+.terminal-dim {
+  color: var(--phosphor-dim);
+}
+
+.terminal-hint {
+  margin: 0.25rem 0 0 0.6rem;
+  font-size: 0.85em;
+}
+
+.terminal-notice {
+  margin-top: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--amber);
+  color: var(--amber);
+  text-shadow: none;
+}
+
+.terminal-notice p {
+  margin: 0 0 0.25rem;
+}
+
+.terminal-notice ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85em;
+}
+
+.terminal-notice:focus {
+  outline: 1px solid var(--amber);
+}
+
+/* The error screen's way back. */
+.status-actions {
+  position: fixed;
+  left: 50%;
+  bottom: 18vh;
+  transform: translateX(-50%);
+}
+
+.status-actions button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--rim);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.status-actions button:focus-visible {
+  outline: 2px solid #cfe2ff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-cursor {
+    animation: none;
+  }
+}

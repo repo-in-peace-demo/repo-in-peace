@@ -8,7 +8,7 @@ import { resetView } from '../scene/api';
  * Two small buttons at the bottom left, "Reset view" and "?", and the controls help they open. Home and R reset the
  * view, ? shows or hides the help, and Escape closes it. The camera keys themselves are handled by the scene.
  */
-export function ControlsPanel() {
+export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
   const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
@@ -57,6 +57,11 @@ export function ControlsPanel() {
         </section>
       )}
       <div className="controls-buttons">
+        {onBack && (
+          <button type="button" title="Back to the list of graveyards" onClick={onBack}>
+            ← Graveyards
+          </button>
+        )}
         <button
           type="button"
           title="Fly back to the overview (Home or R)"

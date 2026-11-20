@@ -84,7 +84,7 @@ function flow(state: FlowState, event: FlowEvent): FlowState;
 
 ## Digging screen
 
-`ui/DiggingScreen.tsx`, in the same terminal style. `App` loads the file for a demo, which also covers the counts lines. A local file is already parsed. It then builds `buildSceneModel` in a `setTimeout(0)` after the first paint, so the screen shows before the work starts. The lines come from `diggingLines(counts)` (`model/boot-script.ts`): `opening <repo>…`, `exhuming 129 graves…`, `summoning 2 ghosts…` (no ghost line when there are none) and `raising the fences…`.
+`ui/DiggingScreen.tsx`, in the same terminal style. For a demo chosen on the boot screen, the counts come from the demo list with the choice (the `choose` event carries them), so the lines show them while the file loads; for a direct link they appear when the file has arrived. `App` loads the file for a demo, which also covers the counts lines. A local file is already parsed. It then builds `buildSceneModel` in a `setTimeout(0)` after the first paint, so the screen shows before the work starts. The lines come from `diggingLines(counts)` (`model/boot-script.ts`): `opening <repo>…`, `exhuming 129 graves…`, `summoning 2 ghosts…` (no ghost line when there are none) and `raising the fences…`.
 
 Timing (`model/digging-timing.ts`, P8):
 ```ts

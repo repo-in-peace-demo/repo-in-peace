@@ -155,7 +155,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
           const box = model.pickTargets.find((t) => t.path === path);
           return box ? { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 } : null;
         },
-        () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0 }),
+        () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0, geometries: gl.info.memory.geometries, textures: gl.info.memory.textures }),
         () => lensShift.current,
         (to) => {
           const orbit = controls.current;

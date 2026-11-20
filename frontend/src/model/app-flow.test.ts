@@ -31,6 +31,11 @@ describe('the flow', () => {
     expect(s).toEqual({ screen: 'scene', source: demo, model });
   });
 
+  it('takes a demo\'s counts from the demo list when it is chosen, so the digging screen shows them while the file loads', () => {
+    const s = flow({ screen: 'boot', notice: null }, { type: 'choose', source: demo, now: 0, counts: { repo: 'spatialql', files: 120, ghosts: 2 } });
+    expect(s).toMatchObject({ screen: 'digging', counts: { files: 120, ghosts: 2 } });
+  });
+
   it('knows a local file\'s counts at once', () => {
     expect(flow({ screen: 'boot', notice: null }, { type: 'choose', source: local, now: 0 })).toMatchObject({ counts: { files: 120, ghosts: 2 } });
   });

@@ -22,8 +22,8 @@ export interface RepoInPeaceDevApi {
   /** Holds every animation at this time in seconds (a ghost's bob, a flame's flicker), to see the scene at a chosen moment. */
   setAnimationTime: (seconds: number) => void;
   resumeAnimation: () => void;
-  /** What the renderer drew in the last frame: draw calls and triangles. */
-  getRenderInfo: () => { calls: number; triangles: number; fogDensity: number };
+  /** What the renderer drew in the last frame (draw calls and triangles), and what it holds on the GPU now (geometries and textures). */
+  getRenderInfo: () => RenderInfo;
   /** Whether the animation clock is standing still because the system asks for reduced motion. */
   isReducedMotion: () => boolean;
   /** For each ghost-tag text, how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
@@ -44,6 +44,15 @@ export interface RepoInPeaceDevApi {
   setHorizonVisible: (visible: boolean) => void;
 }
 
+export interface RenderInfo {
+  calls: number;
+  triangles: number;
+  fogDensity: number;
+  /** `renderer.info.memory`: geometries and textures the live renderer holds on the GPU. */
+  geometries: number;
+  textures: number;
+}
+
 declare global {
   interface Window {
     repoInPeace?: RepoInPeaceDevApi;
@@ -57,7 +66,7 @@ export function installDevApi(
   getPose: () => CameraPose,
   projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null,
   centreOf: (path: string) => { x: number; y: number; z: number } | null,
-  getRenderInfo: () => { calls: number; triangles: number; fogDensity: number },
+  getRenderInfo: () => RenderInfo,
   getViewShift: () => number,
   setPose: (pose: CameraPose) => void,
 ): () => void {

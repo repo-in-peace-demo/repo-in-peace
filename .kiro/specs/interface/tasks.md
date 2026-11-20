@@ -95,8 +95,8 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - _Requirements: 1.2, 1.9_
 
 - [ ] 6. Boot and digging screens (`ui/BootScreen.tsx`, `ui/DiggingScreen.tsx`, `ui/read-local-file.ts`, `App.tsx`)
-  - [ ] 6.1 Rework `App.tsx` around the flow: `pushState` when a demo is chosen, `popstate` to go back, and a back button on the error screen.
-  - [ ] 6.2 The boot screen, as in the design:
+  - [x] 6.1 Rework `App.tsx` around the flow: `pushState` when a demo is chosen, `popstate` to go back, and a back button on the error screen.
+  - [x] 6.2 The boot screen, as in the design:
     - the terminal style;
     - the typed lines, with any key or click skipping the typing without choosing;
     - text at once under reduced motion;
@@ -104,8 +104,8 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
     - Open a graveyard file, with both the picker and drop;
     - a local-file error shown on the boot screen;
     - "No demo list found" when the manifest is missing.
-  - [ ] 6.3 The digging screen: real counts, the scene model built after the first paint, and `digHoldMs`. After it, the scene plays its opening move.
-  - [ ] 6.4 `e2e/boot.spec.ts`, as in the design:
+  - [x] 6.3 The digging screen: real counts, the scene model built after the first paint, and `digHoldMs`. After it, the scene plays its opening move.
+  - [x] 6.4 `e2e/boot.spec.ts`, as in the design:
     - a bare address shows the boot screen;
     - a key skips the typing;
     - Enter opens spatialql, with the address, the digging counts, then the scene;
@@ -115,10 +115,15 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
     - `?graveyard=demo.oikosledger` skips the boot screen.
 
     The version-1 file is written by the test into a temporary folder, not kept in the repository.
-  - [ ] 6.5 **Leaving the scene frees its GPU resources.** On Back, or when another graveyard is chosen, the old scene is unmounted, and everything it made is disposed: geometries, materials, textures, render targets, the engraving atlas and the ghost-tag atlas. Every `useMemo`'d geometry, material or texture gets a matching dispose in an effect cleanup. Check this file by file in `scene/`; some already have one (`Plaques.tsx`). The canvas and its WebGL context are dropped with the scene, and `gl.dispose()` is called on unmount.
+  - [x] 6.5 **Leaving the scene frees its GPU resources.** On Back, or when another graveyard is chosen, the old scene is unmounted, and everything it made is disposed: geometries, materials, textures, render targets, the engraving atlas and the ghost-tag atlas. Every `useMemo`'d geometry, material or texture gets a matching dispose in an effect cleanup. Check this file by file in `scene/`; some already have one (`Plaques.tsx`). The canvas and its WebGL context are dropped with the scene, and `gl.dispose()` is called on unmount.
     - The dev `getRenderInfo()` also returns `renderer.info.memory` (geometries and textures), read from the live renderer.
     - **Browser check** (`e2e/boot.spec.ts`): switch between the two demos five times (spatialql, Back, oikos, Back, …). After each arrival, read the geometry and texture counts. Each graveyard's counts must be the same on every visit, so nothing builds up. Listen on every canvas for `webglcontextlost` and fail if it ever fires. Also count the canvases in the page, which must never be more than one.
-  - [ ] 6.6 Screenshot test `interface boot`: the boot screen with the choices, and the digging screen. To catch the digging screen, the test delays the data file with `page.route`.
+  - [x] 6.6 Screenshot test `interface boot`: the boot screen with the choices, and the digging screen. To catch the digging screen, the test delays the data file with `page.route`.
+  - **Built, with these choices:**
+    - A "← Graveyards" button beside Reset view leaves the scene, as Back does. The five-switch check uses it.
+    - The scene is keyed on its graveyard, so choosing another one unmounts the old scene. Every geometry, material and texture the scene builds was already freed on unmount: the engraving and ghost-tag atlases in `Stones` and `Ghosts`, the shader assets in the other components, and anything declared in JSX through R3F. R3F also disposes the renderer. The dev `getRenderInfo()` now reports `geometries` and `textures`.
+    - R3F ends a canvas's WebGL context on purpose when it unmounts (`forceContextLoss`, because browsers cap live contexts), so a `webglcontextlost` event on the scene being left is expected. The check fails on a lost context while a scene is showing.
+    - `useGraveyardLoad` is gone. Its loading moved into `App.tsx`.
   - **Run:** `npx playwright test e2e/boot.spec.ts` (including the five switches), then `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts -g "interface boot"`.
   - **Commit** with the screenshots.
   - _Requirements: 1, 2, 3_

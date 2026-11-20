@@ -4,7 +4,7 @@ import { SCHEMA_VERSION, validateGraveyard, type Graveyard } from '../../../shar
 
 /**
  * Deciding where the page address leads, which data file to load and whether what came back is usable. Pure: the fetch itself
- * is in `ui/useGraveyardLoad.ts`. The scene never draws a partly valid file.
+ * is in `App.tsx` (the digging screen). The scene never draws a partly valid file.
  */
 
 /**

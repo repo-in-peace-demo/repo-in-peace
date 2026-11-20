@@ -41,7 +41,8 @@ export type FlowState =
   | { screen: 'error'; title: string; message: string; details: string[] };
 
 export type FlowEvent =
-  | { type: 'choose'; source: Source; now: number }
+  /** `counts`: known before loading when the boot screen's demo list has them. */
+  | { type: 'choose'; source: Source; now: number; counts?: Counts }
   | { type: 'counts'; counts: Counts }
   | { type: 'loaded'; model: SceneModel }
   | { type: 'failed'; title: string; message: string; details: string[] }
@@ -74,7 +75,7 @@ export function flow(state: FlowState, event: FlowEvent): FlowState {
         screen: 'digging',
         source: event.source,
         startedAt: event.now,
-        counts: event.source.kind === 'local' ? countsOf(event.source.graveyard) : null,
+        counts: event.source.kind === 'local' ? countsOf(event.source.graveyard) : (event.counts ?? null),
       };
     case 'counts':
       return state.screen === 'digging' ? { ...state, counts: event.counts } : state;
