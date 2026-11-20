@@ -14,3 +14,5 @@ Ideas kept out of the current tasks on purpose. Each needs its own small spec be
 
 **From the narrow-window fix (task 28).** On an ultra-wide window (2.4 wide to tall), zoomed out as far as the camera limits allow, spatialql shows one tree of the ring (`forest/0/104`) at the side edge of the frame, nearer than the front fence. Nothing crosses the graveyard and the first frame, Reset view and the opening move are clear at every shape from 0.75 to 2.4; this is only the fully zoomed-out view at the widest shape. A fix would plan the ring for the zoomed-out camera too (`ZOOM_OUT_SHARE` times the establishing distance), or check `treeProblems` for the zoomed-out pose in `model/tree-placement.property.test.ts` and pull the zoom-out limit in where it fails.
 
+**From the interface spec.** A graveyard file opened from disk (Open a graveyard file on the boot screen) is not kept across a reload: the page address has no `graveyard` parameter for it, so a reload returns to the boot screen and the file has to be opened again. Keeping it (for example in session storage, read back on load) was considered and left out on purpose.
+
