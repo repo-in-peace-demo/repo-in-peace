@@ -1,6 +1,7 @@
 import type { Layout } from './layout';
 import type { Rect } from './rect';
 import { GHOST_FLOAT_BASE, GHOST_HEIGHT } from './visual-constants';
+import { DEFAULT_ASPECT, safeEstablishingShot } from './framing';
 import { add, distance, lerp, normalize, scale, vec3, type Vec3 } from './vec3';
 
 /**
@@ -16,33 +17,23 @@ export interface CameraPose {
 
 // ---- The starting view ----
 
-/** The vertical field of view of the scene's camera, in degrees. The starting view is fitted to it. */
-export const DEFAULT_FOV_Y = 50;
+/** The vertical field of view of the scene's camera, in degrees. The opening shot is composed for it (`model/framing.ts`). */
+export const DEFAULT_FOV_Y = 60; // wide enough to hold the sky with the moon above the horizon and the graveyard below it, from 22 degrees up
 
-/** The camera starts in front of and above the graveyard, along this direction from its centre. */
-const START_DIRECTION = normalize(vec3(0, 0.6, 1));
-
-/** Room around the graveyard in the starting view, as a multiple of the distance that just fits it. */
-const START_MARGIN = 1.15;
-
-/** The starting camera is never closer than this, so a tiny graveyard is not seen from inside. */
-const START_MIN_DISTANCE = 20;
-
-/** The centre of the graveyard at ground level, and a camera far enough back to see all of it. `fovY` is in degrees. */
-export function startPose(bounds: Rect, fovY: number): CameraPose {
-  const target = vec3(bounds.x + bounds.w / 2, 0, bounds.z + bounds.d / 2);
-  const radius = Math.hypot(bounds.w, bounds.d) / 2;
-  const halfFov = (fovY * Math.PI) / 360;
-  // A sphere of this radius, centred on the target, just fits the vertical view at this distance.
-  const fit = radius / Math.sin(halfFov);
-  const away = Math.max(START_MIN_DISTANCE, fit * START_MARGIN);
-  return { position: add(target, scale(START_DIRECTION, away)), target };
+/**
+ * The pose of the establishing shot that the scene opens on and Reset view returns to: the middle of the graveyard at ground
+ * level as the look-at point, and a camera in front of it and above, as near as it can be with the whole graveyard in the frame
+ * of a window of this shape. `fovY` is in degrees. The shot also has a lens shift (`establishingShot`), which is the same for every pose.
+ * If there is no establishing shot for this lens, it is the legacy pose, with a development-only warning (`safeEstablishingShot`): it never throws.
+ */
+export function startPose(bounds: Rect, fovY: number, aspect: number = DEFAULT_ASPECT): CameraPose {
+  return safeEstablishingShot(bounds, fovY, aspect).pose;
 }
 
 // ---- Flying to a stone or ghost ----
 
 /** The camera looks at the target from in front of it and above, along this direction. */
-const FLY_DIRECTION = normalize(vec3(0, 0.35, 1));
+const FLY_DIRECTION = normalize(vec3(0, 0.375, 1)); // 20.6 degrees above the horizontal: just above the 20 degree limit of the camera, close to the low angle the ghosts and stones are judged from
 
 /** The camera aims at this share of the way up the stone, where its face is. */
 const AIM_HEIGHT_SHARE = 0.55;

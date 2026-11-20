@@ -1,0 +1,349 @@
+import { DEFAULT_FOV_Y } from './camera-pose';
+import { DEFAULT_ASPECT, ESTABLISHING_ELEVATION_DEG, HORIZON_FROM_TOP, safeEstablishingShot } from './framing';
+import { hash01 } from './hash';
+import type { Rect } from './rect';
+import { MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG, MOON_GLOW_ANGULAR_RADIUS_DEG } from './atmosphere';
+import { vec3, type Vec3 } from './vec3';
+
+/**
+ * The land around the graveyard: hills that rise behind the fence, a dense forest on their ridge that reaches into the lower sky,
+ * and low, far hills beyond. Pure: the geometry is worked out here, the scene only draws it (`scene/Horizon.tsx`).
+ *
+ * Why it exists: with every plot in the frame, a flat graveyard seen from 22 degrees up leaves a wide empty band between its back
+ * fence and the horizon. The hills fill that band with moonlit ground, so the land runs from the front of the frame up to the trees.
+ *
+ * How it is composed: everything is placed for the eye of the establishing shot at the default window shape (the "design eye"),
+ * so the same data file always gives the same land (it never depends on the window). The ridge is placed so that it is
+ * `RIDGE_BELOW_HORIZON` of the frame below the horizon in that shot. The treetops are given as angles above the design eye's level,
+ * so the forest rises a few degrees into the sky whatever the size of the graveyard, and dips into a clearing under the moon, wide
+ * enough that no tree reaches the moon's disc or halo. Nothing here reads a file's facts, only the graveyard's bounds.
+ */
+
+/** The ridge of the hills, as a share of the frame's height below the horizon, in the establishing shot. */
+export const RIDGE_BELOW_HORIZON = 0.08;
+
+/** The hills start this share of the graveyard's radius outside its fence, so the fence is never buried. */
+const HILL_GAP_SHARE = 0.04;
+
+/** The ridge is at least this far from the middle: a little beyond the design eye, so the camera starts inside the ring of hills. */
+const RIDGE_BEYOND_EYE = 1.15;
+
+/** The far hills rise from FAR_START to FAR_PEAK times the ridge's radius, and the land ends at LAND_END times it. */
+const FAR_START = 1.55;
+const FAR_PEAK = 2.4;
+export const LAND_END = 3;
+
+/** The forest: rows of trees on the ridge, each a little further back and a little higher than the one in front. */
+export const FOREST_ROWS: ReadonlyArray<{ offset: number; lift: number }> = [
+  { offset: 0.02, lift: 0 },
+  { offset: 0.1, lift: 0.7 },
+  { offset: 0.22, lift: 1.3 },
+];
+
+/** The treetops, in degrees above the design eye's level: a base and an uneven rise and fall around the ring. */
+const CANOPY_BASE_DEG = 1.2;
+const CANOPY_SWELL_DEG = 1.1;
+const TREE_JITTER_DEG = 0.9;
+
+/** The clearing under the moon: its treetops are at most this many degrees above the design eye's level (below the horizon). */
+const CLEARING_TOP_DEG = -1.5;
+/** The clearing reaches this many degrees beyond the halo to each side, at full depth, then rises back over CLEARING_SHOULDER_DEG. */
+const CLEARING_MARGIN_DEG = 2;
+const CLEARING_SHOULDER_DEG = 4;
+
+/** Every BARE_TREE_EVERY-th slot of the front row is a bare, twisted tree, taller than the forest, unless it is near the clearing. */
+const BARE_TREE_EVERY = 23;
+const BARE_TREE_HEIGHT = 1.3;
+/** A bare tree is kept this many degrees (seen from the design eye) clear of the moon's halo. */
+const BARE_TREE_CLEARANCE_DEG = 6;
+
+const RAD = Math.PI / 180;
+const smooth = (t: number): number => {
+  const k = Math.min(1, Math.max(0, t));
+  return k * k * k * (k * (k * 6 - 15) + 10);
+};
+
+export interface HorizonPlan {
+  /** The middle of the graveyard on the ground. */
+  centre: Vec3;
+  halfW: number;
+  halfD: number;
+  /** How far out the hills start rising, beyond the fence. */
+  gap: number;
+  /** The ridge of the hills: its distance from the middle, and its height. */
+  ridgeRadius: number;
+  ridgeHeight: number;
+  /** The eye the land is composed for: the establishing shot's camera at the default window shape. */
+  eye: Vec3;
+}
+
+/** The plan of the land for a graveyard with these bounds. */
+export function horizonPlan(bounds: Rect): HorizonPlan {
+  const shot = safeEstablishingShot(bounds, DEFAULT_FOV_Y, DEFAULT_ASPECT);
+  const centre = shot.pose.target;
+  const eye = shot.pose.position;
+  const halfW = bounds.w / 2;
+  const halfD = bounds.d / 2;
+  const radius = Math.hypot(halfW, halfD);
+  const gap = HILL_GAP_SHARE * radius + 1;
+  const eyeAlong = Math.hypot(eye.x - centre.x, eye.z - centre.z);
+  const ridgeRadius = Math.max(eyeAlong * RIDGE_BEYOND_EYE, (radius + gap) * 1.3);
+
+  // The ridge straight behind the middle, seen from the eye, is RIDGE_BELOW_HORIZON under the horizon in the frame. In the middle
+  // column of the frame a point `beta` degrees above the view axis is at 0.5 + shift - tan(beta) / (2 tan(fov / 2)) from the top,
+  // and the horizon at HORIZON_FROM_TOP; so the ridge is at an angle `alpha` above the eye's level.
+  const tanHalf = Math.tan((DEFAULT_FOV_Y * RAD) / 2);
+  const shift = shot.viewShift;
+  const beta = Math.atan((0.5 + shift - (HORIZON_FROM_TOP + RIDGE_BELOW_HORIZON)) * 2 * tanHalf);
+  const alpha = beta - ESTABLISHING_ELEVATION_DEG * RAD;
+  const along = eyeAlong + ridgeRadius;
+  const ridgeHeight = Math.max(0.5, eye.y + along * Math.tan(alpha));
+  return { centre, halfW, halfD, gap, ridgeRadius, ridgeHeight, eye };
+}
+
+/** How far the fence is from the middle along this direction on the ground (dx, dz of length 1). */
+function fenceAlong(plan: HorizonPlan, dx: number, dz: number): number {
+  const ax = Math.abs(dx) < 1e-9 ? Infinity : plan.halfW / Math.abs(dx);
+  const az = Math.abs(dz) < 1e-9 ? Infinity : plan.halfD / Math.abs(dz);
+  return Math.min(ax, az);
+}
+
+/** A slow rise and fall around the ring, from -1 to 1, the same for every graveyard. */
+function swell(angle: number, salt: string): number {
+  let value = 0;
+  let weight = 0;
+  for (const [frequency, amplitude] of [
+    [2, 1],
+    [5, 0.6],
+    [11, 0.35],
+  ] as const) {
+    value += amplitude * Math.sin(frequency * angle + hash01(salt, String(frequency)) * Math.PI * 2);
+    weight += amplitude;
+  }
+  return value / weight;
+}
+
+/** The height of the far hills' tops along this direction: under the design eye, so they stay below the horizon. */
+function farTop(plan: HorizonPlan, angle: number): number {
+  const low = plan.ridgeHeight;
+  const high = plan.eye.y * 0.92;
+  return low + Math.max(0, high - low) * (0.45 + 0.5 * swell(angle, 'far-hills'));
+}
+
+/** The height of the land at a point on the ground: 0 inside and near the graveyard, rising to the ridge, then the far hills. */
+export function landHeightAt(plan: HorizonPlan, x: number, z: number): number {
+  const ox = x - plan.centre.x;
+  const oz = z - plan.centre.z;
+  const r = Math.hypot(ox, oz);
+  if (r < 1e-9) return 0;
+  const dx = ox / r;
+  const dz = oz / r;
+  const start = fenceAlong(plan, dx, dz) + plan.gap;
+  const R = plan.ridgeRadius;
+  if (r <= start) return 0;
+  const ridge = plan.ridgeHeight * smooth((r - start) / Math.max(1e-6, R - start));
+  if (r <= FAR_START * R) return ridge;
+  const angle = Math.atan2(oz, ox);
+  const far = farTop(plan, angle);
+  return ridge + (far - ridge) * smooth((r - FAR_START * R) / ((FAR_PEAK - FAR_START) * R));
+}
+
+/**
+ * The land as a mesh: a ring of the ground around the graveyard, from where the hills start to LAND_END times the ridge, with
+ * positions (x, y, z) and triangles. Where the land is flat (inside, at the fence) it is left out, and the flat ground shows.
+ */
+export function landMesh(plan: HorizonPlan, segments = 256, rings = 72): { positions: Float32Array; indices: Uint32Array } {
+  const R = plan.ridgeRadius;
+  const inner = Math.min(plan.halfW, plan.halfD) + plan.gap * 0.5;
+  const outer = LAND_END * R;
+  const positions = new Float32Array(segments * (rings + 1) * 3);
+  for (let j = 0; j <= rings; j++) {
+    // More rings near the ridge, where the land bends most.
+    const t = j / rings;
+    const r = inner + (outer - inner) * (t < 0.55 ? (t / 0.55) * ((R * 1.1 - inner) / (outer - inner)) : (R * 1.1 - inner) / (outer - inner) + ((t - 0.55) / 0.45) * (1 - (R * 1.1 - inner) / (outer - inner)));
+    for (let i = 0; i < segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      const x = plan.centre.x + Math.cos(angle) * r;
+      const z = plan.centre.z + Math.sin(angle) * r;
+      const k = (j * segments + i) * 3;
+      positions[k] = x;
+      positions[k + 1] = landHeightAt(plan, x, z);
+      positions[k + 2] = z;
+    }
+  }
+  const indices: number[] = [];
+  const at = (i: number, j: number): number => j * segments + (i % segments);
+  for (let j = 0; j < rings; j++) {
+    for (let i = 0; i < segments; i++) {
+      const quad = [at(i, j), at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)];
+      if (quad.every((q) => positions[q * 3 + 1]! < 0.02)) continue; // flat: the ground is there
+      // Wound counter-clockwise seen from above, so the face, and the normal three.js works out from it, looks up. (The ring's
+      // angle grows from +x toward +z, so i -> i + 1 then outward is counter-clockwise seen from +y.)
+      indices.push(quad[0]!, quad[1]!, quad[2]!, quad[1]!, quad[3]!, quad[2]!);
+    }
+  }
+  return { positions, indices: Uint32Array.from(indices) };
+}
+
+// ---- The forest ----
+
+/** The moon's direction on the ground, as an angle seen from the eye, and the angles of a point from the design eye (degrees). */
+const azimuthFromEye = (plan: HorizonPlan, p: Vec3): number => Math.atan2(p.x - plan.eye.x, -(p.z - plan.eye.z)) / RAD; // 0 along -z, negative to the left
+
+/** How far, in degrees seen from the design eye, the halo of the moon reaches to each side of its middle. */
+const haloHalfWidthDeg = (): number => MOON_GLOW_ANGULAR_RADIUS_DEG / Math.cos(MOON_ELEVATION_DEG * RAD);
+
+/**
+ * The highest a treetop may be, in degrees above the design eye's level, at this angle seen from the design eye: the clearing
+ * under the moon, and no limit (Infinity) away from it.
+ */
+export function clearingCeilingDeg(azimuthDeg: number): number {
+  const off = Math.abs(azimuthDeg - MOON_AZIMUTH_DEG);
+  const flat = haloHalfWidthDeg() + CLEARING_MARGIN_DEG;
+  if (off <= flat) return CLEARING_TOP_DEG;
+  if (off >= flat + CLEARING_SHOULDER_DEG) return Infinity;
+  const t = smooth((off - flat) / CLEARING_SHOULDER_DEG);
+  return CLEARING_TOP_DEG + t * (CANOPY_BASE_DEG + CANOPY_SWELL_DEG + TREE_JITTER_DEG + 2 - CLEARING_TOP_DEG);
+}
+
+export interface Tree {
+  /** Where it stands, on the land. */
+  base: Vec3;
+  /** Its height above `base`. */
+  height: number;
+  /** Its width at the bottom. */
+  width: number;
+  /** Along the ring at the tree, on the ground (length 1): the trees are flat shapes across this direction, facing the middle. */
+  across: { x: number; z: number };
+  bare: boolean;
+  /** The seed of its shape. */
+  key: string;
+}
+
+/** Every tree of the forest, the same for the same bounds. */
+export function forestTrees(plan: HorizonPlan): Tree[] {
+  const trees: Tree[] = [];
+  const eyeLevel = plan.eye.y;
+  const typical = Math.max(1, eyeLevel - plan.ridgeHeight); // about how tall a tree is: up from the ridge to the eye's level and a bit
+  FOREST_ROWS.forEach((row, rowIndex) => {
+    const radius = plan.ridgeRadius * (1 + row.offset);
+    const spacing = typical * 0.18;
+    const count = Math.max(24, Math.round((Math.PI * 2 * radius) / spacing));
+    for (let i = 0; i < count; i++) {
+      const key = `forest/${rowIndex}/${i}`;
+      const angle = ((i + (hash01(key, 'slot') - 0.5) * 0.6) / count) * Math.PI * 2;
+      const x = plan.centre.x + Math.cos(angle) * radius;
+      const z = plan.centre.z + Math.sin(angle) * radius;
+      const ground = landHeightAt(plan, x, z);
+      const base = vec3(x, ground - typical * 0.05, z); // a little into the ground, so no light shows under it
+      const along = Math.hypot(x - plan.eye.x, z - plan.eye.z);
+      const azimuth = azimuthFromEye(plan, base);
+      const bareSlot = rowIndex === 0 && i % BARE_TREE_EVERY === 7 && Math.abs(azimuth - MOON_AZIMUTH_DEG) > haloHalfWidthDeg() + BARE_TREE_CLEARANCE_DEG + CLEARING_SHOULDER_DEG;
+      let topDeg = CANOPY_BASE_DEG + row.lift + CANOPY_SWELL_DEG * swell(angle, 'canopy') + TREE_JITTER_DEG * (hash01(key, 'height') * 2 - 1);
+      topDeg = Math.min(topDeg, clearingCeilingDeg(azimuth));
+      let top = eyeLevel + along * Math.tan(topDeg * RAD);
+      if (bareSlot) top = base.y + (top - base.y) * BARE_TREE_HEIGHT;
+      const height = top - base.y;
+      if (height < typical * 0.25) continue; // the clearing: no tree, or only stumps, so leave it out
+      trees.push({
+        base,
+        height,
+        width: bareSlot ? height * 0.9 : height * (0.32 + 0.12 * hash01(key, 'width')),
+        across: { x: -Math.sin(angle), z: Math.cos(angle) },
+        bare: bareSlot,
+        key,
+      });
+    }
+  });
+  return trees;
+}
+
+/** A point of a tree's flat shape: `u` across (from -0.5 to 0.5 of its width) and `v` up (0 to 1 of its height). */
+const shapePoint = (tree: Tree, u: number, v: number): Vec3 =>
+  vec3(tree.base.x + tree.across.x * u * tree.width, tree.base.y + v * tree.height, tree.base.z + tree.across.z * u * tree.width);
+
+/** A pine-like dark shape: three tiers, each a triangle, so the outline is ragged. */
+function pineTriangles(tree: Tree, out: number[]): void {
+  const lean = (hash01(tree.key, 'lean') - 0.5) * 0.08;
+  const tiers: ReadonlyArray<[bottom: number, top: number, half: number]> = [
+    [0, 0.62, 0.5],
+    [0.3, 0.84, 0.36],
+    [0.55, 1, 0.24],
+  ];
+  for (const [bottom, top, half] of tiers) {
+    const a = shapePoint(tree, -half, bottom);
+    const b = shapePoint(tree, half, bottom);
+    const c = shapePoint(tree, lean, top);
+    out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  }
+}
+
+/**
+ * A bare, twisted tree: a trunk that splits into crooked branches, each a thin strip, three times over. The branches keep
+ * inside the tree's width and height (they are scaled down if they would not).
+ */
+function bareTriangles(tree: Tree, out: number[]): void {
+  type Segment = { u0: number; v0: number; u1: number; v1: number; w: number };
+  const segments: Segment[] = [];
+  const grow = (u: number, v: number, angle: number, length: number, width: number, depth: number, path: string): void => {
+    // Three crooked pieces per branch.
+    let cu = u;
+    let cv = v;
+    let a = angle;
+    for (let k = 0; k < 3; k++) {
+      a += (hash01(tree.key, `${path}/bend/${k}`) - 0.5) * 0.7;
+      const nu = cu + Math.sin(a) * (length / 3);
+      const nv = cv + Math.cos(a) * (length / 3);
+      segments.push({ u0: cu, v0: cv, u1: nu, v1: nv, w: width * (1 - k * 0.15) });
+      cu = nu;
+      cv = nv;
+    }
+    if (depth === 0) return;
+    const children = 2 + (hash01(tree.key, `${path}/n`) < 0.4 ? 1 : 0);
+    for (let c = 0; c < children; c++) {
+      const spread = (c / Math.max(1, children - 1) - 0.5) * 1.5 + (hash01(tree.key, `${path}/${c}/a`) - 0.5) * 0.4;
+      grow(cu, cv, a + spread, length * (0.62 + 0.15 * hash01(tree.key, `${path}/${c}/l`)), width * 0.55, depth - 1, `${path}/${c}`);
+    }
+  };
+  grow(0, 0, (hash01(tree.key, 'trunk') - 0.5) * 0.3, 0.42, 0.06, 3, 't');
+
+  // Keep it inside its box: |u| <= 0.5 and 0 <= v <= 1.
+  let maxU = 0;
+  let maxV = 0;
+  for (const s of segments) {
+    maxU = Math.max(maxU, Math.abs(s.u0), Math.abs(s.u1));
+    maxV = Math.max(maxV, s.v0, s.v1);
+  }
+  const ku = maxU > 0.5 ? 0.5 / maxU : 1;
+  const kv = maxV > 1 ? 1 / maxV : 1;
+  for (const s of segments) {
+    const u0 = s.u0 * ku;
+    const u1 = s.u1 * ku;
+    const v0 = Math.max(0, s.v0 * kv);
+    const v1 = Math.max(0, s.v1 * kv);
+    // Across the piece, in the tree's plane: the width is in units of the tree's height, turned into a share of its width.
+    const du = u1 - u0;
+    const dv = (v1 - v0) * (tree.height / tree.width);
+    const n = Math.hypot(du, dv) || 1;
+    const half = (s.w * tree.height) / tree.width / 2;
+    const pu = (-dv / n) * half;
+    const pv = (du / n) * half * (tree.width / tree.height);
+    const clampU = (q: number): number => Math.max(-0.5, Math.min(0.5, q));
+    const clampV = (q: number): number => Math.max(0, Math.min(1, q));
+    const a = shapePoint(tree, clampU(u0 - pu), clampV(v0 - pv));
+    const b = shapePoint(tree, clampU(u0 + pu), clampV(v0 + pv));
+    const c = shapePoint(tree, clampU(u1 + pu), clampV(v1 + pv));
+    const d = shapePoint(tree, clampU(u1 - pu), clampV(v1 - pv));
+    out.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, a.x, a.y, a.z, c.x, c.y, c.z, d.x, d.y, d.z);
+  }
+}
+
+/** Every triangle of the forest, as x, y, z of three points each, one after another. Every point is inside its tree's box. */
+export function forestTriangles(trees: readonly Tree[]): Float32Array {
+  const out: number[] = [];
+  for (const tree of trees) {
+    if (tree.bare) bareTriangles(tree, out);
+    else pineTriangles(tree, out);
+  }
+  return Float32Array.from(out);
+}

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { graveyardFrom } from '../../test/make-graveyard';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import {
@@ -9,6 +9,8 @@ import {
   startPose,
   type CameraPose,
 } from './camera-pose';
+import { establishingShot, legacyShot, minFovForShot } from './framing';
+import { MIN_TILT_DEG } from './fly-controls';
 import { layout } from './layout';
 import { buildSignSources, visibleSigns } from './signs';
 import { makeSyntheticGraveyard } from './synthetic';
@@ -65,19 +67,33 @@ describe('startPose', () => {
     expect(distance(pose.position, pose.target)).toBeCloseTo(20, 9);
   });
 
-  it('stands back far enough for a sphere around the graveyard to fit the view, with 15% to spare', () => {
-    const bounds = { x: 0, z: 0, w: 400, d: 300 };
-    const radius = 250; // half the diagonal of 400 by 300
-    const pose = startPose(bounds, FOV);
-    expect(distance(pose.position, pose.target)).toBeCloseTo((1.15 * radius) / Math.sin((FOV * Math.PI) / 360), 6);
-  });
+  // How far back the shot stands, with every corner of the graveyard in the frame and no nearer, is tested in framing.test.ts.
 
   it('stands further back for a bigger graveyard, and for a narrower field of view', () => {
     const small = startPose({ x: 0, z: 0, w: 100, d: 100 }, FOV);
     const big = startPose({ x: 0, z: 0, w: 400, d: 400 }, FOV);
-    const narrow = startPose({ x: 0, z: 0, w: 100, d: 100 }, 30);
+    // 40 degrees: narrower than FOV, but over the narrowest field of view the establishing shot exists for (minFovForShot, about 32.4).
+    const narrow = startPose({ x: 0, z: 0, w: 100, d: 100 }, 40);
     expect(distance(big.position, big.target)).toBeGreaterThan(distance(small.position, small.target));
     expect(distance(narrow.position, narrow.target)).toBeGreaterThan(distance(small.position, small.target));
+  });
+
+  it('never throws: for a field of view too narrow for the shot it falls back to the legacy pose, with a development warning', () => {
+    const bounds = { x: 0, z: 0, w: 100, d: 100 };
+    expect(minFovForShot()).toBeGreaterThan(30);
+    // The search itself fails with a clear message instead of searching forever.
+    expect(() => establishingShot(bounds, 30, 1.6)).toThrow(/field of view must be over 32\.4 degrees/);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const pose = startPose(bounds, 30);
+      expect(pose).toEqual(legacyShot(bounds, 30).pose);
+      // The legacy distance: 1.15 × radius / sin(fov / 2).
+      expect(distance(pose.position, pose.target)).toBeCloseTo((1.15 * Math.hypot(100, 100)) / 2 / Math.sin((30 * Math.PI) / 360), 6);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]![0])).toMatch(/falling back to the legacy starting view.*32\.4 degrees/);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
@@ -104,7 +120,9 @@ describe('flyToPose', () => {
     const offset = sub(pose.position, pose.target);
     expect(offset.x).toBeCloseTo(0, 9);
     expect(offset.z).toBeGreaterThan(0);
-    expect(offset.y / offset.z).toBeCloseTo(0.35, 9);
+    expect(offset.y / offset.z).toBeCloseTo(0.375, 9);
+    // Above the camera's tilt limit, so clampPose leaves a flight's end where it is.
+    expect((Math.atan(offset.y / offset.z) * 180) / Math.PI).toBeGreaterThan(MIN_TILT_DEG);
   });
 
   it('stands further back from a taller stone', () => {

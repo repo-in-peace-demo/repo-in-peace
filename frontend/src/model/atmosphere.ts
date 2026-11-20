@@ -13,13 +13,16 @@ import type { Rect } from './rect';
 export const SKY_TOP_COLOR = '#03050c';
 export const SKY_HORIZON_COLOR = '#0c1628';
 
-/** The fog is the colour of the horizon, so the far edge of the ground dissolves into the sky. */
-export const FOG_COLOR = '#0a1222';
+/** The fog is the colour of the sky at the horizon, so the far ground, the hills and the forest fade into the sky in a haze. */
+export const FOG_COLOR = SKY_HORIZON_COLOR;
 
 /** The ground, very dark. */
 export const GROUND_BASE_COLOR = '#0a0e13';
 
-export const MOON_COLOR = '#e8efff';
+/** The forest on the ridge: flat, unlit, darker than the sky at the horizon, so it reads as a silhouette against it. */
+export const FOREST_COLOR = '#03050a';
+
+export const MOON_COLOR = '#c4d2e6'; // pale blue-grey: not pure white, so it is not the brightest thing on the screen
 export const MOONLIGHT_COLOR = '#b9c9ff';
 export const HEMISPHERE_SKY_COLOR = '#2c3c6a';
 export const HEMISPHERE_GROUND_COLOR = '#0a0d12';
@@ -65,9 +68,21 @@ export const STAR_COUNT = 900;
 export const STAR_SEED = 'repo-in-peace/stars';
 
 /** The moon, a fixed direction low enough to be in view when the camera looks toward the horizon (21.7 degrees up), and its size in the sky. */
-export const MOON_DIRECTION: Readonly<{ x: number; y: number; z: number }> = { x: -0.35, y: 0.37, z: -0.8606 };
-export const MOON_ANGULAR_RADIUS_DEG = 3.2;
-export const MOON_GLOW_ANGULAR_RADIUS_DEG = 14;
+export const MOON_AZIMUTH_DEG = -22; // to the left of straight ahead, which is -z
+export const MOON_ELEVATION_DEG = 8.5; // in the upper sky of the establishing shot, whose top edge is about 13 degrees above the horizon
+
+/** A direction from an azimuth (0 straight ahead along -z, negative to the left) and an elevation above the horizon, in degrees. */
+export function skyDirection(azimuthDeg: number, elevationDeg: number): { x: number; y: number; z: number } {
+  const az = (azimuthDeg * Math.PI) / 180;
+  const el = (elevationDeg * Math.PI) / 180;
+  return { x: Math.sin(az) * Math.cos(el), y: Math.sin(el), z: -Math.cos(az) * Math.cos(el) };
+}
+
+export const MOON_DIRECTION: Readonly<{ x: number; y: number; z: number }> = skyDirection(MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG);
+
+/** The moon is small, with a soft halo around it that ends at MOON_GLOW_ANGULAR_RADIUS_DEG (the sky's own glow ends there too), so the forest can keep clear of it. */
+export const MOON_ANGULAR_RADIUS_DEG = 0.9;
+export const MOON_GLOW_ANGULAR_RADIUS_DEG = 3;
 
 export interface StarDirection {
   x: number;

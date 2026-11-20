@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { ghostBaseHeight } from '../src/model/ghost-motion';
-import { GHOST_EYES, ghostRadiusAt, ghostTagPlacement, tipCurl } from '../src/model/ghost-shape';
+import { GHOST_EYES, ghostRadiusAt, ghostTagPlacement, hemHeight, tipCurl } from '../src/model/ghost-shape';
 import { RING_LIFT } from '../src/model/selection-ring';
 import { buildSceneModel } from '../src/model/scene-model';
 import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_HEIGHT } from '../src/model/visual-constants';
@@ -344,14 +344,31 @@ test.describe('ghosts, in the real app', () => {
     const tipRight = (await project(page, first.layout.x + tipR * s45, base, first.layout.z + tipR * s45))!;
     const tipLeft = (await project(page, first.layout.x - tipR * s45, base, first.layout.z + tipR * s45))!;
     const middle = (await project(page, first.layout.x, base, first.layout.z + r))!;
-    const lowestIn = async (at: { x: number; y: number }): Promise<number> => {
-      const y = await cyanLowestY(page, { x: Math.round(at.x) - 3, y: Math.round(at.y) - 90, width: 6, height: 130 });
-      expect(y, `no bright cyan at x ${at.x.toFixed(0)}`).not.toBeNull();
-      return y!;
+    // How many pixels one unit up is, at the front of the hem: the ghost's size on the screen depends on the lens and the flight.
+    const oneUp = (await project(page, first.layout.x, base + 1, first.layout.z + r))!;
+    const pixelsPerUnit = middle.y - oneUp.y;
+    // The lowest bright cyan pixel of each column in a window: one value per column.
+    const lowestByColumn = async (at: { x: number; y: number }, halfWidth: number): Promise<number[]> => {
+      const columns: number[] = [];
+      for (let dx = -halfWidth; dx <= halfWidth; dx++) {
+        const y = await cyanLowestY(page, { x: Math.round(at.x) + dx, y: Math.round(at.y) - 90, width: 1, height: 130 });
+        if (y !== null) columns.push(y);
+      }
+      expect(columns.length, `no bright cyan near x ${at.x.toFixed(0)}`).toBeGreaterThan(0);
+      return columns;
     };
-    const [right, left, between] = [await lowestIn(tipRight), await lowestIn(tipLeft), await lowestIn(middle)];
-    expect(right - between, `the right tip (y ${right}) should reach lower on the screen than the middle of the hem (y ${between})`).toBeGreaterThan(8);
-    expect(left - between, `the left tip (y ${left}) should reach lower than the middle (y ${between})`).toBeGreaterThan(8);
+    // A tip: the lowest point near where it should be. The middle: the top of the notch, the column whose lowest cyan is highest,
+    // searched a few pixels to each side, so a narrow notch is found even when the sway has moved the ghost a little.
+    const right = Math.max(...(await lowestByColumn(tipRight, 3)));
+    const left = Math.max(...(await lowestByColumn(tipLeft, 3)));
+    const between = Math.min(...(await lowestByColumn(middle, 6)));
+    // In the model the hem rises from a tip (u = 0.5) to where two braces meet (u = 0 or 1) by this much; on the screen at least
+    // half of it must show (the view from above and the soft edges take some of it).
+    const rise = (hemHeight(0) - hemHeight(0.5)) * pixelsPerUnit;
+    const wanted = rise / 2;
+    expect(rise, `the hem's rise should be big enough on the screen to measure (${pixelsPerUnit.toFixed(1)} px per unit)`).toBeGreaterThan(8);
+    expect(right - between, `the right tip (y ${right}) should reach lower on the screen than the middle of the hem (y ${between}) by ${wanted.toFixed(1)} px`).toBeGreaterThan(wanted);
+    expect(left - between, `the left tip (y ${left}) should reach lower than the middle (y ${between}) by ${wanted.toFixed(1)} px`).toBeGreaterThan(wanted);
   });
 
   test('the two outer tips of the hem curl outward, like the ends of { and }', async ({ page }) => {

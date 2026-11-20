@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { graveyardFrom } from '../../test/make-graveyard';
+import { DEFAULT_FOV_Y } from './camera-pose';
+import { establishingShot } from './framing';
 import { layout } from './layout';
 import {
   SIGN_FAR_FACTOR,
   SIGN_HEIGHT,
+  SIGN_MAJOR_SHARE,
   SIGN_MAX_VISIBLE,
+  SIGN_MINOR_FAR_SCALE,
+  SIGN_MINOR_SHARE,
   SIGN_MIN_OPACITY,
   SIGN_NEAR_BASE,
   SIGN_NEAR_PER_SIZE,
   buildSignSources,
+  signFarScale,
   signOpacity,
   visibleSigns,
   type CameraView,
@@ -84,14 +90,44 @@ describe('buildSignSources', () => {
     });
   });
 
-  it('makes the distances grow with the plot, and the far distance a fixed multiple of the near one', () => {
+  it('makes the distances grow with the plot: the root by its longer side, every other plot by the square root of its area', () => {
+    const rootArea = l.bounds.w * l.bounds.d;
     for (const [i, s] of sources.entries()) {
-      const rect = l.plots[i]!.rect;
-      expect(s.near).toBeCloseTo(SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE * Math.max(rect.w, rect.d), 9);
-      expect(s.far).toBeCloseTo(s.near * SIGN_FAR_FACTOR, 9);
+      const plot = l.plots[i]!;
+      const { w, d } = plot.rect;
+      const size = plot.parent === null ? Math.max(w, d) : Math.sqrt(w * d);
+      expect(s.near).toBeCloseTo(SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE * size, 9);
+      expect(s.far).toBeCloseTo(s.near * SIGN_FAR_FACTOR * (plot.parent === null ? 1 : signFarScale((w * d) / rootArea)), 9);
     }
     expect(sources[0]!.near).toBeGreaterThan(sources[1]!.near);
     expect(sources[1]!.near).toBeGreaterThan(sources[2]!.near);
+  });
+
+  it('fades a minor plot out sooner than a major one: the scale of the far distance', () => {
+    expect(signFarScale(1)).toBe(1);
+    expect(signFarScale(SIGN_MAJOR_SHARE)).toBe(1);
+    expect(signFarScale(SIGN_MINOR_SHARE)).toBe(SIGN_MINOR_FAR_SCALE);
+    expect(signFarScale(0)).toBe(SIGN_MINOR_FAR_SCALE);
+    expect(signFarScale(Number.NaN)).toBe(SIGN_MINOR_FAR_SCALE);
+    const mid = signFarScale((SIGN_MAJOR_SHARE + SIGN_MINOR_SHARE) / 2);
+    expect(mid).toBeGreaterThan(SIGN_MINOR_FAR_SCALE);
+    expect(mid).toBeLessThan(1);
+    // A minor sign still fades out beyond where it is fully readable.
+    expect(SIGN_FAR_FACTOR * SIGN_MINOR_FAR_SCALE).toBeGreaterThan(1.2);
+  });
+
+  it('in the opening shot of oikos_ledger, on a 16:10 or 16:9 screen, labels the major folders only: the root, app, api, components and lib', () => {
+    const real = loadRealGraveyard('demo.oikosledger');
+    const rl = layout(real);
+    const realSources = buildSignSources(rl, real.meta.name);
+    const rootArea = rl.bounds.w * rl.bounds.d;
+    const major = new Set(rl.plots.filter((p) => p.parent === null || (p.rect.w * p.rect.d) / rootArea >= SIGN_MAJOR_SHARE).map((p) => p.path));
+    expect([...major].sort()).toEqual(['app', 'app/app', 'app/app/api', 'app/components', 'app/lib']);
+    for (const aspect of [1.6, 16 / 9]) {
+      const { pose } = establishingShot(rl.bounds, DEFAULT_FOV_Y, aspect);
+      const shown = visibleSigns(realSources, { position: pose.position, forward: vec3(pose.target.x - pose.position.x, pose.target.y - pose.position.y, pose.target.z - pose.position.z), fovY: DEFAULT_FOV_Y, aspect });
+      expect(shown.map((s) => s.path).sort()).toEqual([...major].sort());
+    }
   });
 
   it('names a plot that shows several folders for all of them', () => {

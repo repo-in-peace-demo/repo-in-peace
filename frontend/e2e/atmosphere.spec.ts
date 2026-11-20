@@ -94,14 +94,35 @@ test.describe('the night, in the real app', () => {
   });
 
   test('the sky does not depend on the data: the same sky above the horizon in two different graveyards', async ({ page }) => {
-    const skyOf = async (name: string): Promise<string> => {
+    /**
+     * Where the horizon is on the page, in pixels from the top. Any point level with the camera is on the horizon line, so one 500
+     * units ahead: inside the camera's far plane (at least 1000), which `projectPoint` would treat as behind the camera.
+     */
+    const horizonY = (): Promise<number> =>
+      page.evaluate(() => {
+        const api = window.repoInPeace!;
+        const { position: p, target: t } = api.getPose();
+        const along = Math.hypot(t.x - p.x, t.z - p.z);
+        const far = 500 / along;
+        const at = api.projectPoint(p.x + (t.x - p.x) * far, p.y, p.z + (t.z - p.z) * far);
+        if (at === null) throw new Error('the point on the horizon did not project');
+        return at.y;
+      });
+    const skyOf = async (name: string, clipHeight?: number): Promise<{ png: string; horizon: number; clipHeight: number }> => {
       await open(page, name);
+      // The forest on the ridge reaches into the lower sky, and it is placed for each graveyard's size; the sky itself is not.
+      await page.evaluate(() => window.repoInPeace!.setHorizonVisible(false));
       await lookAlongTheGround(page);
-      return (await page.screenshot({ clip: { x: 300, y: 5, width: 540, height: 280 } })).toString('base64');
+      const horizon = await horizonY();
+      // Only the sky: from near the top to well above the horizon. Below it is the ground, whose fog depends on the graveyard's size.
+      const height = clipHeight ?? Math.min(280, Math.floor(horizon - 20 - 5));
+      expect(height, `the horizon (y ${horizon.toFixed(0)}) should leave a band of sky to compare`).toBeGreaterThan(120);
+      return { png: (await page.screenshot({ clip: { x: 300, y: 5, width: 540, height } })).toString('base64'), horizon, clipHeight: height };
     };
     const a = await skyOf('demo.spatialql');
-    const b = await skyOf('demo.oikosledger');
-    expect(a === b, 'the stars and the moon must be in the same places for any graveyard').toBe(true);
+    const b = await skyOf('demo.oikosledger', a.clipHeight); // the same clip for both
+    expect(Math.abs(a.horizon - b.horizon), 'the camera should look along the ground the same way in both').toBeLessThan(0.5);
+    expect(a.png === b.png, 'the stars and the moon must be in the same places for any graveyard').toBe(true);
   });
 
   test('the fog has the density the model gives for the size of the graveyard, for each graveyard', async ({ page }) => {

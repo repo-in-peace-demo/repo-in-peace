@@ -12,16 +12,34 @@ import { distance, dot, normalize, sub, vec3, type Vec3 } from './vec3';
 export const SIGN_HEIGHT = 1.4;
 
 /**
- * A sign is fully readable within `SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE × (the longer side of its plot)` units.
- * The factor is 1 so that the root's sign, whose plot is the whole graveyard, can be read from the starting view of a
- * graveyard of any size: the starting camera is about 1.5 times the root's longer side away from its sign, and the
- * sign has faded out only at 2.2 × (14 + that side). A smaller factor would lose the root's name in a large graveyard.
+ * A sign is fully readable within `SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE × (the size of its plot)` units, where the size is the
+ * square root of the plot's area, so a plot with more area never has the shorter range. The root's size is its longer side
+ * (never less than the square root of its area, and the root holds every other plot, so it still has the longest range): the
+ * factor is 1 so that the root's sign can be read from the starting view of a graveyard of any size. A smaller factor would
+ * lose the root's name in a large graveyard.
  */
 export const SIGN_NEAR_BASE = 14;
 export const SIGN_NEAR_PER_SIZE = 1;
 
-/** A sign has faded out completely at this many times its near distance. */
+/** A sign of a major plot has faded out completely at this many times its near distance. */
 export const SIGN_FAR_FACTOR = 2.2;
+
+/**
+ * Smaller plots fade out sooner, so that the overview is labelled with the major folders only. A plot with at least
+ * `SIGN_MAJOR_SHARE` of the root's area fades out at `SIGN_FAR_FACTOR` times its near distance; one with at most
+ * `SIGN_MINOR_SHARE` at `SIGN_MINOR_FAR_SCALE` times that; and in between the scale rises smoothly with the area.
+ */
+export const SIGN_MAJOR_SHARE = 0.1;
+export const SIGN_MINOR_SHARE = 0.02;
+export const SIGN_MINOR_FAR_SCALE = 0.7;
+
+/** How much of `SIGN_FAR_FACTOR` a plot with this share of the root's area gets: from SIGN_MINOR_FAR_SCALE to 1, never falling as the share grows. */
+export function signFarScale(share: number): number {
+  if (!(share > SIGN_MINOR_SHARE)) return SIGN_MINOR_FAR_SCALE; // also for NaN
+  if (share >= SIGN_MAJOR_SHARE) return 1;
+  const t = (share - SIGN_MINOR_SHARE) / (SIGN_MAJOR_SHARE - SIGN_MINOR_SHARE);
+  return SIGN_MINOR_FAR_SCALE + (1 - SIGN_MINOR_FAR_SCALE) * t * t * (3 - 2 * t);
+}
 
 /** At most this many signs show at once. */
 export const SIGN_MAX_VISIBLE = 30;
@@ -70,8 +88,12 @@ export interface VisibleSign {
  * names of the folders shown together joined by "/" (`accounts/compare`).
  */
 export function buildSignSources(layout: Layout, repoName: string): SignSource[] {
+  const rootArea = layout.bounds.w * layout.bounds.d;
   return layout.plots.map((plot) => {
-    const near = SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE * Math.max(plot.rect.w, plot.rect.d);
+    const area = plot.rect.w * plot.rect.d;
+    const size = plot.parent === null ? Math.max(plot.rect.w, plot.rect.d) : Math.sqrt(area);
+    const near = SIGN_NEAR_BASE + SIGN_NEAR_PER_SIZE * size;
+    const share = plot.parent === null || rootArea <= 0 ? 1 : area / rootArea;
     return {
       path: plot.path,
       label: plot.folders[0] === '' ? (plot.label === '' ? repoName : `${repoName} / ${plot.label}`) : plot.label,
@@ -79,7 +101,7 @@ export function buildSignSources(layout: Layout, repoName: string): SignSource[]
       y: SIGN_HEIGHT,
       z: plot.sign.z,
       near,
-      far: near * SIGN_FAR_FACTOR,
+      far: near * SIGN_FAR_FACTOR * signFarScale(share),
     };
   });
 }

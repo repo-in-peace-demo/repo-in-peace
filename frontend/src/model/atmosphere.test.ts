@@ -52,8 +52,10 @@ describe('the colours', () => {
     expect(Math.abs(luminance(FOG_COLOR) - luminance(SKY_HORIZON_COLOR))).toBeLessThan(0.02);
   });
 
-  it('make the moon and the stars bright against the sky', () => {
-    expect(luminance(MOON_COLOR)).toBeGreaterThan(0.7);
+  it('make the moon and the stars bright against the sky, the moon a pale blue-grey and not pure white', () => {
+    expect(luminance(MOON_COLOR)).toBeGreaterThan(0.55);
+    expect(luminance(MOON_COLOR)).toBeLessThan(0.85); // not white
+    expect(MOON_COLOR.slice(5)).not.toBe('ff'); // the blue is not full
     expect(luminance(STAR_COLOR)).toBeGreaterThan(0.7);
   });
 });
@@ -80,8 +82,8 @@ describe('the moon', () => {
     const { x, y, z } = MOON_DIRECTION;
     expect(Math.hypot(x, y, z)).toBeCloseTo(1, 3);
     const elevation = (Math.asin(y) * 180) / Math.PI;
-    expect(elevation).toBeGreaterThan(10);
-    expect(elevation).toBeLessThan(25); // the camera's field of view is 50 degrees tall
+    expect(elevation).toBeGreaterThan(3);
+    expect(elevation).toBeLessThan(10); // the opening shot sees about 10 degrees of sky above the horizon
     expect(z).toBeLessThan(0); // behind the graveyard when seen from the opening view, which looks toward -z
   });
 

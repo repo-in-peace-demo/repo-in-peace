@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
+import { STONE_W } from '../src/model/layout-constants';
 import { RING_LIFT } from '../src/model/selection-ring';
 import { GHOST_FLOAT_BASE } from '../src/model/visual-constants';
 import { pickNearest } from '../src/model/pick';
@@ -34,6 +35,7 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 const folderOf = (path: string): string => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '/');
 
 const pose = (page: Page): Promise<CameraPose> => page.evaluate(() => window.repoInPeace!.getPose());
+const viewShift = (page: Page): Promise<number> => page.evaluate(() => window.repoInPeace!.getViewShift());
 const selection = (page: Page) => page.evaluate(() => window.repoInPeace!.getSelection());
 const select = (page: Page, kind: 'file' | 'ghost', path: string) => page.evaluate(([k, p]) => window.repoInPeace!.select({ kind: k as 'file' | 'ghost', path: p! }), [kind, path]);
 
@@ -44,14 +46,17 @@ async function screenPoint(page: Page, path: string): Promise<{ x: number; y: nu
   return point!;
 }
 
-/** What the picker should find under a pixel: the same ray as the camera's, tested against the layout's boxes. */
-function expectedPick(p: CameraPose, x: number, y: number) {
+/**
+ * What the picker should find under a pixel: the same ray as the camera's, tested against the layout's boxes. The camera's lens
+ * shift (`getViewShift`) moves the picture down by that share of the height, so a pixel is that much higher in the unshifted view.
+ */
+function expectedPick(p: CameraPose, x: number, y: number, viewShift: number) {
   const forward = normalize(sub(p.target, p.position));
   const right = normalize(vec3(-forward.z, 0, forward.x)); // forward is never vertical in the views used here
   const up = vec3(right.y * forward.z - right.z * forward.y, right.z * forward.x - right.x * forward.z, right.x * forward.y - right.y * forward.x);
   const tanHalf = Math.tan((DEFAULT_FOV_Y * Math.PI) / 360);
   const ndcX = (x / VIEWPORT.width) * 2 - 1;
-  const ndcY = -((y / VIEWPORT.height) * 2 - 1);
+  const ndcY = -((y / VIEWPORT.height - viewShift) * 2 - 1);
   const direction: Vec3 = add(add(forward, scale(right, ndcX * tanHalf * (VIEWPORT.width / VIEWPORT.height))), scale(up, ndcY * tanHalf));
   return pickNearest(model.pickTargets, p.position, direction);
 }
@@ -144,7 +149,7 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
 
   test('hovering a stone shows its name and full folder path, and leaving it hides the label', async ({ page }) => {
     const at = await screenPoint(page, frontStone);
-    expect(expectedPick(await pose(page), at.x, at.y)?.path, 'the front stone should not be hidden').toBe(frontStone);
+    expect(expectedPick(await pose(page), at.x, at.y, await viewShift(page))?.path, 'the front stone should not be hidden').toBe(frontStone);
 
     await page.mouse.move(at.x, at.y);
     const label = page.locator('.hover-label');
@@ -161,7 +166,7 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
     await page.evaluate((p) => window.repoInPeace!.flyTo(p), ghostPath);
     await page.waitForTimeout(1600);
     const at = await screenPoint(page, ghostPath);
-    expect(expectedPick(await pose(page), at.x, at.y)?.path, 'the ghost should not be hidden behind a stone').toBe(ghostPath);
+    expect(expectedPick(await pose(page), at.x, at.y, await viewShift(page))?.path, 'the ghost should not be hidden behind a stone').toBe(ghostPath);
 
     await page.mouse.move(at.x, at.y);
     const label = page.locator('.hover-label');
@@ -290,11 +295,17 @@ test.describe('hover, click, drag and Escape, in the real app', () => {
     expect(change, `the stone body changed colour when selected: ${JSON.stringify(before)} to ${JSON.stringify(after)}`).toBeLessThan(18);
     expect(after.r + after.g + after.b - (before.r + before.g + before.b), 'the stone body got lighter when selected').toBeLessThan(30);
 
-    // And the ring is on the ground at its foot.
+    // And the ring is on the ground at its foot. The folder signs are page elements over the scene, and one may stand over a
+    // part of the ring in this view: hide them for the picture. Leave out the stone's own width (its rim of light), and no more.
+    await page.addStyleTag({ content: '.signs { visibility: hidden !important; }' });
+    await page.waitForTimeout(100);
     const stone = model.stones.find((s) => s.file.path === frontStone)!.layout;
     const foot = (await project(page, stone.x, RING_LIFT, stone.z))!;
-    const ring = await ringCentre(page, { x: Math.max(0, Math.round(foot.x) - 150), y: Math.max(0, Math.round(foot.y) - 150), width: 300, height: 300 }, 45);
+    const edge = (await project(page, stone.x + STONE_W / 2, RING_LIFT, stone.z))!;
+    const skip = Math.ceil(Math.abs(edge.x - foot.x)) + 6;
+    const ring = await ringCentre(page, { x: Math.max(0, Math.round(foot.x) - 150), y: Math.max(0, Math.round(foot.y) - 150), width: 300, height: 300 }, skip);
     expect(ring, 'no pink ring found around the stone').not.toBeNull();
+    expect(ring!.pixels, `enough of the ring to find its middle (skipping ${skip} px each side of the middle)`).toBeGreaterThan(150);
     expect(Math.hypot(ring!.x - foot.x, ring!.y - foot.y), `ring centre ${JSON.stringify(ring)} vs foot ${JSON.stringify(foot)}`).toBeLessThan(15);
   });
 

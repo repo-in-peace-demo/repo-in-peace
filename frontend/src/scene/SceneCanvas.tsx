@@ -9,6 +9,7 @@ import { BACKGROUND_COLOR } from './colors';
 import { Fences } from './Fences';
 import { watchReducedMotion } from './reduced-motion';
 import { Ground, PlotFloors } from './Ground';
+import { Horizon } from './Horizon';
 import { Picker } from './Picker';
 import { Plaques } from './Plaques';
 import { SelectionRing } from './SelectionRing';
@@ -40,6 +41,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
 
         <CameraRig model={model} />
         <Ground model={model} />
+        <Horizon model={model} />
         <PlotFloors model={model} />
         <Fences model={model} />
         <Plaques model={model} />

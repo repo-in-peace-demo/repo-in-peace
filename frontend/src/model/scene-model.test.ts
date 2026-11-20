@@ -95,8 +95,9 @@ describe('buildSceneModel', () => {
   });
 
   it('fits the starting view to the field of view it is given', () => {
-    const narrow = buildSceneModel(g, 30);
-    expect(narrow.start).toEqual(startPose(model.layout.bounds, 30));
+    // 40 degrees: narrower than DEFAULT_FOV_Y, but over the narrowest field of view the establishing shot exists for (minFovForShot, about 32.4).
+    const narrow = buildSceneModel(g, 40);
+    expect(narrow.start).toEqual(startPose(model.layout.bounds, 40));
     expect(narrow.start).not.toEqual(model.start);
   });
 

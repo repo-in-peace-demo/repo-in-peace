@@ -6,6 +6,7 @@ import {
   FLY_FAST_FACTOR,
   FLY_KEY_CODES,
   MIN_CAMERA_HEIGHT,
+  MIN_TILT_DEG,
   WANDER_MARGIN_SHARE,
   boundsRadius,
   cameraLimits,
@@ -304,7 +305,7 @@ describe('cameraLimits', () => {
 });
 
 describe('clampPose', () => {
-  const limits: CameraLimits = { area: { x: -50, z: -50, w: 100, d: 100 }, minCameraHeight: 1, maxCameraHeight: 100, maxTargetHeight: 4 };
+  const limits: CameraLimits = { area: { x: -50, z: -50, w: 100, d: 100 }, minCameraHeight: 1, maxCameraHeight: 100, maxTargetHeight: 4, minTiltDeg: 0 };
   const inside: CameraPose = { position: vec3(10, 30, 40), target: vec3(5, 2, -5) };
 
   it('returns the very same pose when it is inside every limit', () => {
@@ -372,6 +373,60 @@ describe('clampPose', () => {
   });
 });
 
+describe('the tilt limit of clampPose', () => {
+  const limits: CameraLimits = { area: { x: -500, z: -500, w: 1000, d: 1000 }, minCameraHeight: 1, maxCameraHeight: 200, maxTargetHeight: 4, minTiltDeg: MIN_TILT_DEG };
+  const tilt = (p: CameraPose): number => (Math.atan2(p.position.y - p.target.y, Math.hypot(p.position.x - p.target.x, p.position.z - p.target.z)) * 180) / Math.PI;
+
+  it('is 20 degrees for the app', () => {
+    expect(MIN_TILT_DEG).toBe(20);
+    expect(cameraLimits({ x: 0, z: 0, w: 100, d: 100 }).minTiltDeg).toBe(20);
+  });
+
+  it('lifts a camera that is too flat until it is exactly at the limit, and does not move it sideways', () => {
+    const flat: CameraPose = { position: vec3(0, 2, 30), target: vec3(0, 0, 0) }; // about 3.8 degrees
+    const next = clampPose(flat, limits);
+    expect(next.position.x).toBe(0);
+    expect(next.position.z).toBe(30);
+    expect(tilt(next)).toBeCloseTo(20, 9);
+    expect(next.target).toEqual(flat.target);
+  });
+
+  it('leaves a camera that is above the limit alone, also straight overhead', () => {
+    const high: CameraPose = { position: vec3(0, 40, 30), target: vec3(0, 0, 0) };
+    expect(clampPose(high, limits)).toBe(high);
+    const overhead: CameraPose = { position: vec3(0, 40, 0), target: vec3(0, 0, 0) };
+    expect(clampPose(overhead, limits)).toBe(overhead);
+  });
+
+  it('measures from the look-at point: a raised look-at point raises the least height of the camera', () => {
+    const next = clampPose({ position: vec3(0, 3, 20), target: vec3(0, 4, 0) }, limits);
+    expect(next.position.y).toBeCloseTo(4 + 20 * Math.tan((20 * Math.PI) / 180), 9);
+  });
+
+  it('brings the camera in along the ground when the ceiling would stop the lift, so both limits hold', () => {
+    const far: CameraPose = { position: vec3(0, 5, 2000), target: vec3(0, 0, 0) };
+    const next = clampPose(far, limits);
+    expect(next.position.y).toBe(200);
+    expect(tilt(next)).toBeGreaterThanOrEqual(20 - 1e-9);
+    expect(next.position.z).toBeLessThan(2000);
+    expect(next.position.x).toBe(0);
+  });
+
+  it('holds when keys lower the camera: Q stops at the 20 degree line, not at the floor', () => {
+    const heading = vec3(0, -0.5, -1);
+    let pose: CameraPose = { position: vec3(0, 20, 30), target: vec3(0, 3, 0) };
+    for (let i = 0; i < 400; i++) pose = clampPose(moveCamera(pose, heading, { forward: 0, right: 0, up: -1 }, 10, 0.1), limits);
+    expect(pose.target.y).toBe(0);
+    expect(tilt(pose)).toBeCloseTo(20, 6);
+    expect(pose.position.y).toBeGreaterThan(MIN_CAMERA_HEIGHT);
+  });
+
+  it('is off when minTiltDeg is 0 (the opening move of the app uses this)', () => {
+    const flat: CameraPose = { position: vec3(0, 2, 30), target: vec3(0, 0, 0) };
+    expect(clampPose(flat, { ...limits, minTiltDeg: 0 })).toBe(flat);
+  });
+});
+
 describe('clampPose for any pose', () => {
   const coord = (range: number) => fc.double({ min: -range, max: range, noNaN: true });
   const limitsArb: fc.Arbitrary<CameraLimits> = fc
@@ -383,13 +438,17 @@ describe('clampPose for any pose', () => {
       minCameraHeight: fc.double({ min: 0, max: 10, noNaN: true }),
       room: fc.double({ min: 0, max: 500, noNaN: true }),
       maxTargetHeight: fc.double({ min: 0, max: 10, noNaN: true }),
+      minTiltDeg: fc.oneof(fc.constant(0), fc.constant(20), fc.double({ min: 0, max: 60, noNaN: true })),
     })
-    .map(({ x, z, w, d, minCameraHeight, room, maxTargetHeight }) => ({
+    .map(({ x, z, w, d, minCameraHeight, room, maxTargetHeight, minTiltDeg }) => ({
       area: { x, z, w, d },
       minCameraHeight,
-      maxCameraHeight: minCameraHeight + room,
+      // The ceiling is above the highest look-at point, so that some angle above the horizontal is possible at all.
+      maxCameraHeight: Math.max(minCameraHeight, maxTargetHeight) + 1 + room,
       maxTargetHeight,
+      minTiltDeg,
     }));
+  const elevationDeg = (p: CameraPose): number => (Math.atan2(p.position.y - p.target.y, Math.hypot(p.position.x - p.target.x, p.position.z - p.target.z)) * 180) / Math.PI;
   const anyPose: fc.Arbitrary<CameraPose> = fc.record({
     position: fc.record({ x: coord(2000), y: coord(1000), z: coord(2000) }),
     target: fc.record({ x: coord(2000), y: coord(1000), z: coord(2000) }),
@@ -411,6 +470,17 @@ describe('clampPose for any pose', () => {
     );
   });
 
+  it('P-clamp-1b: the camera is at least minTiltDeg above the horizontal, seen from the look-at point', () => {
+    fc.assert(
+      fc.property(anyPose, limitsArb, (pose, l) => {
+        const next = clampPose(pose, l);
+        const together = Math.hypot(next.position.x - next.target.x, next.position.y - next.target.y, next.position.z - next.target.z) < 1e-9; // no direction to measure
+        return l.minTiltDeg === 0 || together || elevationDeg(next) >= l.minTiltDeg - 1e-7;
+      }),
+      { numRuns: 500 },
+    );
+  });
+
   it('P-clamp-2: clamping a clamped pose changes nothing', () => {
     fc.assert(
       fc.property(anyPose, limitsArb, (pose, l) => {
@@ -422,18 +492,24 @@ describe('clampPose for any pose', () => {
   });
 
   it('P-clamp-3: a pose that is already inside the limits comes back unchanged', () => {
-    const insidePose = limitsArb.chain((l) =>
-      fc
-        .record({
-          position: fc.record({ x: coord(2000), y: fc.double({ min: l.minCameraHeight, max: l.maxCameraHeight, noNaN: true }), z: coord(2000) }),
-          target: fc.record({
-            x: fc.double({ min: l.area.x, max: l.area.x + l.area.w, noNaN: true }),
-            y: fc.double({ min: 0, max: l.maxTargetHeight, noNaN: true }),
-            z: fc.double({ min: l.area.z, max: l.area.z + l.area.d, noNaN: true }),
+    const insidePose = limitsArb
+      .chain((l) =>
+        fc
+          .record({
+            cx: coord(2000),
+            cz: coord(2000),
+            tx: fc.double({ min: l.area.x, max: l.area.x + l.area.w, noNaN: true }),
+            ty: fc.double({ min: 0, max: l.maxTargetHeight, noNaN: true }),
+            tz: fc.double({ min: l.area.z, max: l.area.z + l.area.d, noNaN: true }),
+            share: fc.double({ min: 0, max: 1, noNaN: true }),
+          })
+          .map(({ cx, cz, tx, ty, tz, share }) => {
+            const lowest = Math.max(l.minCameraHeight, ty + Math.hypot(cx - tx, cz - tz) * Math.tan((l.minTiltDeg * Math.PI) / 180));
+            const y = lowest + share * (l.maxCameraHeight - lowest);
+            return { pose: { position: vec3(cx, y, cz), target: vec3(tx, ty, tz) } as CameraPose, l, ok: lowest <= l.maxCameraHeight };
           }),
-        })
-        .map((pose) => ({ pose, l })),
-    );
+      )
+      .filter(({ ok }) => ok);
     fc.assert(
       fc.property(insidePose, ({ pose, l }) => {
         const next = clampPose(pose, l);
@@ -445,14 +521,17 @@ describe('clampPose for any pose', () => {
   });
 
   it('P-clamp-4: when only the look-at point is stopped sideways, the camera moves with it and the view direction is unchanged', () => {
-    const sidewaysOnly = limitsArb.chain((l) =>
-      fc
-        .record({
-          position: fc.record({ x: coord(2000), y: fc.double({ min: l.minCameraHeight, max: l.maxCameraHeight, noNaN: true }), z: coord(2000) }),
-          target: fc.record({ x: coord(2000), y: fc.double({ min: 0, max: l.maxTargetHeight, noNaN: true }), z: coord(2000) }),
-        })
-        .map((pose) => ({ pose, l })),
-    );
+    const sidewaysOnly = limitsArb
+      .chain((l) =>
+        fc
+          .record({ cx: coord(2000), cz: coord(2000), tx: coord(2000), ty: fc.double({ min: 0, max: l.maxTargetHeight, noNaN: true }), tz: coord(2000), share: fc.double({ min: 0, max: 1, noNaN: true }) })
+          .map(({ cx, cz, tx, ty, tz, share }) => {
+            const lowest = Math.max(l.minCameraHeight, ty + Math.hypot(cx - tx, cz - tz) * Math.tan((l.minTiltDeg * Math.PI) / 180));
+            const y = lowest + share * (l.maxCameraHeight - lowest);
+            return { pose: { position: vec3(cx, y, cz), target: vec3(tx, ty, tz) } as CameraPose, l, ok: lowest <= l.maxCameraHeight };
+          }),
+      )
+      .filter(({ ok }) => ok);
     fc.assert(
       fc.property(sidewaysOnly, ({ pose, l }) => {
         const next = clampPose(pose, l);
@@ -460,7 +539,7 @@ describe('clampPose for any pose', () => {
         const after = sub(next.target, next.position);
         // Heights are not touched at all, and the offset from the camera to its look-at point is the same up to rounding.
         return (
-          next.position.y === pose.position.y &&
+          Math.abs(next.position.y - pose.position.y) < 1e-9 && // (a sideways shift can change the rounding of a tiny offset)
           next.target.y === pose.target.y &&
           Math.abs(after.x - before.x) < 1e-6 &&
           Math.abs(after.y - before.y) < 1e-6 &&

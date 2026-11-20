@@ -41,6 +41,13 @@ export const FLY_FAST_FACTOR = 3;
 /** The camera never goes lower than this, so it cannot end up inside the ground. */
 export const MIN_CAMERA_HEIGHT = 1;
 
+/**
+ * The camera stays at least this many degrees above the horizontal, seen from the point it looks at, whatever moves it (mouse,
+ * keys, flights). Nearer the horizontal the graveyard collapses into a thin strip and the sky fills the screen. The opening
+ * move of the app is the one exception (it starts lower, for a few seconds, and says so with `minTiltDeg: 0`).
+ */
+export const MIN_TILT_DEG = 20;
+
 /** The look-at point may wander this far, as a share of the graveyard's radius, beyond the edge of the root plot. */
 export const WANDER_MARGIN_SHARE = 0.25;
 
@@ -63,6 +70,8 @@ export interface CameraLimits {
   maxCameraHeight: number;
   /** The look-at point is between the ground (0) and this height (the tallest stone). */
   maxTargetHeight: number;
+  /** The camera is at least this many degrees above the horizontal, seen from the look-at point; 0 for no limit. */
+  minTiltDeg: number;
 }
 
 /** The limits for a graveyard with these bounds. */
@@ -74,6 +83,7 @@ export function cameraLimits(bounds: Rect): CameraLimits {
     minCameraHeight: MIN_CAMERA_HEIGHT,
     maxCameraHeight: maxCameraDistance(radius),
     maxTargetHeight: MAX_STONE_H,
+    minTiltDeg: MIN_TILT_DEG,
   };
 }
 
@@ -87,6 +97,9 @@ const clamp = (value: number, low: number, high: number): number => Math.min(hig
  * - The look-at point's height is held between 0 and `maxTargetHeight`. The camera does not move for this, so a
  *   camera that keeps rising tilts down onto the graveyard.
  * - The camera's height is held between `minCameraHeight` and `maxCameraHeight`.
+ * - The camera is held at least `minTiltDeg` above the horizontal, seen from the look-at point: if it is lower, it is lifted
+ *   (the stronger of this and the floor wins). If the ceiling would stop the lift, the camera is brought nearer to the look-at
+ *   point along the ground instead, to where the angle is just right at the ceiling.
  *
  * Returns the same object when the pose is already inside the limits, and never changes the pose it is given.
  * Clamping a clamped pose changes nothing.
@@ -100,10 +113,34 @@ export function clampPose(pose: CameraPose, limits: CameraLimits): CameraPose {
   const dz = tz - pose.target.z;
   const cx = dx === 0 ? pose.position.x : pose.position.x + dx;
   const cz = dz === 0 ? pose.position.z : pose.position.z + dz;
-  const cy = clamp(pose.position.y, limits.minCameraHeight, limits.maxCameraHeight);
+  let cx2 = cx;
+  let cz2 = cz;
+  let cy = clamp(pose.position.y, limits.minCameraHeight, limits.maxCameraHeight);
 
-  if (tx === pose.target.x && ty === pose.target.y && tz === pose.target.z && cy === pose.position.y) return pose; // dx and dz are 0 then too
-  return { position: vec3(cx, cy, cz), target: vec3(tx, ty, tz) };
+  if (limits.minTiltDeg > 0) {
+    const slope = Math.tan((limits.minTiltDeg * Math.PI) / 180);
+    const ox = cx2 - tx;
+    const oz = cz2 - tz;
+    const along = Math.hypot(ox, oz);
+    const needed = ty + along * slope; // the lowest the camera may be here
+    if (cy < needed) {
+      if (needed <= limits.maxCameraHeight) {
+        cy = needed;
+      } else {
+        // The ceiling stops the lift: come in along the ground until the angle is right at the ceiling.
+        cy = limits.maxCameraHeight;
+        const allowed = Math.max(0, (cy - ty) / slope) * (1 - 1e-12);
+        if (along > allowed) {
+          const k = along > 0 ? allowed / along : 0;
+          cx2 = tx + ox * k;
+          cz2 = tz + oz * k;
+        }
+      }
+    }
+  }
+
+  if (tx === pose.target.x && ty === pose.target.y && tz === pose.target.z && cy === pose.position.y && cx2 === pose.position.x && cz2 === pose.position.z) return pose;
+  return { position: vec3(cx2, cy, cz2), target: vec3(tx, ty, tz) };
 }
 
 export function movementFromKeys(pressed: ReadonlySet<string>): FlyInput {

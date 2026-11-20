@@ -6,7 +6,9 @@ import { layout } from './layout';
 import {
   SIGN_FAR_FACTOR,
   SIGN_HEIGHT,
+  SIGN_MAJOR_SHARE,
   SIGN_MAX_VISIBLE,
+  SIGN_MINOR_FAR_SCALE,
   SIGN_MIN_OPACITY,
   SIGN_VIEW_MARGIN,
   buildSignSources,
@@ -99,18 +101,61 @@ describe('P14: one sign for every plot, on the front fence, in the way of nothin
     );
   });
 
-  it('makes the near distance grow with the size of the plot, and the far distance a fixed multiple of it', () => {
+  it('makes the near and far distances grow with the area of the plot, and fades minor plots out sooner', () => {
     fc.assert(
       fc.property(graveyardArb, (g) => {
         const l = layout(g);
         const sources = buildSignSources(l, g.meta.name);
-        const sized = l.plots.map((p, i) => ({ size: Math.max(p.rect.w, p.rect.d), near: sources[i]!.near, far: sources[i]!.far }));
-        const farIsAMultiple = sized.every((a) => Math.abs(a.far - a.near * SIGN_FAR_FACTOR) < 1e-9);
-        // A plot that is smaller than another never has the larger near distance.
-        const growsWithSize = sized.every((a) => sized.every((b) => !(a.size < b.size) || a.near <= b.near));
-        return farIsAMultiple && growsWithSize;
+        const rootArea = l.bounds.w * l.bounds.d;
+        const sized = l.plots.map((p, i) => ({ area: p.rect.w * p.rect.d, share: (p.rect.w * p.rect.d) / rootArea, root: p.parent === null, near: sources[i]!.near, far: sources[i]!.far }));
+        // The far distance: SIGN_FAR_FACTOR times the near one for the root and a major plot, down to SIGN_MINOR_FAR_SCALE of that for a minor one.
+        const farInRange = sized.every((a) => {
+          const k = a.far / a.near;
+          if (a.root || a.share >= SIGN_MAJOR_SHARE) return Math.abs(k - SIGN_FAR_FACTOR) < 1e-9;
+          return k >= SIGN_FAR_FACTOR * SIGN_MINOR_FAR_SCALE - 1e-9 && k <= SIGN_FAR_FACTOR + 1e-9 && k > 1;
+        });
+        // A plot with less area than another never has the larger near or far distance.
+        const growsWithArea = sized.every((a) => sized.every((b) => !(a.area < b.area) || (a.near <= b.near + 1e-9 && a.far <= b.far + 1e-9)));
+        return farInRange && growsWithArea;
       }),
       { numRuns: 40 },
+    );
+  });
+
+  it('never hides a larger plot\'s sign while a smaller sibling\'s sign is shown at the same distance', () => {
+    fc.assert(
+      fc.property(
+        graveyardArb,
+        fc.double({ min: 0, max: 400, noNaN: true }),
+        fc.double({ min: 0, max: Math.PI * 2, noNaN: true }),
+        fc.double({ min: 0.05, max: 1.5, noNaN: true }),
+        (g, d, heading, spread) => {
+          const l = layout(g);
+          const sources = buildSignSources(l, g.meta.name);
+          const byPath = new Map(sources.map((s) => [s.path, s] as const));
+          for (const big of l.plots) {
+            for (const small of l.plots) {
+              if (big === small || big.parent !== small.parent || big.rect.w * big.rect.d < small.rect.w * small.rect.d) continue;
+              // Both signs at the same distance d from a camera between them, a little to either side of where it looks, both in view.
+              const camera = vec3(0, SIGN_HEIGHT, 0);
+              const at = (angle: number) => vec3(Math.sin(angle) * d, SIGN_HEIGHT, -Math.cos(angle) * d);
+              const a = at(heading - spread / 2);
+              const b = at(heading + spread / 2);
+              const pair: SignSource[] = [
+                { ...byPath.get(big.path)!, x: a.x, z: a.z },
+                { ...byPath.get(small.path)!, x: b.x, z: b.z },
+              ];
+              const view: CameraView = { position: camera, forward: vec3(Math.sin(heading), 0, -Math.cos(heading)), fovY: 60, aspect: 1.6 };
+              const shown = new Set(visibleSigns(pair, view, SIGN_MAX_VISIBLE).map((s) => s.path));
+              if (shown.has(small.path) && !shown.has(big.path)) return false;
+              // And the opacity: the larger plot's sign is at least as clear at every distance.
+              if (signOpacity(d, pair[0]!.near, pair[0]!.far) < signOpacity(d, pair[1]!.near, pair[1]!.far) - 1e-12) return false;
+            }
+          }
+          return true;
+        },
+      ),
+      { numRuns: 60 },
     );
   });
 

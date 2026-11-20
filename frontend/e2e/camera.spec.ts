@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
-import type { CameraPose } from '../src/model/camera-pose';
+import { DEFAULT_FOV_Y, startPose, type CameraPose } from '../src/model/camera-pose';
 import { boundsRadius, cameraLimits, flySpeed } from '../src/model/fly-controls';
 import { buildSceneModel } from '../src/model/scene-model';
 import { distance } from '../src/model/vec3';
@@ -16,7 +16,8 @@ const FILE = fileURLToPath(new URL('../public/graveyards/demo.spatialql.graveyar
 const graveyard = JSON.parse(readFileSync(FILE, 'utf8')) as Graveyard;
 const model = buildSceneModel(graveyard);
 const limits = cameraLimits(model.layout.bounds);
-const start = model.start;
+// The default pose is the establishing shot for the window's shape: the viewport of playwright.config.ts, 1280 by 720.
+const start = startPose(model.layout.bounds, DEFAULT_FOV_Y, 1280 / 720);
 const aFile = graveyard.files[0]!.path;
 
 /** Rounding slack for numbers that went through floating-point maths. */
@@ -60,16 +61,20 @@ const insideSideways = (p: CameraPose): boolean =>
 const atAnEdge = (value: number, low: number, high: number, slack = 1): boolean => Math.abs(value - low) <= slack || Math.abs(value - high) <= slack;
 
 test.describe('camera limits, in the real app', () => {
-  test('1. holding Q: the camera comes down to the floor and no lower', async ({ page }) => {
+  test('1. holding Q: the camera comes down as far as the limits let it, to the floor or the tilt limit, and no lower', async ({ page }) => {
     await openApp(page);
-    // Start close to the ground, so five seconds are enough to reach the floor.
+    // Start close to the ground, so five seconds are enough to come all the way down.
     await page.evaluate((path) => window.repoInPeace!.flyTo(path), aFile);
     await page.waitForTimeout(1500);
     await hold(page, ['KeyQ'], 5000);
     const p = await pose(page);
     expect(p.position.y).toBeGreaterThanOrEqual(limits.minCameraHeight - EPS);
     expect(p.target.y).toBeGreaterThanOrEqual(-EPS);
-    expect(p.position.y, 'it should have reached the floor').toBeLessThanOrEqual(limits.minCameraHeight + 0.5);
+    // The lowest the camera may be here: the floor, or MIN_TILT_DEG above the horizontal seen from the look-at point, whichever is higher.
+    const along = Math.hypot(p.position.x - p.target.x, p.position.z - p.target.z);
+    const tiltFloor = p.target.y + along * Math.tan((limits.minTiltDeg * Math.PI) / 180);
+    expect(p.position.y, 'it should not be below the tilt limit').toBeGreaterThanOrEqual(tiltFloor - 1e-3);
+    expect(p.position.y, 'it should have come down to the floor or the tilt limit').toBeLessThanOrEqual(Math.max(limits.minCameraHeight, tiltFloor) + 0.5);
   });
 
   test('2. holding E (with Shift): the camera stays under the ceiling and the look-at point under the tallest stone', async ({ page }) => {

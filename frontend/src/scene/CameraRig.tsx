@@ -3,11 +3,13 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from 'react';
 import * as THREE from 'three';
 import type { CameraPose } from '../model/camera-pose';
-import { boundsRadius, cameraLimits, clampPose, flySpeed, isFast, maxCameraDistance, moveCamera, movementFromKeys } from '../model/fly-controls';
+import { safeEstablishingShot } from '../model/framing';
+import { MIN_TILT_DEG, boundsRadius, cameraLimits, clampPose, flySpeed, isFast, maxCameraDistance, moveCamera, movementFromKeys } from '../model/fly-controls';
 import type { SceneModel } from '../model/scene-model';
 import { vec3 } from '../model/vec3';
 import { registerScene } from './api';
 import { IDLE, cancelFlight, startFlight, stepFlight, type FlightState } from './flight';
+import { applyLensShift } from './lens-shift';
 import { useFlyKeys } from './useFlyKeys';
 
 type Controls = ComponentRef<typeof OrbitControls>;
@@ -16,12 +18,15 @@ const heading = new THREE.Vector3();
 
 /**
  * The camera: drag to orbit, right-drag to pan, the wheel to zoom (drei's OrbitControls), the keyboard to fly,
- * and smooth flights for `flyTo`. It starts at the model's starting pose. Any mouse or keyboard input ends a flight
+ * and smooth flights for `flyTo`. It starts at the establishing shot for the window's own shape (`safeEstablishingShot`), and
+ * Reset view flies back to that shot for the shape the window has then. The shot's lens shift is applied to the camera, again
+ * whenever the window changes size, and stays on whatever the camera does (it is part of the lens). Any mouse or keyboard input ends a flight
  * and gives control back. Whatever moved the camera, `clampPose` puts it back inside the limits at the end of every
  * frame, and a flight's end pose is clamped before the flight starts.
  */
 export function CameraRig({ model }: { model: SceneModel }) {
-  const camera = useThree((state) => state.camera);
+  const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
+  const size = useThree((state) => state.size);
   const element = useThree((state) => state.gl.domElement);
   const gl = useThree((state) => state.gl);
   const scene = useThree((state) => state.scene);
@@ -31,13 +36,32 @@ export function CameraRig({ model }: { model: SceneModel }) {
   const radius = boundsRadius(model.layout.bounds);
   const limits = useMemo(() => cameraLimits(model.layout.bounds), [model]);
 
+  // The establishing shot for this graveyard, this lens and the window's shape now.
+  const aspect = size.height > 0 ? size.width / size.height : undefined;
+  const shot = useMemo(() => safeEstablishingShot(model.layout.bounds, camera.fov, aspect), [model, camera.fov, aspect]);
+  const latestShot = useRef(shot);
+  latestShot.current = shot;
+
+  // The lens shift, for the canvas's size now. react-three-fiber sets the aspect and the projection on a resize first; this
+  // runs after it and sets both again with the shift. Taken off when the scene goes away.
+  useLayoutEffect(() => {
+    applyLensShift(camera, shot.viewShift, size.width, size.height);
+  }, [camera, shot.viewShift, size.width, size.height]);
+  useEffect(
+    () => () => {
+      camera.clearViewOffset();
+    },
+    [camera],
+  );
+
   const keys = useFlyKeys(() => {
     flight.current = cancelFlight();
   });
 
-  // Start at the model's starting pose, again for each graveyard that is loaded.
+  // Start at the establishing shot, again for each graveyard that is loaded (not when the window is resized: the camera is not
+  // taken away from where the user has moved it).
   useLayoutEffect(() => {
-    const { position, target } = model.start;
+    const { position, target } = latestShot.current.pose;
     camera.position.set(position.x, position.y, position.z);
     camera.lookAt(target.x, target.y, target.z);
     flight.current = IDLE;
@@ -76,6 +100,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
           return box ? { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 } : null;
         },
         () => ({ calls: gl.info.render.calls, triangles: gl.info.render.triangles, fogDensity: scene.fog instanceof THREE.FogExp2 ? scene.fog.density : 0 }),
+        () => latestShot.current.viewShift,
       );
     });
     return () => {
@@ -89,7 +114,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
     () =>
       registerScene({
         targets: model.flyTargets,
-        start: model.start,
+        start: shot.pose,
         fly: (to: CameraPose) => {
           const orbit = controls.current;
           if (!orbit) return;
@@ -100,7 +125,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
           flight.current = startFlight(from, clampPose(to, limits), performance.now());
         },
       }),
-    [camera, model, limits],
+    [camera, model, limits, shot],
   );
 
   useFrame((_state, delta) => {
@@ -155,8 +180,8 @@ export function CameraRig({ model }: { model: SceneModel }) {
       dampingFactor={0.08}
       // Right-drag pans along the ground, so the point the camera looks at cannot be dragged underground.
       screenSpacePanning={false}
-      // The camera cannot go below the level of the point it looks at, which is at or above the ground.
-      maxPolarAngle={Math.PI / 2 - 0.02}
+      // The camera stays at least MIN_TILT_DEG above the horizontal, seen from the point it looks at (clampPose says the same).
+      maxPolarAngle={Math.PI / 2 - (MIN_TILT_DEG * Math.PI) / 180}
       minDistance={3}
       maxDistance={maxCameraDistance(radius)}
       onStart={() => {
