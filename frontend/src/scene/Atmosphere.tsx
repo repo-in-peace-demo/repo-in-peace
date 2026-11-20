@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
   FOG_COLOR,
@@ -84,11 +84,21 @@ void main() {
 }
 `;
 
+/**
+ * The moon is drawn in screen space: the middle of the quad is the moon's direction, projected, and its corners are set out from
+ * there by a fixed angle (the halo's), scaled by the lens only. A quad in the world would be stretched into an oval near the edge
+ * of a wide lens, the more so with the lens shift; this one is always round, and the same size anywhere in the frame.
+ */
 const MOON_VERTEX = /* glsl */ `
+uniform vec3 uCentre;   // the moon's middle, relative to the sky group (which is at the camera)
+uniform float uHalfSize; // tan of the halo's angular radius
 varying vec2 vUv;
 void main() {
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 clip = projectionMatrix * viewMatrix * modelMatrix * vec4(uCentre, 1.0);
+  // position.xy is the corner, from -1 to 1. P[0][0] and P[1][1] turn a tangent into a share of the frame, with the aspect.
+  clip.xy += position.xy * uHalfSize * vec2(projectionMatrix[0][0], projectionMatrix[1][1]) * clip.w;
+  gl_Position = clip;
 }
 `;
 
@@ -104,12 +114,22 @@ float noise(vec2 p) {
 void main() {
   vec2 p = (vUv - 0.5) * 2.0;
   float r = length(p);
-  float disc = 1.0 - smoothstep(uDiscRadius * 0.92, uDiscRadius, r);
-  float glow = pow(clamp(1.0 - r, 0.0, 1.0), 3.0) * 0.35;
-  // A few dark patches on the disc, so it is a moon and not a lamp.
-  float patches = noise(p / uDiscRadius * 3.0 + 4.0) * 0.5 + noise(p / uDiscRadius * 7.0) * 0.25;
-  vec3 colour = uColor * (disc * (0.78 + 0.35 * (1.0 - patches)) + glow);
-  gl_FragColor = vec4(colour, clamp(disc + glow, 0.0, 1.0));
+  vec2 q = p / uDiscRadius; // on the disc, from -1 to 1
+  float disc = 1.0 - smoothstep(0.9, 1.0, r / uDiscRadius);
+  // Faint surface detail: soft dark seas (maria) and a little grain, and the edge a touch darker than the middle.
+  // The bright highlands are past white; only the seas come down into the visible range, as grey-blue patches.
+  float seas = exp(-dot(q - vec2(-0.32, 0.22), q - vec2(-0.32, 0.22)) / 0.09)
+             + 0.8 * exp(-dot(q - vec2(0.18, 0.34), q - vec2(0.18, 0.34)) / 0.05)
+             + 0.7 * exp(-dot(q - vec2(0.05, -0.2), q - vec2(0.05, -0.2)) / 0.07);
+  seas = clamp(seas * (0.7 + 0.6 * noise(q * 5.0 + 2.0)), 0.0, 1.0);
+  float grain = noise(q * 14.0);
+  float limb = sqrt(max(0.0, 1.0 - dot(q, q)));
+  float surface = 0.95 + 0.15 * limb - 0.6 * seas - 0.08 * grain * seas; // fitted to the screen: about 0.6 is already white
+  // A soft halo around the disc, falling to nothing at the edge of the quad (MOON_GLOW_ANGULAR_RADIUS_DEG).
+  float outside = clamp((r - uDiscRadius) / (1.0 - uDiscRadius), 0.0, 1.0);
+  float halo = (1.0 - disc) * pow(1.0 - outside, 2.6) * 0.22 * (1.0 - smoothstep(0.85, 1.0, r));
+  vec3 colour = uColor * (disc * surface + halo);
+  gl_FragColor = vec4(colour, clamp(disc + halo, 0.0, 1.0));
   #include <colorspace_fragment>
 }
 `;
@@ -118,7 +138,6 @@ export function Atmosphere({ model }: { model: SceneModel }) {
   const camera = useThree((state) => state.camera);
   const pixelRatio = useThree((state) => state.viewport.dpr);
   const group = useRef<THREE.Group>(null);
-  const moon = useRef<THREE.Mesh>(null);
   const density = fogDensity(boundsRadius(model.layout.bounds));
 
   const assets = useMemo(() => {
@@ -152,9 +171,13 @@ export function Atmosphere({ model }: { model: SceneModel }) {
       fog: false,
     });
 
-    const glowHalf = Math.tan((MOON_GLOW_ANGULAR_RADIUS_DEG * Math.PI) / 180) * SKY_RADIUS * 0.95;
     const moonMaterial = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(MOON_COLOR) }, uDiscRadius: { value: Math.tan((MOON_ANGULAR_RADIUS_DEG * Math.PI) / 180) / Math.tan((MOON_GLOW_ANGULAR_RADIUS_DEG * Math.PI) / 180) } },
+      uniforms: {
+        uColor: { value: new THREE.Color(MOON_COLOR) },
+        uDiscRadius: { value: Math.tan((MOON_ANGULAR_RADIUS_DEG * Math.PI) / 180) / Math.tan((MOON_GLOW_ANGULAR_RADIUS_DEG * Math.PI) / 180) },
+        uCentre: { value: MOON.clone().multiplyScalar(SKY_RADIUS * 0.95) },
+        uHalfSize: { value: Math.tan((MOON_GLOW_ANGULAR_RADIUS_DEG * Math.PI) / 180) },
+      },
       vertexShader: MOON_VERTEX,
       fragmentShader: MOON_FRAGMENT,
       transparent: true,
@@ -162,7 +185,7 @@ export function Atmosphere({ model }: { model: SceneModel }) {
       blending: THREE.AdditiveBlending,
       fog: false,
     });
-    return { starGeometry, starMaterial, skyMaterial, moonMaterial, moonGeometry: new THREE.PlaneGeometry(2 * glowHalf, 2 * glowHalf), skyGeometry: new THREE.SphereGeometry(SKY_RADIUS, 32, 16) };
+    return { starGeometry, starMaterial, skyMaterial, moonMaterial, moonGeometry: new THREE.PlaneGeometry(2, 2), skyGeometry: new THREE.SphereGeometry(SKY_RADIUS, 32, 16) };
   }, []);
   useEffect(
     () => () => {
@@ -175,14 +198,6 @@ export function Atmosphere({ model }: { model: SceneModel }) {
     },
     [assets],
   );
-
-  // The moon faces the middle of the sky dome, which is the camera.
-  useLayoutEffect(() => {
-    const mesh = moon.current;
-    if (!mesh) return;
-    mesh.position.copy(MOON).multiplyScalar(SKY_RADIUS * 0.95);
-    mesh.lookAt(0, 0, 0);
-  }, []);
 
   useFrame(({ clock }) => {
     group.current?.position.copy(camera.position); // the sky is always the same distance away
@@ -198,7 +213,7 @@ export function Atmosphere({ model }: { model: SceneModel }) {
       <group ref={group}>
         <mesh geometry={assets.skyGeometry} material={assets.skyMaterial} renderOrder={-30} frustumCulled={false} raycast={() => undefined} />
         <points geometry={assets.starGeometry} material={assets.starMaterial} renderOrder={-29} frustumCulled={false} raycast={() => undefined} />
-        <mesh ref={moon} geometry={assets.moonGeometry} material={assets.moonMaterial} renderOrder={-28} frustumCulled={false} raycast={() => undefined} />
+        <mesh geometry={assets.moonGeometry} material={assets.moonMaterial} renderOrder={-28} frustumCulled={false} raycast={() => undefined} />
       </group>
     </>
   );

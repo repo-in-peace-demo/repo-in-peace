@@ -91,7 +91,7 @@ export function skyDirection(azimuthDeg: number, elevationDeg: number): { x: num
 export const MOON_DIRECTION: Readonly<{ x: number; y: number; z: number }> = skyDirection(MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG);
 
 /** The moon is small, with a soft halo around it that ends at MOON_GLOW_ANGULAR_RADIUS_DEG (the sky's own glow ends there too), so the forest can keep clear of it. */
-export const MOON_ANGULAR_RADIUS_DEG = 0.9;
+export const MOON_ANGULAR_RADIUS_DEG = 1.15; // drawn round in screen space (scene/Atmosphere.tsx), about 13 px across on a laptop screen
 export const MOON_GLOW_ANGULAR_RADIUS_DEG = 3;
 
 export interface StarDirection {
