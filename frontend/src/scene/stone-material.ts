@@ -211,20 +211,16 @@ const FRAGMENT_COLOR = /* glsl */ `
   float inRip = vCrack > 0.5 ? smoothstep(ripBottom - 0.02, ripBottom, y) * (1.0 - smoothstep(ripTop, ripTop + 0.02, y)) : 0.0;
   float inText = max(inName, inRip);
 
-  // Moss rises from the base: a pixel is mossy when its height up the stone, plus noise, is below the amount. On the front
-  // face the amount is measured up to the foot of the name (the moss stops below the text), so a stone's age still reads as how
-  // high the moss comes; on the sides it is the stone's own height.
-  // The amount: 0.39 of the way on the first stale day, 0.85 on the last, 0.9 and up when ancient (the 0.3 start keeps the least
+  // Moss rises from the base: a pixel is mossy when its height up the stone, plus noise, is below the amount, the same on every face
+  // so the height reads the age. On the front face it never covers a text band: where the amount reaches the name, the moss stops
+  // below it and goes on above it (on an old stone), and the band stays clean stone.
+  // The amount: 0.39 of the stone on the first stale day, 0.85 on the last, 0.9 and up when ancient (the 0.3 start keeps the least
   // stale moss above the foot, which the row in front hides from the overview).
   gFar = smoothstep(18.0, 70.0, length(vViewPosition));
   float mossNoise = fbm(uv2 * 4.0 + seedOffset * 1.7);
-  // A stone with no room below its name (the shortest) keeps the moss over its whole height, clear of the text band only.
-  float room = smoothstep(0.15, 0.3, nameBottom);
-  float climb = mix(vHeightFrac, mix(vHeightFrac, y / max(nameBottom, 0.05), room), frontness);
-  float mossEdge = 0.3 + vMoss * 0.85 - (climb + (mossNoise - 0.5) * 0.4);
+  float mossEdge = 0.3 + vMoss * 0.85 - (vHeightFrac + (mossNoise - 0.5) * 0.4);
   float moss = smoothstep(0.0, 0.1, mossEdge) * step(0.001, vMoss);
-  moss *= 1.0 - frontness * room * smoothstep(nameBottom - 0.06, nameBottom, y);
-  moss *= 1.0 - frontness * inName;
+  moss *= 1.0 - frontness * inText;
   // A cap of moss on the top, deeper the older (0.15 of the stone on the first stale day, 0.35 when ancient): from the
   // overview a stone in a back row shows only its top. Still the age alone. Not over the texts.
   float capEdge = vHeightFrac - (1.0 - 0.1 - vMoss * 0.35) + (mossNoise - 0.5) * 0.25;

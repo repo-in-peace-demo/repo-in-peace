@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
-import { buildSceneModel } from '../src/model/scene-model';
+import { buildSceneModel, type SceneModel } from '../src/model/scene-model';
 import { placeSignsClear } from '../src/model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../src/model/signs';
 import { sub } from '../src/model/vec3';
@@ -18,6 +18,25 @@ const FILE = fileURLToPath(new URL('../public/graveyards/demo.spatialql.graveyar
 const graveyard = JSON.parse(readFileSync(FILE, 'utf8')) as Graveyard;
 const model = buildSceneModel(graveyard);
 const VIEWPORT = { width: 1280, height: 720 };
+// The fade checks run on oikos_ledger: since task 25 packed spatialql into 23 by 50 with three plots, every one of its signs stays
+// fully readable from anywhere the camera limits allow (its smallest, `data`, fades to 0.98 at most), so nothing there can fade.
+const oikos = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL('../public/graveyards/demo.oikosledger.graveyard.json', import.meta.url)), 'utf8')) as Graveyard);
+const libPlot = oikos.layout.plots.find((p) => oikos.signSources.find((s) => s.path === p.path)?.label === 'lib')!;
+const libFile = oikos.stones
+  .filter((s) => s.layout.folder === libPlot.path || s.layout.folder.startsWith(`${libPlot.path}/`))
+  .sort((a, b) => b.layout.z - a.layout.z || Math.abs(a.layout.x - libPlot.sign.x) - Math.abs(b.layout.x - libPlot.sign.x))[0]!.file.path;
+
+/** How clearly the sign with this label shows for the camera now, by the pure function, before overlapping signs are dropped (0 when out of range). */
+async function opacityInRange(page: Page, m: SceneModel, label: string): Promise<number> {
+  const p = await pose(page);
+  return visibleSigns(m.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height }).find((s) => s.label === label)?.opacity ?? 0;
+}
+
+async function openOikos(page: Page): Promise<void> {
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(800);
+}
 // A stone of the small folder `src/data` in its front row and nearest the middle, so that flying to it puts the folder's
 // own sign (at the middle of the front fence) in view.
 const dataPlot = model.layout.plots.find((p) => p.path === 'src/data')!;
@@ -39,9 +58,9 @@ const shown = (page: Page): Promise<Array<{ text: string; opacity: number }>> =>
  * What the page should show for a camera pose, from the same pure functions the app uses: the signs in range, then (as the app does)
  * only the nearest of any whose texts overlap on screen. The anchors are projected by the page's own camera.
  */
-async function expectedFor(page: Page, p: CameraPose): Promise<Array<{ text: string; opacity: number }>> {
-  const visible = visibleSigns(model.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
-  const sources = new Map(model.signSources.map((s) => [s.path, s] as const));
+async function expectedFor(page: Page, p: CameraPose, m: SceneModel = model): Promise<Array<{ text: string; opacity: number }>> {
+  const visible = visibleSigns(m.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
+  const sources = new Map(m.signSources.map((s) => [s.path, s] as const));
   const where = await page.evaluate(
     (anchors) => Object.fromEntries(anchors.map((a) => [a.path, window.repoInPeace!.projectPoint(a.x, a.y, a.z)])),
     visible.map((v) => ({ path: v.path, x: sources.get(v.path)!.x, y: sources.get(v.path)!.y, z: sources.get(v.path)!.z })),
@@ -50,10 +69,10 @@ async function expectedFor(page: Page, p: CameraPose): Promise<Array<{ text: str
 }
 
 /** Waits until the camera is still, then checks the page against the pose. */
-async function expectPageMatchesCamera(page: Page): Promise<Array<{ text: string; opacity: number }>> {
+async function expectPageMatchesCamera(page: Page, m: SceneModel = model): Promise<Array<{ text: string; opacity: number }>> {
   await page.waitForTimeout(1600);
   const p = await pose(page);
-  const expected = await expectedFor(page, p);
+  const expected = await expectedFor(page, p, m);
   await expect
     .poll(async () => (await shown(page)).map((s) => s.text), { message: 'the signs on the page should be the signs for the camera, nearest first' })
     .toEqual(expected.map((s) => s.text));
@@ -78,42 +97,40 @@ test.describe('folder signs, in the real app', () => {
     expect(actual.length).toBeLessThanOrEqual(SIGN_MAX_VISIBLE);
   });
 
-  test('a sign fades as the camera moves away from it, and the page shows the opacity the pure function gives', async ({ page }) => {
+  test('a sign fades as the camera moves away from it, and the page shows the opacity the pure function gives (oikos_ledger)', async ({ page }) => {
+    await openOikos(page);
     await page.keyboard.down('Shift');
     await page.keyboard.down('KeyS'); // back away from the graveyard
     await page.waitForTimeout(1500);
     await page.keyboard.up('KeyS');
     await page.keyboard.up('Shift');
-    const actual = await expectPageMatchesCamera(page);
+    const actual = await expectPageMatchesCamera(page, oikos);
     expect(actual.length, 'some sign should still show').toBeGreaterThan(0);
-    // Signs that overlap a nearer one are dropped, and the far ones are the faint ones, so look at the signs in range before that.
-    const inRange = visibleSigns(model.signSources, { position: (await pose(page)).position, forward: sub((await pose(page)).target, (await pose(page)).position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
+    // Faint signs are far ones, which a nearer sign often covers on the page, so the faded one is looked for in range.
+    const p = await pose(page);
+    const inRange = visibleSigns(oikos.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
     expect(Math.min(...inRange.map((s) => s.opacity)), 'a sign should be partly faded here, or this check proves nothing').toBeLessThan(0.95);
   });
 
-  test('flying into a small folder shows its sign, and zooming out from the overview fades it', async ({ page }) => {
-    await page.evaluate((p) => window.repoInPeace!.flyTo(p), deepFile);
-    const close = await expectPageMatchesCamera(page);
-    expect(close.map((s) => s.text), 'the sign of the folder you are in should show').toContain('data');
-    const closeOpacity = close.find((s) => s.text === 'data')!.opacity;
+  test('flying into a folder shows its sign, and zooming out from the overview fades it (oikos_ledger, lib)', async ({ page }) => {
+    await openOikos(page);
+    await page.evaluate((p) => window.repoInPeace!.flyTo(p), libFile);
+    const close = await expectPageMatchesCamera(page, oikos);
+    expect(close.map((s) => s.text), 'the sign of the folder you are in should show').toContain('lib');
+    const closeOpacity = close.find((s) => s.text === 'lib')!.opacity;
 
-    // The overview is near enough that `data` (a quarter of spatialql) may still be labelled there, but no clearer than up close.
     await page.evaluate(() => window.repoInPeace!.resetView());
-    const overview = await expectPageMatchesCamera(page);
-    const overviewOpacity = overview.find((s) => s.text === 'data')?.opacity ?? 0;
+    await expectPageMatchesCamera(page, oikos);
+    // From here on the opacity is read in range (a nearer sign may cover `lib` on the page, which the match above already checks).
+    const overviewOpacity = await opacityInRange(page, oikos, 'lib');
     expect(overviewOpacity, 'the sign should be no clearer from the overview than up close').toBeLessThanOrEqual(closeOpacity + 0.02);
 
-    // Zooming out from the overview (as far as the limits inside the trees allow), the sign fades: fainter than it was, or gone.
+    // Zooming out from the overview, as far as the limits allow: the sign fades (0.88 to about 0.6 by the pure function), or goes.
     await page.mouse.move(640, 360);
     for (let i = 0; i < 30; i++) await page.mouse.wheel(0, 600);
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('KeyS'); // and back as far as the limits let the camera go: the wheel now zooms toward the pointer
-    await page.waitForTimeout(2500);
-    await page.keyboard.up('KeyS');
-    await page.keyboard.up('Shift');
     await page.mouse.move(640, 20); // off the stones, so no hover label
-    const away = await expectPageMatchesCamera(page);
-    const awayOpacity = away.find((s) => s.text === 'data')?.opacity ?? 0;
+    await expectPageMatchesCamera(page, oikos);
+    const awayOpacity = await opacityInRange(page, oikos, 'lib');
     expect(overviewOpacity, 'the sign should show in the overview, or there is nothing to fade').toBeGreaterThan(0.1);
     expect(awayOpacity, `the sign should fade as the camera zooms out (overview ${overviewOpacity.toFixed(2)}, further out ${awayOpacity.toFixed(2)})`).toBeLessThan(overviewOpacity - 0.1);
   });
