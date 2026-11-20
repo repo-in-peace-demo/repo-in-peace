@@ -1,9 +1,10 @@
 /**
- * Keyboard shortcuts that are not for flying: Home or R resets the view, ? shows or hides the controls help.
+ * Keyboard shortcuts that are not for flying: Home or R resets the view, ? shows or hides the controls help, / and Cmd+K (Ctrl+K)
+ * focus the search box.
  * Pure: which shortcut, if any, a key press means. The page feeds it the key events.
  */
 
-export type Shortcut = 'reset' | 'help';
+export type Shortcut = 'reset' | 'help' | 'search';
 
 export interface KeyPress {
   /** `KeyboardEvent.code`: the place of the key, whatever the keyboard layout. Used for Home and R, as for W A S D. */
@@ -24,11 +25,15 @@ export interface KeyPress {
  * (so the browser's own shortcuts keep working), or for a key that is only repeating.
  */
 export function shortcutFor(press: KeyPress): Shortcut | undefined {
+  // Cmd+K (Ctrl+K off macOS) reaches the search box from anywhere, even from a field: it is the one shortcut taken from the
+  // browser (which binds Ctrl+K to its own search on some systems), because it is the usual one for this.
+  if (!press.repeat && !press.altKey && (press.metaKey || press.ctrlKey) && press.code === 'KeyK') return 'search';
   if (press.typing || press.ctrlKey || press.altKey || press.metaKey || press.repeat) return undefined;
+  if (press.key === '/') return 'search';
   if (press.code === 'Home' || press.code === 'KeyR') return 'reset';
   if (press.key === '?') return 'help';
   return undefined;
 }
 
 /** Codes that start a shortcut by their place on the keyboard. None of them is a flying key. */
-export const SHORTCUT_CODES: readonly string[] = ['Home', 'KeyR'];
+export const SHORTCUT_CODES: readonly string[] = ['Home', 'KeyR', 'KeyK'];

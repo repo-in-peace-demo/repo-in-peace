@@ -302,6 +302,26 @@ export function isTypingElement(tagName: string | undefined, isContentEditable: 
   return isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
+/** The attribute that marks a part of the page as handling its own keys (the list view, the search results): the camera keys and the shortcuts leave keys there alone. */
+export const OWNS_KEYS_ATTRIBUTE = 'data-owns-keys';
+
+/** What `ownsKeys` needs of an element: a page element has all of it. */
+export interface KeyTarget {
+  tagName?: string;
+  isContentEditable?: boolean;
+  closest?: (selector: string) => unknown;
+}
+
+/**
+ * Whether a key press on this element belongs to it and not to the camera or the shortcuts: the user is typing in a field, or the
+ * element is inside a part of the page that handles its own keys (`data-owns-keys`), so arrow keys move through its rows.
+ */
+export function ownsKeys(target: KeyTarget | null | undefined): boolean {
+  if (!target) return false;
+  if (isTypingElement(target.tagName, target.isContentEditable ?? false)) return true;
+  return typeof target.closest === 'function' && target.closest(`[${OWNS_KEYS_ATTRIBUTE}]`) != null;
+}
+
 /**
  * One step of flying. The camera and the point it looks at both move by the same amount, so the view turns neither
  * way and the mouse still orbits around the same point.

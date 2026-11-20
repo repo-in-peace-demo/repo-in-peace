@@ -55,22 +55,22 @@ Status key: `[x]` done, `[ ]` not started.
     - **Property:** the nudge is 0 exactly when the boxes are apart by at least the margin, and after moving by the nudge they are apart.
   - _Requirements: 4.3 to 4.9, 4b.2 to 4b.6_
 
-- [ ] 4. List, search and keys (`model/list-rows.ts`, `virtual-window.ts`, `search.ts`, `shortcuts.ts`, `fly-controls.ts`)
-  - [ ] 4.1 `buildRows`, `filterRows`, `sortRows`, `highlightedIndex`.
+- [x] 4. List, search and keys (`model/list-rows.ts`, `virtual-window.ts`, `search.ts`, `shortcuts.ts`, `fly-controls.ts`)
+  - [x] 4.1 `buildRows`, `filterRows`, `sortRows`, `highlightedIndex`.
     - **P1:** kinds combine with OR (any kind when none is selected), flags with AND, and the two groups with AND. The filter is checked against a direct definition, and clearing the filters gives every row.
     - **P2:** any permutation of the rows sorts the same; ties fall back to path; reversing twice is the identity; and under decay every stone comes before every ghost.
     - **P4 (pure part):** `highlightedIndex` finds the one row of the selection, or -1 when it is filtered out.
     - **Timing:** sorting and filtering 2,000 synthetic rows takes under 16 ms. Take the median of 5 runs, so a slow test machine doesn't flake.
-  - [ ] 4.2 `visibleRange`, `scrollToShow`.
+  - [x] 4.2 `visibleRange`, `scrollToShow`.
     - **Properties:** the range is inside `0..count-1`, covers the viewport, and has at most `viewport / rowHeight + 2 × overscan + 2` rows. After `scrollToShow` the row is in view, and an already visible row leaves `scrollTop` unchanged.
-  - [ ] 4.3 `rankRow`, `searchRows`.
+  - [x] 4.3 `rankRow`, `searchRows`.
     - **P3:** exact name ranks before name prefix, which ranks before name contains, which ranks before path only. A row that doesn't match never appears. Within a rank, results are ordered by path. Matching is case-insensitive.
     - **Examples:** in oikos, `index.ts` puts the `index.ts` files first, and `voice` puts the files named `voice…` before paths that only contain `voice`.
-  - [ ] 4.4 Add `'search'` to `shortcutFor`:
+  - [x] 4.4 Add `'search'` to `shortcutFor`:
     - `/` focuses search when you're not typing;
     - Cmd+K or Ctrl+K focuses it even while you're typing.
 
-    Add `ownsKeys(target)`, which is true for inputs and anything inside `[data-owns-keys]`. Use it wherever `isTypingElement` was used: the fly keys, the shortcuts, and `Picker`'s Escape.
+    Add `ownsKeys(target)`, which is true for inputs and anything inside `[data-owns-keys]`. Use it in place of `isTypingElement` for the fly keys and the shortcuts. **Changed while building:** `Picker`'s Escape keeps `isTypingElement`, so Escape in the list still clears the selection (as it does on the canvas), and only a text field (the search box) keeps it.
 
     **Tests:** no flying key and no other shortcut fires from inside an element that owns its keys, and the existing shortcut tests still pass.
   - **Run (checkpoint A, the model):** `cd frontend && npm run typecheck && npm test`

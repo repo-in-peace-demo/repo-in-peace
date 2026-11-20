@@ -2,6 +2,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { CameraPose } from './camera-pose';
 import {
+  OWNS_KEYS_ATTRIBUTE,
+  ownsKeys,
   FAST_KEY_CODES,
   FLY_FAST_FACTOR,
   FLY_KEY_CODES,
@@ -683,3 +685,19 @@ describe('clampPose with the scene\'s extra limits (a furthest distance, a circl
     );
   });
 });
+
+describe('ownsKeys', () => {
+  const inside = (selector: string | null) => ({ tagName: 'DIV', isContentEditable: false, closest: (s: string) => (selector !== null && s === selector ? {} : null) });
+  it('is true for a field, and for anything inside a part of the page that handles its own keys', () => {
+    expect(ownsKeys({ tagName: 'input' })).toBe(true);
+    expect(ownsKeys({ tagName: 'DIV', isContentEditable: true })).toBe(true);
+    expect(ownsKeys(inside(`[${OWNS_KEYS_ATTRIBUTE}]`))).toBe(true);
+  });
+  it('is false for the canvas, the page, a button outside such a part, and no element', () => {
+    expect(ownsKeys({ tagName: 'CANVAS', closest: () => null })).toBe(false);
+    expect(ownsKeys(inside(null))).toBe(false);
+    expect(ownsKeys({ tagName: 'BUTTON' })).toBe(false);
+    expect(ownsKeys(null)).toBe(false);
+  });
+});
+

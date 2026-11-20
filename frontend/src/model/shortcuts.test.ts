@@ -39,18 +39,38 @@ describe('shortcutFor', () => {
   });
 
   it('shares no key with flying', () => {
-    expect(SHORTCUT_CODES).toEqual(['Home', 'KeyR']);
+    expect(SHORTCUT_CODES).toEqual(['Home', 'KeyR', 'KeyK']); // K only with Cmd or Ctrl
     expect(SHORTCUT_CODES.some((code) => FLY_KEY_CODES.has(code))).toBe(false);
   });
 
-  it('only ever answers for Home, R and ?', () => {
+  it('only ever answers for Home, R, ?, / and Ctrl+K', () => {
     fc.assert(
-      fc.property(fc.string({ maxLength: 12 }), fc.string({ maxLength: 12 }), fc.boolean(), fc.boolean(), (code, key, ctrlKey, repeat) => {
+      fc.property(fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('KeyK', 'Home', 'KeyR')), fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('/', '?')), fc.boolean(), fc.boolean(), (code, key, ctrlKey, repeat) => {
         const answer = shortcutFor(press({ code, key, ctrlKey, repeat }));
-        const wanted = code === 'Home' || code === 'KeyR' || key === '?';
+        if (ctrlKey && code === 'KeyK' && !repeat) return answer === 'search';
+        const wanted = code === 'Home' || code === 'KeyR' || key === '?' || key === '/';
         return answer === undefined || (wanted && !ctrlKey && !repeat);
       }),
       { numRuns: 300 },
     );
   });
 });
+
+describe('the search shortcut', () => {
+  it('is / when the user is not typing, and Cmd+K or Ctrl+K from anywhere, even a field', () => {
+    expect(shortcutFor(press({ code: 'Slash', key: '/' }))).toBe('search');
+    expect(shortcutFor(press({ code: 'Slash', key: '/', typing: true }))).toBeUndefined(); // a / typed into a field stays a /
+    expect(shortcutFor(press({ code: 'KeyK', key: 'k', metaKey: true }))).toBe('search');
+    expect(shortcutFor(press({ code: 'KeyK', key: 'k', ctrlKey: true, typing: true }))).toBe('search');
+    expect(shortcutFor(press({ code: 'KeyK', key: 'k' }))).toBeUndefined(); // K alone is nothing
+    expect(shortcutFor(press({ code: 'KeyK', key: 'k', metaKey: true, altKey: true }))).toBeUndefined();
+    expect(shortcutFor(press({ code: 'KeyK', key: 'k', metaKey: true, repeat: true }))).toBeUndefined();
+  });
+
+  it('never fires for a flying key, with or without Cmd or Ctrl', () => {
+    for (const code of FLY_KEY_CODES) {
+      for (const mod of [{}, { metaKey: true }, { ctrlKey: true }]) expect(shortcutFor(press({ code, key: code.slice(-1).toLowerCase(), ...mod }))).not.toBe('search');
+    }
+  });
+});
+

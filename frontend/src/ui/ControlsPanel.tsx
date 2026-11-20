@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CONTROL_GROUPS } from '../model/controls-help';
-import { isTypingElement } from '../model/fly-controls';
+import { ownsKeys } from '../model/fly-controls';
 import { shortcutFor } from '../model/shortcuts';
 import { resetView } from '../scene/api';
 
@@ -25,9 +25,9 @@ export function ControlsPanel() {
         altKey: event.altKey,
         metaKey: event.metaKey,
         repeat: event.repeat,
-        typing: isTypingElement(target?.tagName, target?.isContentEditable ?? false),
+        typing: ownsKeys(target),
       });
-      if (shortcut === undefined) return;
+      if (shortcut === undefined || shortcut === 'search') return; // the search box handles its own shortcut
       event.preventDefault();
       if (shortcut === 'reset') resetView();
       else setHelpOpen((open) => !open);

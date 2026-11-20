@@ -213,7 +213,7 @@ function searchRows(rows: readonly Row[], query: string, limit = 50): Row[];  //
 - `/` focuses the box when the user is not typing.
 - Cmd+K, or Ctrl+K off macOS, focuses it even when the user is typing. It calls `preventDefault`, because the browser binds Ctrl+K to its own search on some systems.
 
-**No camera movement while typing** (Req 6.5): the fly keys, Home, R and ? already ignore typing elements (`isTypingElement`). That check is widened to `ownsKeys(target)`, which is true for an input, textarea, select or contenteditable element, or anything inside an element marked `data-owns-keys`. The list and the search results carry that mark, so the arrow keys move through rows there instead of flying the camera.
+**No camera movement while typing** (Req 6.5): the fly keys, Home, R and ? already ignore typing elements (`isTypingElement`). That check is widened to `ownsKeys(target)`, which is true for an input, textarea, select or contenteditable element, or anything inside an element marked `data-owns-keys`. The list and the search results carry that mark, so the arrow keys move through rows there instead of flying the camera. `Picker`'s Escape keeps the narrower `isTypingElement`, so Escape in the list still clears the selection; only a text field keeps Escape for itself.
 
 ## Hover label
 
