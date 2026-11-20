@@ -65,8 +65,7 @@ export const RIP_ABOVE_SEAM = 0.24;
 export const RIP_BOX = { w: 0.7, h: 0.3 };
 export const NAME_BELOW_SEAM = 0.0;
 export const NAME_BOX = { w: 0.93, h: 0.17 };
-/** The clear margin kept round a text's box, in scene units, where moss and the crack glow do not go (`scene/stone-material.ts`). */
-export const TEXT_CLEAR_MARGIN = 0.04;
+
 /** The shortest body (MIN_STONE_H minus the arch) is this tall; the name box is kept at least this far above the ground. */
 export const NAME_MIN_BOTTOM = 0.02;
 

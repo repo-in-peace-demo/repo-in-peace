@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { SceneModel } from '../model/scene-model';
+import { signBlocked, stoneOccluders } from '../model/sign-occlusion';
 import { placeSignsClear } from '../model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../model/signs';
 import { sameView, type ViewSignature } from '../model/view-signature';
@@ -10,7 +11,7 @@ import { vec3 } from '../model/vec3';
 /**
  * Keeps the pool of sign elements (ui/SignLayer.tsx) up to date. Each frame it only compares the camera with the last
  * one it worked out; when the camera, its lens and the size of the scene are all unchanged it does nothing at all.
- * Otherwise it asks `visibleSigns` which signs show, projects their anchors to the screen, drops a sign whose text would overlap a nearer one, and writes the text,
+ * Otherwise it asks `visibleSigns` which signs show, projects their anchors to the screen, drops a sign hidden behind a stone and a sign whose text would overlap a nearer one, and writes the text,
  * place and opacity into the pool's elements, touching only what changed. No element is created or removed.
  */
 export function SignDriver({ model, container }: { model: SceneModel; container: RefObject<HTMLDivElement | null> }) {
@@ -21,6 +22,7 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
   const forward = useMemo(() => new THREE.Vector3(), []);
   const point = useMemo(() => new THREE.Vector3(), []);
   const sources = useMemo(() => new Map(model.signSources.map((s) => [s.path, s] as const)), [model]);
+  const occluders = useMemo(() => stoneOccluders(model.pickTargets), [model]);
 
   // A new graveyard: work the signs out again at the next frame.
   useEffect(() => {
@@ -60,7 +62,14 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
       { position: vec3(view.px, view.py, view.pz), forward: vec3(view.fx, view.fy, view.fz), fovY: view.fovY, aspect: view.aspect },
       SIGN_MAX_VISIBLE,
     );
-    const placements = placeSignsClear(visible, (path) => {
+    // A sign behind a stone is not labelled: its label would be drawn over the stone (the page is on top of the canvas). This runs
+    // before the overlap rule, so a hidden sign never takes the place of one further away that can be seen.
+    const camera3 = vec3(view.px, view.py, view.pz);
+    const unblocked = visible.filter((sign) => {
+      const source = sources.get(sign.path);
+      return source !== undefined && !signBlocked(camera3, vec3(source.x, source.y, source.z), occluders);
+    });
+    const placements = placeSignsClear(unblocked, (path) => {
       const source = sources.get(path);
       if (!source) return null;
       point.set(source.x, source.y, source.z).project(camera);

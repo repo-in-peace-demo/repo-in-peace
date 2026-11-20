@@ -4,6 +4,12 @@ import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { ghostBaseHeight } from '../src/model/ghost-motion';
 import { buildSceneModel } from '../src/model/scene-model';
+import { sceneCameraLimits } from '../src/model/camera-bounds';
+import { clampPose } from '../src/model/fly-controls';
+import { signBlocked, stoneOccluders } from '../src/model/sign-occlusion';
+import { visibleSigns } from '../src/model/signs';
+import { DEFAULT_FOV_Y } from '../src/model/camera-pose';
+import { sub, vec3 } from '../src/model/vec3';
 
 /**
  * Pictures to judge by eye, not a check: a close-up of a ghost after `flyTo`, so its hem (two tips pointing down and curling
@@ -194,5 +200,51 @@ test.describe('screenshots to judge by eye', () => {
     await page.mouse.move(640, 8);
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${OUT}signs-close-oikosledger.png` });
+  });
+
+  // Task 25 follow-up 5: the engraving with no band (a close-up and a mid-distance view), and a sign hidden behind a stone.
+  test('engraving without a band, close and mid-distance; a sign behind a stone has no label', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    const g = buildSceneModel(JSON.parse(readFileSync(fileURLToPath(new URL('../public/graveyards/demo.oikosledger.graveyard.json', import.meta.url)), 'utf8')) as Graveyard);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(1200);
+    const clear = (s: (typeof g.stones)[number]) => !g.stones.some((o) => o !== s && Math.abs(o.layout.x - s.layout.x) < 1.6 && o.layout.z > s.layout.z && o.layout.z - s.layout.z < 2.6);
+    const mossyUnused = [...g.stones].filter((s) => s.file.unused && clear(s)).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0]!;
+    const fresh = g.stones.find((s) => s.file.decayState === 'fresh' && !s.file.unused && s.layout.height > 1.5 && clear(s))!;
+    const mossy = [...g.stones].filter((s) => !s.file.unused && s.layout.height > 1.5 && clear(s)).sort((a, b) => b.visual.mossAmount - a.visual.mossAmount)[0]!;
+    for (const [label, stone] of [['unused', mossyUnused], ['fresh', fresh], ['overgrown', mossy]] as const) {
+      const { x, z, height } = stone.layout;
+      await page.evaluate((p) => window.repoInPeace!.setPose(p), { position: { x, y: height * 0.75 + 0.6, z: z + 2.1 }, target: { x, y: height * 0.7, z } });
+      await page.mouse.move(640, 8);
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: `${OUT}band-close-${label}.png` });
+    }
+    // Mid-distance: about 12 units in front of the overgrown stone, with its neighbours in view.
+    {
+      const { x, z, height } = mossy.layout;
+      await page.evaluate((p) => window.repoInPeace!.setPose(p), { position: { x, y: height + 4.5, z: z + 11 }, target: { x, y: height * 0.5, z } });
+      await page.mouse.move(640, 8);
+      await page.waitForTimeout(700);
+      await page.screenshot({ path: `${OUT}band-mid-oikosledger.png` });
+    }
+    // A sign behind a stone, as the Playwright check finds one.
+    const limits = sceneCameraLimits(g.layout.bounds, 1280 / 720);
+    const boxes = stoneOccluders(g.pickTargets);
+    for (const src of g.signSources) {
+      const s = g.stones.find((t) => t.layout.z - src.z >= 0.5 && t.layout.z - src.z <= 8 && Math.abs(t.layout.x - src.x) <= 0.5);
+      if (!s) continue;
+      const anchor = vec3(src.x, src.y, src.z);
+      const d = sub(vec3(s.layout.x, s.layout.height * 0.6, s.layout.z), anchor);
+      const p = clampPose({ position: vec3(anchor.x + 2 * d.x, anchor.y + 2 * d.y, anchor.z + 2 * d.z), target: anchor }, limits);
+      const inRange = visibleSigns(g.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: 1280 / 720 }).some((v) => v.path === src.path);
+      if (!inRange || !signBlocked(p.position, anchor, boxes)) continue;
+      await page.evaluate((q) => window.repoInPeace!.setPose(q), p);
+      await page.mouse.move(640, 8);
+      await page.waitForTimeout(1800);
+      await page.screenshot({ path: `${OUT}sign-hidden-${src.label.replace(/[^a-z0-9]+/gi, '_')}.png` });
+      break;
+    }
   });
 });

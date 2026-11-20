@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { NAME_BELOW_SEAM, NAME_BOX, NAME_FAR, NAME_MIN_BOTTOM, NAME_NEAR, RIP_ABOVE_SEAM, RIP_BOX, TEXT_CLEAR_MARGIN } from '../model/engraving';
+import { NAME_BELOW_SEAM, NAME_BOX, NAME_FAR, NAME_MIN_BOTTOM, NAME_NEAR, RIP_ABOVE_SEAM, RIP_BOX} from '../model/engraving';
 import { STONE_D, STONE_W } from '../model/layout-constants';
 import { GLOW } from '../model/visual-constants';
-import { ENGRAVE_COLUMNS } from './engraving-atlas';
+import { ENGRAVE_CELL_H, ENGRAVE_CELL_W, ENGRAVE_COLUMNS } from './engraving-atlas';
 import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
 
 /**
@@ -16,7 +16,7 @@ import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
  *   aNameCell   the atlas cell of the file's name, or -1 (`model/engraving.ts`)
  * On the front face it carves "RIP" into the arch of an unused stone (aCrack), and the file's name below it, which fades in as
  * the camera comes near (NAME_FAR to NAME_NEAR): letters paler than the face with a thin dark shadow on the upper edge, read from the
- * engraving atlas. Moss stops below the name (its height still reads the age) and the crack glow keeps off the letters.
+ * engraving atlas. Moss runs on under the letters (only the letters differ from the stone) and the crack glow keeps off them.
  * The rim is an edge glow only: the surface of a hovered or selected stone is not tinted.
  */
 
@@ -45,9 +45,11 @@ varying float vHighlight;
 varying float vSeed;
 `;
 
-// The body (aTop 0, heights 0 to 1) is scaled to the body height; the arch (aTop 1, heights 1 to 1.5) is moved up with it.
+// The body (aTop 0, heights 0 to 1) is scaled to the body height; the arch (aTop 1, from 1 up by half the stone's width) is moved up
+// with it, so the stone's top is at its height. (Until task 25 follow-up 5 this said 0.5, the arch of a 1.0-wide stone, and stones
+// 1.4 wide were drawn 0.2 taller than their height.)
 const VERTEX_BEGIN = /* glsl */ `
-float bodyHeight = max(aHeight - 0.5, 0.01);
+float bodyHeight = max(aHeight - ${(STONE_W / 2).toFixed(4)}, 0.01);
 vec3 transformed = vec3(position);
 transformed.y = aTop > 0.5 ? (position.y - 1.0) + bodyHeight : position.y * bodyHeight;
 vLocalPos = transformed;
@@ -80,10 +82,10 @@ varying float vNameCell;
 varying float vNameFade;
 uniform sampler2D uEngrave;
 uniform vec2 uEngraveGrid; // columns, rows
+uniform vec2 uEngraveCell; // a cell's size in texels
 uniform vec4 uRipBox;      // above the seam, width, height, unused
 uniform vec4 uNameBox;     // below the seam, width, height, lowest bottom
 uniform vec2 uStoneSize;   // width, depth
-uniform float uClear;      // the margin kept clear round a text band
 uniform vec3 uLetterColor; // carved letters: pale stone, lighter than the face
 uniform float uTime;
 uniform float uGlow;
@@ -113,35 +115,49 @@ float vnoise(vec2 p) {
   float d = hash21(i + vec2(1.0, 1.0));
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
-// Where a text's cell is at this point of the face: the cell's atlas coordinate, or (-1) when the point is outside the box. The box
-// is its centre up from the foot and its size; x is measured from the middle of the face.
-vec2 engraveAt(float cell, float boxY, float boxW, float boxH, vec2 shift) {
+// A text's cell at this point of the face. Always sampled, never inside a branch: a texture read in a branch gets the wrong mip
+// level at the edge of the branch (the 2 by 2 pixel blocks the GPU takes derivatives over straddle it), which drew a line along
+// the edge of the text's box and a lighter box on distant stones. The coordinate is clamped inside the cell (half a texel in) and
+// the gradients come from the unclamped one, so the mip level is right on the edge too. inside is 1 within the box.
+struct Engrave { vec2 at; vec2 dx; vec2 dy; float inside; float texels; };
+Engrave engraveAt(float cell, float boxY, float boxW, float boxH, vec2 shift) {
   float bu = ((vLocalPos.x + shift.x) / boxW) + 0.5;
   float bv = ((vLocalPos.y + shift.y) - boxY) / boxH + 0.5;
-  if (bu < 0.0 || bu > 1.0 || bv < 0.0 || bv > 1.0 || cell < 0.0) return vec2(-1.0);
-  float col = mod(cell, uEngraveGrid.x);
-  float row = floor(cell / uEngraveGrid.x);
-  return vec2((col + bu) / uEngraveGrid.x, 1.0 - (row + 1.0 - bv) / uEngraveGrid.y);
+  float c = max(cell, 0.0);
+  float col = mod(c, uEngraveGrid.x);
+  float row = floor(c / uEngraveGrid.x);
+  vec2 raw = vec2((col + bu) / uEngraveGrid.x, 1.0 - (row + 1.0 - bv) / uEngraveGrid.y);
+  vec2 inset = vec2(0.5 / uEngraveCell.x, 0.5 / uEngraveCell.y);
+  vec2 cu = clamp(vec2(bu, bv), inset, 1.0 - inset);
+  Engrave e;
+  e.at = vec2((col + cu.x) / uEngraveGrid.x, 1.0 - (row + 1.0 - cu.y) / uEngraveGrid.y);
+  e.dx = dFdx(raw);
+  e.dy = dFdy(raw);
+  e.inside = (cell < 0.0 || bu < 0.0 || bu > 1.0 || bv < 0.0 || bv > 1.0) ? 0.0 : 1.0;
+  // Atlas texels per screen pixel, across the cell's height: large when the text is only a few pixels tall on screen.
+  e.texels = max(length(vec2(dFdx(bv), dFdy(bv))), 1e-6) * uEngraveCell.y;
+  return e;
 }
 // How much of a carved text covers this point (x, 0 to 1), and the thin dark shadow along the upper edge of its letters (y): the
-// mask here, and the mask a little further down, which is lit where this point is not.
+// mask here, and the mask a little further down, which is lit where this point is not. Letters fade out when they would be under
+// about 12 pixels tall on screen (6 or more atlas texels to a pixel), so a distant stone shows plain stone and no smudge of text.
 vec2 carved(float cell, float boxY, float boxW, float boxH) {
-  vec2 at = engraveAt(cell, boxY, boxW, boxH, vec2(0.0));
-  if (at.x < 0.0) return vec2(0.0);
-  float ink = texture2D(uEngrave, at).a;
-  float lower = texture2D(uEngrave, at - vec2(0.0, 0.08 / uEngraveGrid.y)).a;
-  return vec2(ink, clamp(lower - ink, 0.0, 1.0));
+  Engrave e = engraveAt(cell, boxY, boxW, boxH, vec2(0.0));
+  Engrave l = engraveAt(cell, boxY, boxW, boxH, vec2(0.0, -0.012));
+  float ink = textureGrad(uEngrave, e.at, e.dx, e.dy).a * e.inside;
+  float lower = textureGrad(uEngrave, l.at, l.dx, l.dy).a * l.inside;
+  float legible = 1.0 - smoothstep(3.0, 6.0, e.texels);
+  return vec2(ink, clamp(lower - ink, 0.0, 1.0)) * legible;
 }
-// 1 on a text's letters and within about reach (scene units) of them: eight taps round the point.
+// 1 on a text's letters and within about reach (scene units) of them: eight taps round the point. Only ever this close to the letters.
 float nearInk(float cell, float boxY, float boxW, float boxH, float reach) {
   float m = 0.0;
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 9; i++) {
     float a = float(i) * 0.7853982;
-    vec2 at = engraveAt(cell, boxY, boxW, boxH, reach * vec2(cos(a), sin(a)));
-    if (at.x >= 0.0) m = max(m, texture2D(uEngrave, at).a);
+    vec2 shift = i == 8 ? vec2(0.0) : reach * vec2(cos(a), sin(a));
+    Engrave e = engraveAt(cell, boxY, boxW, boxH, shift);
+    m = max(m, textureGrad(uEngrave, e.at, e.dx, e.dy).a * e.inside);
   }
-  vec2 here = engraveAt(cell, boxY, boxW, boxH, vec2(0.0));
-  if (here.x >= 0.0) m = max(m, texture2D(uEngrave, here).a);
   return smoothstep(0.0, 0.6, m);
 }
 // Cracks: the borders of a jittered cell pattern, a few of them kept, so they run as long thin lines that branch, not as
@@ -198,33 +214,24 @@ const FRAGMENT_COLOR = /* glsl */ `
   float grain = fbm(uv2 * 6.0 + seedOffset);
   diffuseColor.rgb *= 0.78 + 0.4 * grain;
 
-  // Where the texts are on the front face. Moss and the crack glow keep off them (the facts they show are still read from the rest).
+  // Where the texts are on the front face. Nothing is drawn band-wide: moss and cracks run on under the letters, which are carved
+  // through them, and only the crack glow keeps off the letters themselves (nearInk).
   float frontness = smoothstep(0.5, 0.85, vFront);
   float seam = max(vStoneHeight - uStoneSize.x * 0.5, 0.01);
   float nameY = max(seam - uNameBox.x - uNameBox.z * 0.5, uNameBox.w) + uNameBox.z * 0.5;
-  float nameBottom = nameY - uNameBox.z * 0.5 - uClear;
-  float nameTop = nameY + uNameBox.z * 0.5 + uClear;
-  float ripBottom = seam + uRipBox.x - uRipBox.z * 0.5 - uClear;
-  float ripTop = seam + uRipBox.x + uRipBox.z * 0.5 + uClear;
-  float y = vLocalPos.y;
-  float inName = smoothstep(nameBottom - 0.02, nameBottom, y) * (1.0 - smoothstep(nameTop, nameTop + 0.02, y));
-  float inRip = vCrack > 0.5 ? smoothstep(ripBottom - 0.02, ripBottom, y) * (1.0 - smoothstep(ripTop, ripTop + 0.02, y)) : 0.0;
-  float inText = max(inName, inRip);
 
   // Moss rises from the base: a pixel is mossy when its height up the stone, plus noise, is below the amount, the same on every face
-  // so the height reads the age. On the front face it never covers a text band: where the amount reaches the name, the moss stops
-  // below it and goes on above it (on an old stone), and the band stays clean stone.
+  // so the height reads the age. The letters are carved through it (their colour replaces the moss's on the letters alone).
   // The amount: 0.39 of the stone on the first stale day, 0.85 on the last, 0.9 and up when ancient (the 0.3 start keeps the least
   // stale moss above the foot, which the row in front hides from the overview).
   gFar = smoothstep(18.0, 70.0, length(vViewPosition));
   float mossNoise = fbm(uv2 * 4.0 + seedOffset * 1.7);
   float mossEdge = 0.3 + vMoss * 0.85 - (vHeightFrac + (mossNoise - 0.5) * 0.4);
   float moss = smoothstep(0.0, 0.1, mossEdge) * step(0.001, vMoss);
-  moss *= 1.0 - frontness * inText;
   // A cap of moss on the top, deeper the older (0.15 of the stone on the first stale day, 0.35 when ancient): from the
-  // overview a stone in a back row shows only its top. Still the age alone. Not over the texts.
+  // overview a stone in a back row shows only its top. Still the age alone.
   float capEdge = vHeightFrac - (1.0 - 0.1 - vMoss * 0.35) + (mossNoise - 0.5) * 0.25;
-  float cap = smoothstep(0.0, 0.08, capEdge) * step(0.001, vMoss) * (1.0 - frontness * inText);
+  float cap = smoothstep(0.0, 0.08, capEdge) * step(0.001, vMoss);
   moss = max(moss, cap);
   vec3 mossShade = uMossColor * (0.85 + 0.5 * fbm(uv2 * 9.0 + seedOffset));
   diffuseColor.rgb = mix(diffuseColor.rgb, mossShade, moss);
@@ -277,7 +284,7 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
   // A little light in the letters, so they read under the dim moonlight.
   totalEmissiveRadiance += uLetterColor * 0.16 * gInk;
   // A little of the moss's own colour from far away, so it is still green under the dim moonlight (age only: gMoss reads vMoss).
-  totalEmissiveRadiance += uMossColor * (0.06 + 0.14 * gFar) * gMoss;
+  totalEmissiveRadiance += uMossColor * (0.06 + 0.14 * gFar) * gMoss * (1.0 - gInk);
 
   // The rim, an edge glow and not a tint: pale for the stone under the pointer, the ring's colour and a slow pulse for the selected one.
   if (vHighlight > 0.01) {
@@ -304,7 +311,7 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
     shader.uniforms.uEngraveGrid = { value: new THREE.Vector2(ENGRAVE_COLUMNS, engraving.rows) };
     shader.uniforms.uRipBox = { value: new THREE.Vector4(RIP_ABOVE_SEAM, RIP_BOX.w * STONE_W, RIP_BOX.h, 0) };
     shader.uniforms.uNameBox = { value: new THREE.Vector4(NAME_BELOW_SEAM, NAME_BOX.w * STONE_W, NAME_BOX.h, NAME_MIN_BOTTOM) };
-    shader.uniforms.uClear = { value: TEXT_CLEAR_MARGIN };
+    shader.uniforms.uEngraveCell = { value: new THREE.Vector2(ENGRAVE_CELL_W, ENGRAVE_CELL_H) };
     shader.uniforms.uLetterColor = { value: new THREE.Color('#c9cfda') };
     shader.uniforms.uStoneSize = { value: new THREE.Vector2(STONE_W, STONE_D) };
     shader.uniforms.uNameFade = { value: new THREE.Vector2(NAME_NEAR, NAME_FAR) };
@@ -317,6 +324,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v5';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v6';
   return { material, uniforms };
 }

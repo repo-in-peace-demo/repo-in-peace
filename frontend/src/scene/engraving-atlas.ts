@@ -37,7 +37,8 @@ export function makeEngravingAtlas(texts: readonly string[]): { texture: THREE.C
     const k = box.h / ENGRAVE_CELL_H / (box.w / ENGRAVE_CELL_W);
     context.save();
     context.beginPath();
-    context.rect(x, y, ENGRAVE_CELL_W, ENGRAVE_CELL_H);
+    // Nothing within 4 px of a cell's edge, so neither filtering nor the first mip levels carry a letter into the next cell.
+    context.rect(x + 4, y + 4, ENGRAVE_CELL_W - 8, ENGRAVE_CELL_H - 8);
     context.clip();
     context.translate(x + ENGRAVE_CELL_W / 2, y + ENGRAVE_CELL_H / 2);
     context.scale(k, 1);

@@ -4,9 +4,12 @@ import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
 import { buildSceneModel, type SceneModel } from '../src/model/scene-model';
+import { signBlocked, stoneOccluders } from '../src/model/sign-occlusion';
 import { placeSignsClear } from '../src/model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../src/model/signs';
-import { sub } from '../src/model/vec3';
+import { sceneCameraLimits } from '../src/model/camera-bounds';
+import { clampPose } from '../src/model/fly-controls';
+import { sub, vec3 } from '../src/model/vec3';
 
 /**
  * Smoke test of the folder signs in the real app: the elements on the page are exactly the signs that `visibleSigns`
@@ -55,8 +58,8 @@ const shown = (page: Page): Promise<Array<{ text: string; opacity: number }>> =>
   );
 
 /**
- * What the page should show for a camera pose, from the same pure functions the app uses: the signs in range, then (as the app does)
- * only the nearest of any whose texts overlap on screen. The anchors are projected by the page's own camera.
+ * What the page should show for a camera pose, from the same pure functions the app uses: the signs in range, less those behind a
+ * stone, then (as the app does) only the nearest of any whose texts overlap on screen. The anchors are projected by the page's own camera.
  */
 async function expectedFor(page: Page, p: CameraPose, m: SceneModel = model): Promise<Array<{ text: string; opacity: number }>> {
   const visible = visibleSigns(m.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height });
@@ -65,7 +68,9 @@ async function expectedFor(page: Page, p: CameraPose, m: SceneModel = model): Pr
     (anchors) => Object.fromEntries(anchors.map((a) => [a.path, window.repoInPeace!.projectPoint(a.x, a.y, a.z)])),
     visible.map((v) => ({ path: v.path, x: sources.get(v.path)!.x, y: sources.get(v.path)!.y, z: sources.get(v.path)!.z })),
   );
-  return placeSignsClear(visible, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
+  const boxes = stoneOccluders(m.pickTargets);
+  const seen = visible.filter((v) => !signBlocked(p.position, sources.get(v.path)!, boxes));
+  return placeSignsClear(seen, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
 }
 
 /** Waits until the camera is still, then checks the page against the pose. */
@@ -205,5 +210,41 @@ test.describe('folder signs up close on oikos_ledger', () => {
         }
       }
     }
+  });
+});
+
+test.describe('folder signs behind stones', () => {
+  test('a sign hidden behind a stone has no label, and the label comes back when the camera rises to see over it (oikos_ledger)', async ({ page }) => {
+    const limits = sceneCameraLimits(oikos.layout.bounds, VIEWPORT.width / VIEWPORT.height);
+    const boxes = stoneOccluders(oikos.pickTargets);
+    // A sign with a tall stone in front of it, and a camera pose (inside the limits) on the line from the sign over that stone's face.
+    let found: { label: string; pose: CameraPose } | null = null;
+    for (const src of oikos.signSources) {
+      for (const s of oikos.stones) {
+        const dz = s.layout.z - src.z;
+        if (found || dz < 0.5 || dz > 8 || Math.abs(s.layout.x - src.x) > 0.5) continue;
+        const anchor = vec3(src.x, src.y, src.z);
+        const d = sub(vec3(s.layout.x, s.layout.height * 0.6, s.layout.z), anchor);
+        const p = clampPose({ position: vec3(anchor.x + 2 * d.x, anchor.y + 2 * d.y, anchor.z + 2 * d.z), target: anchor }, limits);
+        const inRange = visibleSigns(oikos.signSources, { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, aspect: VIEWPORT.width / VIEWPORT.height }).some((v) => v.path === src.path);
+        if (inRange && signBlocked(p.position, anchor, boxes)) found = { label: src.label, pose: p };
+      }
+    }
+    expect(found, 'oikos_ledger should have a sign with a stone in front of it').not.toBeNull();
+    const { label, pose: behind } = found!;
+
+    await page.setViewportSize(VIEWPORT);
+    await openOikos(page);
+    await page.evaluate((p) => window.repoInPeace!.setPose(p), behind);
+    await page.mouse.move(640, 8);
+    const hidden = await expectPageMatchesCamera(page, oikos);
+    expect(hidden.map((s) => s.text), `"${label}" is behind a stone here and should have no label`).not.toContain(label);
+
+    // Higher up, looking down at the same sign over the stone: the label shows again (the pure function agrees first).
+    const above = clampPose({ position: vec3(behind.position.x, behind.position.y + 8, behind.position.z), target: behind.target }, limits);
+    expect(signBlocked(above.position, behind.target, boxes), 'from higher up the stone should no longer be in the way').toBe(false);
+    await page.evaluate((p) => window.repoInPeace!.setPose(p), above);
+    const seen = await expectPageMatchesCamera(page, oikos);
+    expect(seen.map((s) => s.text), `"${label}" should be labelled again once it can be seen`).toContain(label);
   });
 });

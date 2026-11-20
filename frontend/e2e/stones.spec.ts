@@ -272,18 +272,29 @@ for (const name of COUNT_FILES) {
 }
 
 /**
- * Follow-up to task 25: the engraving is readable up close on a fresh, a stale, an ancient and an unused stone. The box of the
- * name (and of RIP) is projected from the model; in it the carved letters are the lightest pixels (the 95th percentile of the
- * brightness stands clear of the median), and neither moss nor the crack glow shows in it.
+ * Follow-ups to task 25: the engraving reads up close on a fresh, a stale, an ancient and an unused stone, and only the letters differ
+ * from the stone. The box of the name (and of RIP) is projected from the model. In it the carved letters are the lightest pixels (the
+ * 95th percentile of the brightness stands clear of the median) and carry no moss green or crack red. Outside the letters the box is
+ * the stone around it: the median brightness of the box without its letters, of a thin strip just inside each edge, and of the
+ * stone just outside it (above and below) agree, so there is no band, no edge line and no lighter box.
  */
-async function boxStats(page: Page, box: { x: number; y: number; w: number; h: number }, x: number, z: number) {
+type ScreenBox = { x0: number; x1: number; y0: number; y1: number };
+
+async function projectBox(page: Page, box: { x: number; y: number; w: number; h: number }, x: number, z: number): Promise<ScreenBox> {
   const front = z + STONE_D / 2;
   const a = await page.evaluate(([px, py, pz]) => window.repoInPeace!.projectPoint(px!, py!, pz!), [x + box.x - box.w / 2, box.y + box.h / 2, front]);
   const b = await page.evaluate(([px, py, pz]) => window.repoInPeace!.projectPoint(px!, py!, pz!), [x + box.x + box.w / 2, box.y - box.h / 2, front]);
   if (!a || !b) throw new Error('the box is not on screen');
+  return { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) };
+}
+
+type BandStats = { area: number; median: number; p95: number; letterGreen: number; letterRed: number; letters: number; plain: number; inTop: number; inBottom: number; above: number; below: number };
+
+/** The numbers above, for each box, from one screenshot. `strip` is how many pixels the edge strips and the outside strips are. */
+async function bandStats(page: Page, boxes: readonly ScreenBox[], strip: number): Promise<BandStats[]> {
   const png = (await page.screenshot()).toString('base64');
   return page.evaluate(
-    async ({ data, a, b }) => {
+    async ({ data, boxes, strip }) => {
       const image = new Image();
       image.src = `data:image/png;base64,${data}`;
       await image.decode();
@@ -292,29 +303,56 @@ async function boxStats(page: Page, box: { x: number; y: number; w: number; h: n
       canvas.height = image.height;
       const context = canvas.getContext('2d')!;
       context.drawImage(image, 0, 0);
-      const x0 = Math.floor(Math.min(a.x, b.x));
-      const x1 = Math.ceil(Math.max(a.x, b.x));
-      const y0 = Math.floor(Math.min(a.y, b.y));
-      const y1 = Math.ceil(Math.max(a.y, b.y));
-      const { data: rgba } = context.getImageData(x0, y0, x1 - x0, y1 - y0);
-      const lum: number[] = [];
-      let green = 0;
-      let red = 0;
-      for (let i = 0; i < rgba.length; i += 4) {
-        const [r, g, bl] = [rgba[i]!, rgba[i + 1]!, rgba[i + 2]!];
-        lum.push(0.2126 * r + 0.7152 * g + 0.0722 * bl);
-        if (g > r + 12 && g > bl + 12 && g > 50) green++;
-        if (r > g + 40 && r > bl + 30 && r > 80) red++;
-      }
-      lum.sort((p, q) => p - q);
-      const at = (share: number) => lum[Math.min(lum.length - 1, Math.floor(share * lum.length))]!;
-      return { area: lum.length, median: at(0.5), p95: at(0.95), green, red };
+      const { data: rgba } = context.getImageData(0, 0, canvas.width, canvas.height);
+      const px = (x: number, y: number) => {
+        const i = (Math.min(canvas.height - 1, Math.max(0, y)) * canvas.width + Math.min(canvas.width - 1, Math.max(0, x))) * 4;
+        return [rgba[i]!, rgba[i + 1]!, rgba[i + 2]!] as const;
+      };
+      const lumOf = ([r, g, b]: readonly [number, number, number]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const median = (v: number[]) => (v.length === 0 ? NaN : [...v].sort((p, q) => p - q)[Math.floor(v.length / 2)]!);
+      const rows = (x0: number, x1: number, y0: number, y1: number) => {
+        const out: number[] = [];
+        for (let y = Math.round(y0); y < Math.round(y1); y++) for (let x = Math.round(x0); x < Math.round(x1); x++) out.push(lumOf(px(x, y)));
+        return out;
+      };
+      return boxes.map((b) => {
+        // The middle 80% across, so the stone's own edges are not counted.
+        const inset = (b.x1 - b.x0) * 0.1;
+        const [x0, x1] = [b.x0 + inset, b.x1 - inset];
+        const all: Array<{ l: number; c: readonly [number, number, number] }> = [];
+        for (let y = Math.round(b.y0); y < Math.round(b.y1); y++) for (let x = Math.round(x0); x < Math.round(x1); x++) {
+          const c = px(x, y);
+          all.push({ l: lumOf(c), c });
+        }
+        const lums = all.map((p) => p.l).sort((p, q) => p - q);
+        const at = (share: number) => lums[Math.min(lums.length - 1, Math.floor(share * lums.length))]!;
+        const cut = at(0.92);
+        const letters = all.filter((p) => p.l >= cut);
+        const letterGreen = letters.filter(({ c: [r, g, bl] }) => g > r + 12 && g > bl + 12 && g > 50).length;
+        const letterRed = letters.filter(({ c: [r, g, bl] }) => r > g + 40 && r > bl + 30 && r > 80).length;
+        const plainCut = at(0.7);
+        return {
+          area: all.length,
+          median: at(0.5),
+          p95: at(0.95),
+          letterGreen,
+          letterRed,
+          letters: letters.length,
+          plain: median(all.filter((p) => p.l < plainCut).map((p) => p.l)),
+          inTop: median(rows(x0, x1, b.y0, b.y0 + strip).filter((l) => l < plainCut)),
+          inBottom: median(rows(x0, x1, b.y1 - strip, b.y1).filter((l) => l < plainCut)),
+          above: median(rows(x0, x1, b.y0 - strip, b.y0)),
+          below: median(rows(x0, x1, b.y1, b.y1 + strip)),
+        };
+      });
     },
-    { data: png, a, b },
+    { data: png, boxes, strip },
   );
 }
 
 const staleUsed = model.stones.find((s) => s.file.decayState === 'stale' && !s.file.unused && s.layout.height > 1.2) ?? mossy;
+/** Brightness levels (0 to 255) the stone may vary by between the band and the stone around it: noise, moss and the light. */
+const BAND_TOLERANCE = 14;
 
 for (const [label, stone] of [
   ['fresh used', freshUsed],
@@ -323,7 +361,7 @@ for (const [label, stone] of [
   ['unused', freshUnused],
   ['ancient and unused', ancientUnused],
 ] as const) {
-  test(`the engraving reads up close on a stone that is ${label}: pale letters, no moss or crack glow over them`, async ({ page }) => {
+  test(`the engraving reads up close on a stone that is ${label}: pale letters, no moss or glow on them, no band round them`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/?graveyard=demo.oikosledger');
     await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
@@ -335,12 +373,44 @@ for (const [label, stone] of [
     await page.waitForTimeout(300);
     const { name, rip } = engravingBoxes(height);
     const boxes = [['name', name], ...(stone.file.unused ? [['RIP', rip] as const] : [])] as const;
-    for (const [what, box] of boxes) {
-      const st = await boxStats(page, box, x, z);
-      expect(st.p95 - st.median, `${what} on ${stone.file.path}: letters should be lighter than the face (median ${st.median}, p95 ${st.p95})`).toBeGreaterThanOrEqual(20);
-      expect(st.green, `${what} on ${stone.file.path}: green pixels over the text band`).toBeLessThanOrEqual(st.area * 0.02);
-      // A crack may run through the band beside the letters; the glow keeps off the letters themselves.
-      expect(st.red, `${what} on ${stone.file.path}: red pixels over the text band`).toBeLessThanOrEqual(st.area * (stone.file.unused ? 0.06 : 0.02));
-    }
+    const screen = await Promise.all(boxes.map(([, box]) => projectBox(page, box, x, z)));
+    const stats = await bandStats(page, screen, 3);
+    boxes.forEach(([what], i) => {
+      const st = stats[i]!;
+      const where = `${what} on ${stone.file.path}`;
+      expect(st.p95 - st.median, `${where}: letters should be lighter than the face (median ${st.median}, p95 ${st.p95})`).toBeGreaterThanOrEqual(20);
+      expect(st.letterGreen, `${where}: moss green on the letters`).toBeLessThanOrEqual(st.letters * 0.05);
+      expect(st.letterRed, `${where}: crack red on the letters`).toBeLessThanOrEqual(st.letters * 0.05);
+      const around = (st.above + st.below) / 2;
+      const report = JSON.stringify(st);
+      expect(Math.abs(st.plain - around), `${where}: the box without its letters should be the stone around it ${report}`).toBeLessThanOrEqual(BAND_TOLERANCE);
+      expect(Math.abs(st.inTop - st.above), `${where}: an edge line along the top of the box ${report}`).toBeLessThanOrEqual(BAND_TOLERANCE);
+      expect(Math.abs(st.inBottom - st.below), `${where}: an edge line along the bottom of the box ${report}`).toBeLessThanOrEqual(BAND_TOLERANCE);
+    });
   });
 }
+
+test('from the default view of oikos_ledger, no unused stone shows a box round its RIP: the box is the stone around it', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(2500);
+  await page.mouse.move(640, 5);
+  const unusedStones = model.stones.filter((s) => s.file.unused && !(KNOWN_HIDDEN['demo.oikosledger'] ?? []).includes(s.file.path));
+  const screen: ScreenBox[] = [];
+  const which: string[] = [];
+  for (const s of unusedStones) {
+    const b = await projectBox(page, engravingBoxes(s.layout.height).rip, s.layout.x, s.layout.z).catch(() => null);
+    // Only boxes at least 5 pixels tall: anything smaller is a pixel or two, too few to tell a box from the stone.
+    if (b && b.y1 - b.y0 >= 5) {
+      screen.push(b);
+      which.push(s.file.path);
+    }
+  }
+  const stats = await bandStats(page, screen, 2);
+  stats.forEach((st, i) => {
+    const around = (st.above + st.below) / 2;
+    // The median of the whole box (letters too, as far away the letters have faded to stone).
+    expect(Math.abs(st.median - around), `RIP box on ${which[i]} from the default view ${JSON.stringify(st)}`).toBeLessThanOrEqual(BAND_TOLERANCE);
+  });
+});

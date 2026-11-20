@@ -3,7 +3,7 @@ import { STONE_D, STONE_W } from '../model/layout-constants';
 
 /**
  * The shape of every tombstone: a slab with a rounded top, built once from a `Shape` and extruded to the stone's depth
- * with a small bevel. The body is 1 high and the arch (radius half the width) sits on top of it, from 1 to 1.5.
+ * with a small bevel. The body is 1 high and the arch (radius half the width) sits on top of it, from 1 to 1 + STONE_W / 2.
  *
  * Each vertex has `aTop`: 1 for the arch (from the seam at height 1 up) and 0 for the body. The stone shader scales the
  * body to the stone's height and moves the arch up with it, so a tall stone does not get a stretched arch.
