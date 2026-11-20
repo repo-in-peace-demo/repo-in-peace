@@ -59,7 +59,7 @@ export const FOREST_ROW_HAZE: readonly number[] = [0, 0.14, 0.26];
  * The bare, twisted trees that frame the left and right edges of the opening view: at these angles from the design eye
  * (negative to the left), a little in front of the forest, reaching well above it into the sky.
  */
-export const FRAMING_TREE_AZIMUTHS_DEG: readonly number[] = [-41, -35, 29, 34, 40]; // 29: in view beside the legend panel on a wide screen
+export const FRAMING_TREE_AZIMUTHS_DEG: readonly number[] = [-41, -35, 34, 40];
 const FRAMING_TREE_TOP_DEG = 6.2;
 
 /** The clearing under the moon: its treetops are at most this many degrees above the design eye's level (below the horizon). */
@@ -173,32 +173,6 @@ function farTop(plan: HorizonPlan, angle: number, ridge: number): number {
   return low + Math.max(0, high - low) * (0.45 + 0.5 * swell(angle, 'far-hills'));
 }
 
-/**
- * How far up to the ridge the slope is, from 0 at its foot to 1 at the ridge (t from 0 to 1 along the way), at this angle around
- * the ring: the hills roll. Partway up there is a bench (a flatter shelf, at a height that changes around the ring), and in places
- * a shallow valley runs down the slope; the mist pools on both (`model/mist.ts`). The valleys close at the ridge, so the ridge stays
- * level, and the slope only ever rises going outward: it is a product of two shares that only grow with t.
- */
-export function slopeShare(angle: number, t: number): number {
-  const k = Math.min(1, Math.max(0, t));
-  const bench = BENCH_AT + BENCH_SWAY * swell(angle, 'bench');
-  const rise = 0.55 * smooth(k / bench) + 0.45 * smooth((k - bench * 0.8) / (1 - bench * 0.8));
-  return rise * (1 - valleyDepth(angle) * (1 - k));
-}
-
-/** How deep a valley is at this angle around the ring, from 0 (none) to VALLEY_DEPTH, as a share of the slope's height. */
-export function valleyDepth(angle: number): number {
-  // About a dozen valleys around the ring, of different widths: two waves of different lengths, where both are high.
-  const a = Math.sin(9 * angle + hash01('valleys', 'a') * Math.PI * 2);
-  const b = Math.sin(14 * angle + hash01('valleys', 'b') * Math.PI * 2);
-  return VALLEY_DEPTH * smooth((0.6 * a + 0.4 * b - 0.05) / 0.6);
-}
-
-/** How far up the slope (t) the bench is, and how much that changes around the ring; how deep the valleys are at most. */
-const BENCH_AT = 0.45;
-const BENCH_SWAY = 0.12;
-const VALLEY_DEPTH = 0.45;
-
 /** The height of the land at a point on the ground: 0 inside and near the graveyard, rising to the ridge, then the far hills. */
 export function landHeightAt(plan: HorizonPlan, x: number, z: number): number {
   const ox = x - plan.centre.x;
@@ -211,9 +185,9 @@ export function landHeightAt(plan: HorizonPlan, x: number, z: number): number {
   const R = plan.ridgeRadius;
   if (r <= start) return 0;
   const top = ridgeHeightToward(plan, dx, dz);
-  const angle = Math.atan2(oz, ox);
-  const ridge = top * slopeShare(angle, (r - start) / Math.max(1e-6, R - start));
+  const ridge = top * smooth((r - start) / Math.max(1e-6, R - start));
   if (r <= FAR_START * R) return ridge;
+  const angle = Math.atan2(oz, ox);
   const far = farTop(plan, angle, top);
   return ridge + (far - ridge) * smooth((r - FAR_START * R) / ((FAR_PEAK - FAR_START) * R));
 }
@@ -307,12 +281,6 @@ export interface Tree {
   key: string;
 }
 
-/** The height of a tree at (x, z) whose top would be `topDeg` above the design eye's level on the lowest ridge (straight behind). */
-function treeHeightFor(plan: HorizonPlan, x: number, z: number, topDeg: number, typical: number): number {
-  const along = Math.hypot(x - plan.eye.x, z - plan.eye.z);
-  return plan.eye.y + along * Math.tan(topDeg * RAD) - (plan.ridgeHeight - typical * 0.05);
-}
-
 const moonwardOf = (azimuthDeg: number): number => Math.max(0, Math.cos((azimuthDeg - MOON_AZIMUTH_DEG) * RAD * 1.6));
 
 /** The point of the ring of this radius that the design eye (inside the ring) sees at this azimuth. */
@@ -334,7 +302,7 @@ function framingTrees(plan: HorizonPlan, typical: number): Tree[] {
     const radius = plan.ridgeRadius * (1.0 + 0.01 * hash01(key, 'r')); // behind the haze ring, in front of the first row (1.02)
     const { x, z } = onRingAt(plan, radius, azimuth);
     const base = vec3(x, landHeightAt(plan, x, z) - typical * 0.05, z);
-    const top = base.y + treeHeightFor(plan, x, z, FRAMING_TREE_TOP_DEG - 0.8 * hash01(key, 'h'), typical);
+    const top = levelHeightAt(plan, x, z, Math.tan((FRAMING_TREE_TOP_DEG - 0.8 * hash01(key, 'h')) * RAD));
     const height = top - base.y;
     const angle = Math.atan2(z - plan.centre.z, x - plan.centre.x);
     return { base, height, width: height * 0.85, across: { x: -Math.sin(angle), z: Math.cos(angle) }, bare: true, row: 0, moonward: moonwardOf(azimuth), key };
@@ -362,9 +330,8 @@ export function forestTrees(plan: HorizonPlan): Tree[] {
       let topDeg = CANOPY_BASE_DEG + row.lift + CANOPY_SWELL_DEG * swell(angle, 'canopy') + TREE_JITTER_DEG * (hash01(key, 'height') * 2 - 1);
       if (hash01(key, 'spire') < SPIRE_SHARE) topDeg += SPIRE_DEG;
       topDeg = Math.min(topDeg, clearingCeilingDeg(azimuth));
-      // As tall as a tree whose top is `topDeg` above the eye's level when it stands on the ridge straight behind's height, and
-      // standing on the land where it is: the forest keeps its size where the level ridge is higher, at the sides.
-      let top = base.y + treeHeightFor(plan, x, z, topDeg, typical);
+      // Level on the screen, like the ridge: the same angle gives the same height in the frame across the whole forest.
+      let top = levelHeightAt(plan, x, z, Math.tan(topDeg * RAD));
       if (bareSlot) top = base.y + (top - base.y) * BARE_TREE_HEIGHT;
       const height = top - base.y;
       if (height < typical * 0.25) continue; // the clearing: no tree, or only stumps, so leave it out

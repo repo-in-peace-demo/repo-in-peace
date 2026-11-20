@@ -1,6 +1,5 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
 import { useState } from 'react';
-import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
 import { statsHeading, statsRows } from '../model/overlay-text';
 import type { Stats } from '../model/stats';
 
@@ -9,7 +8,7 @@ import type { Stats } from '../model/stats';
  * collapses the panel down to the name; clicks anywhere else go through to the scene.
  */
 export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
-  const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
+  const [open, setOpen] = useState(true);
   const heading = statsHeading(meta);
   return (
     <section className="stats" aria-label="Statistics">

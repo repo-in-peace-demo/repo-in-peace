@@ -1,5 +1,5 @@
 import type { HorizonPlan } from './horizon';
-import { landHeightAt, slopeShare, valleyDepth } from './horizon';
+import { landHeightAt } from './horizon';
 import { MIN_STONE_H } from './layout-constants';
 import { CANDLE_HEIGHT, GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE } from './visual-constants';
 
@@ -111,79 +111,3 @@ export const mistSeeThrough = (): number => (1 - MIST_LAYER_MAX_ALPHA) ** MIST_L
 export const mistTopShareOfShortestStone = (): number => Math.max(...MIST_LAYER_HEIGHTS) / MIN_STONE_H;
 export const mistTopShareOfCandle = (): number => Math.max(...MIST_LAYER_HEIGHTS) / CANDLE_HEIGHT;
 export const mistTopBelowGhostHem = (): number => GHOST_FLOAT_BASE - GHOST_FLOAT_AMPLITUDE - Math.max(...MIST_LAYER_HEIGHTS);
-
-// ---- Mist pooling on the hills ----
-
-/**
- * On the hills, apart from the graveyard's mist: faint sheets lie in the dips of the rolling slopes (on the benches and in the
- * valleys of `slopeShare`), fading out toward the foot of the slope and toward the ridge, so they never meet the graveyard's mist
- * at a line and never reach the forest. Their heights are a share of how tall the hills are, so the mist is in proportion to them.
- */
-export const HILL_MIST_LAYER_SHARES: readonly number[] = [0.02, 0.045, 0.075];
-export const HILL_MIST_MAX_ALPHA = 0.17;
-
-/** From this far up the slope (t) the hill mist fades in, and it has faded out by HILL_MIST_TO. */
-const HILL_MIST_FROM = 0.08;
-const HILL_MIST_TO = 0.85;
-
-/** How much the hill mist pools at this point of the slope (angle around the ring, t up it): in the valleys and on the bench. */
-export function hillMistWeight(angle: number, t: number): number {
-  if (t <= HILL_MIST_FROM || t >= HILL_MIST_TO) return 0;
-  const band = smooth((t - HILL_MIST_FROM) / 0.15) * (1 - smooth((t - 0.55) / (HILL_MIST_TO - 0.55)));
-  // A bench is where the slope is flatter than its average: compare the rise over a short step with the average rise.
-  const step = 0.04;
-  const gradient = (slopeShare(angle, t + step) - slopeShare(angle, t - step)) / (2 * step);
-  const bench = 1 - smooth(gradient / 1.1);
-  const valley = valleyDepth(angle) / 0.45;
-  return Math.max(0, Math.min(1, band * (0.25 + 0.5 * bench + 0.6 * valley)));
-}
-
-/** The hill mist as sheets following the slope, in rings that follow the fence like the land (`landMesh`). */
-export function hillMistMesh(plan: HorizonPlan, segments = 256, steps = 28): MistMesh {
-  const typical = Math.max(1, plan.eye.y - plan.ridgeHeight);
-  const side = steps + 1;
-  const perLayer = segments * side;
-  const count = perLayer * HILL_MIST_LAYER_SHARES.length;
-  const positions = new Float32Array(count * 3);
-  const weights = new Float32Array(count);
-  const layers = new Float32Array(count);
-  const indices: number[] = [];
-  HILL_MIST_LAYER_SHARES.forEach((share, layer) => {
-    const first = layer * perLayer;
-    for (let i = 0; i < segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
-      const dx = Math.cos(angle);
-      const dz = Math.sin(angle);
-      const start = hillStartAlong(plan, dx, dz);
-      const R = Math.max(start + 1, plan.ridgeRadius);
-      for (let j = 0; j < side; j++) {
-        const t = HILL_MIST_FROM + ((HILL_MIST_TO - HILL_MIST_FROM) * j) / steps;
-        const r = start + (R - start) * t;
-        const x = plan.centre.x + dx * r;
-        const z = plan.centre.z + dz * r;
-        const k = first + j * segments + i;
-        positions[k * 3] = x;
-        positions[k * 3 + 1] = landHeightAt(plan, x, z) + typical * share;
-        positions[k * 3 + 2] = z;
-        weights[k] = hillMistWeight(angle, t);
-        layers[k] = layer;
-      }
-    }
-    for (let j = 0; j < steps; j++) {
-      for (let i = 0; i < segments; i++) {
-        const a = first + j * segments + i;
-        const b = first + j * segments + ((i + 1) % segments);
-        if ([a, b, a + segments, b + segments].every((q) => weights[q]! <= 0)) continue;
-        indices.push(a, b, a + segments, b, b + segments, a + segments);
-      }
-    }
-  });
-  return { positions, weights, layers, indices: Uint32Array.from(indices) };
-}
-
-/** Where the hills start along this direction from the middle: the fence and the gap, as the land has it. */
-function hillStartAlong(plan: HorizonPlan, dx: number, dz: number): number {
-  const ax = Math.abs(dx) < 1e-9 ? Infinity : plan.halfW / Math.abs(dx);
-  const az = Math.abs(dz) < 1e-9 ? Infinity : plan.halfD / Math.abs(dz);
-  return Math.min(ax, az) + plan.gap;
-}

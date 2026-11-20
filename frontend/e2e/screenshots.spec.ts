@@ -25,7 +25,7 @@ test.describe('screenshots to judge by eye', () => {
     test(`the opening view of ${name}`, async ({ page }) => {
       mkdirSync(OUT, { recursive: true });
       const tag = process.env.SHOT ?? 'view';
-      for (const [w, h] of [[1280, 800], [1280, 720], [1920, 1080]] as const) {
+      for (const [w, h] of [[1280, 800], [1280, 720]] as const) {
         await page.setViewportSize({ width: w, height: h });
         await page.goto(`/?graveyard=${name}`);
         await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
