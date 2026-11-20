@@ -354,3 +354,21 @@ body,
   text-overflow: ellipsis;
   will-change: transform, opacity;
 }
+
+/* Development builds only: the performance overlay (ui/PerfStats.tsx). */
+.perf {
+  position: fixed;
+  left: 1rem;
+  bottom: 3.2rem;
+  z-index: 20;
+  padding: 0.35rem 0.55rem;
+  background: rgba(8, 12, 22, 0.8);
+  border: 1px solid rgba(160, 180, 210, 0.3);
+  border-radius: 4px;
+  color: #cfe3c8;
+  font: 0.72rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+}
+.perf-dim {
+  opacity: 0.6;
+}

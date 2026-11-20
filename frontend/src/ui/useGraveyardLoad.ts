@@ -9,7 +9,8 @@ export type LoadState =
   | { status: 'ready'; name: string; graveyard: Graveyard };
 
 /**
- * Loads the graveyard named in the page address (`?graveyard=...`, `demo.spatialql` when there is none).
+ * Loads the graveyard named in the page address (`?graveyard=...`, `demo.spatialql` when there is none), or in development builds a
+ * made-up one (`?synthetic=<n>`).
  * Nothing is requested when `enabled` is false (the browser cannot draw WebGL) or the name is not allowed.
  *
  * @param search the query string of the page address
@@ -20,6 +21,20 @@ export function useGraveyardLoad(search: string, baseUrl: string, enabled: boole
 
   useEffect(() => {
     if (!enabled) return;
+
+    // Development builds only: `?synthetic=<n>` shows a made-up graveyard instead of a data file. The whole branch, and the module it
+    // loads, is dropped from a production build (`import.meta.env.DEV` is false there).
+    if (import.meta.env.DEV && new URLSearchParams(search).has('synthetic')) {
+      let gone = false;
+      void import('../dev/synthetic-load').then(({ syntheticFromAddress }) => {
+        if (gone) return;
+        const made = syntheticFromAddress(search);
+        setState(made ? { status: 'ready', ...made } : { status: 'error', title: 'Bad synthetic size', message: 'Use ?synthetic=<n> with a whole number of files, at least 1.', details: [] });
+      });
+      return () => {
+        gone = true;
+      };
+    }
 
     const parsed = parseGraveyardName(search);
     if (!parsed.ok) {

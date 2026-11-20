@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { DEFAULT_FOV_Y } from '../model/camera-pose';
 import type { SceneModel } from '../model/scene-model';
 import { Atmosphere } from './Atmosphere';
@@ -18,6 +18,9 @@ import { SignDriver } from './SignDriver';
 import { SignLayer } from '../ui/SignLayer';
 import { Ghosts } from './Ghosts';
 import { Stones } from './Stones';
+
+/** Development builds only: measures each frame for the performance overlay. Null, and not in the bundle, in production. */
+const PerfProbe = import.meta.env.DEV ? lazy(() => import('./PerfProbe')) : null;
 
 /**
  * The plain scene: flat colours and boxes, to check the layout on real data. Everything is drawn with instanced
@@ -53,6 +56,11 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <SelectionRing model={model} />
         <Picker model={model} />
         <SignDriver model={model} container={signs} />
+        {PerfProbe && (
+          <Suspense fallback={null}>
+            <PerfProbe />
+          </Suspense>
+        )}
       </Canvas>
       <SignLayer containerRef={signs} />
     </div>

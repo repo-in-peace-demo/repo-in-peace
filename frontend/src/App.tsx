@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { buildSceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
@@ -9,6 +9,9 @@ import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
 import { useGraveyardLoad } from './ui/useGraveyardLoad';
 import { hasWebGL } from './ui/webgl';
+
+/** Development builds only: the performance overlay and the other extras (`dev/DevExtras.tsx`). Null, and not in the bundle, in production. */
+const DevExtras = import.meta.env.DEV ? lazy(() => import('./dev/DevExtras')) : null;
 
 /**
  * Loading and error screens, then the scene. The overlays (legend, statistics, hover label, signs) and the camera
@@ -45,6 +48,11 @@ function Scene({ graveyard }: { graveyard: Graveyard }) {
       <Legend legend={model.legend} />
       <ControlsPanel />
       <HoverLabel />
+      {DevExtras && (
+        <Suspense fallback={null}>
+          <DevExtras />
+        </Suspense>
+      )}
     </>
   );
 }
