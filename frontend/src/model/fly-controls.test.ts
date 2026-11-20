@@ -550,3 +550,87 @@ describe('clampPose for any pose', () => {
     );
   });
 });
+
+describe('clampPose with the scene\'s extra limits (a furthest distance, a circle, a line)', () => {
+  const coord = (range: number) => fc.double({ min: -range, max: range, noNaN: true });
+  // A graveyard-like setup: the area inside the circle and in front of the line, as the scene's limits are.
+  const extrasArb: fc.Arbitrary<CameraLimits> = fc
+    .record({
+      half: fc.double({ min: 1, max: 300, noNaN: true }),
+      ring: fc.double({ min: 1.5, max: 4, noNaN: true }),
+      lineShare: fc.double({ min: 0.5, max: 1.4, noNaN: true }),
+      maxDistance: fc.double({ min: 5, max: 1500, noNaN: true }),
+      minTiltDeg: fc.oneof(fc.constant(0), fc.constant(20)),
+    })
+    .map(({ half, ring, lineShare, maxDistance, minTiltDeg }) => ({
+      area: { x: -half, z: -half, w: 2 * half, d: 2 * half },
+      minCameraHeight: 1,
+      maxCameraHeight: 2000,
+      maxTargetHeight: 4,
+      minTiltDeg,
+      maxDistance,
+      keepInside: { x: 0, z: 0, radius: half * ring },
+      minZ: -half * Math.min(lineShare, ring * 0.99),
+    }));
+  const anyPose: fc.Arbitrary<CameraPose> = fc.record({
+    position: fc.record({ x: coord(3000), y: coord(1500), z: coord(3000) }),
+    target: fc.record({ x: coord(3000), y: coord(1500), z: coord(3000) }),
+  });
+  const modeArb = fc.constantFrom('pull' as const, 'slide' as const);
+
+  it('P-clamp-7: sliding (a pan or a flight) into the circle or the line stops the view without turning it, when the look-at point can stop there', () => {
+    // A pose inside every other limit, slid out past the circle: the camera and the look-at point moved together.
+    const slid = extrasArb.chain((l) =>
+      fc.record({ angle: fc.double({ min: 0, max: Math.PI * 2, noNaN: true }), back: fc.double({ min: 1, max: 60, noNaN: true }), share: fc.double({ min: 0, max: 0.9, noNaN: true }) }).map(({ angle, back, share }) => {
+        const k = l.keepInside!;
+        const half = l.area.w / 2;
+        const target = vec3(Math.cos(angle) * half * share, 1, Math.sin(angle) * half * share);
+        const position = vec3(target.x + Math.cos(angle) * (k.radius + back), 1 + (k.radius + back) * 0.6, target.z + Math.sin(angle) * (k.radius + back));
+        return { l, pose: { position, target } as CameraPose };
+      }),
+    );
+    fc.assert(
+      fc.property(slid, ({ l, pose }) => {
+        const next = clampPose(pose, { ...l, maxDistance: undefined, minZ: undefined, minTiltDeg: 0 }, 'slide');
+        const before = sub(pose.position, pose.target);
+        const after = sub(next.position, next.target);
+        const moved = next.target.x !== pose.target.x || next.target.z !== pose.target.z;
+        // Either the view slid to a stop with its direction unchanged, or the look-at point could not stop there and the camera came in.
+        return !moved || (Math.abs(after.x - before.x) < 1e-6 && Math.abs(after.y - before.y) < 1e-6 && Math.abs(after.z - before.z) < 1e-6);
+      }),
+      { numRuns: 500 },
+    );
+  });
+
+  it('P-clamp-5: the camera and its look-at point are inside the circle and in front of the line, and the camera no further than maxDistance', () => {
+    fc.assert(
+      fc.property(anyPose, extrasArb, modeArb, (pose, l, mode) => {
+        const { position: c, target: t } = clampPose(pose, l, mode);
+        const k = l.keepInside!;
+        return (
+          Math.hypot(c.x - k.x, c.z - k.z) <= k.radius + 1e-9 &&
+          Math.hypot(t.x - k.x, t.z - k.z) <= k.radius + 1e-9 &&
+          c.z >= l.minZ! - 1e-9 &&
+          t.z >= l.minZ! - 1e-9 &&
+          Math.hypot(c.x - t.x, c.y - t.y, c.z - t.z) <= l.maxDistance! + 1e-9
+        );
+      }),
+      { numRuns: 800 },
+    );
+  });
+
+  it('P-clamp-6: with them, the tilt limit still holds and clamping a clamped pose changes nothing', () => {
+    fc.assert(
+      fc.property(anyPose, extrasArb, modeArb, (pose, l, mode) => {
+        const once = clampPose(pose, l, mode);
+        expect(clampPose(once, l, mode)).toEqual(once);
+        const along = Math.hypot(once.position.x - once.target.x, once.position.z - once.target.z);
+        const up = once.position.y - once.target.y;
+        if (l.minTiltDeg > 0 && Math.hypot(along, up) > 1e-6 && once.position.y < l.maxCameraHeight) {
+          expect((Math.atan2(up, along) * 180) / Math.PI).toBeGreaterThanOrEqual(l.minTiltDeg - 1e-6);
+        }
+      }),
+      { numRuns: 800 },
+    );
+  });
+});

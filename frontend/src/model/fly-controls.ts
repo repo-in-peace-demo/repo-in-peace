@@ -72,6 +72,13 @@ export interface CameraLimits {
   maxTargetHeight: number;
   /** The camera is at least this many degrees above the horizontal, seen from the look-at point; 0 for no limit. */
   minTiltDeg: number;
+  /** The scene's extra limits (`model/camera-bounds.ts`), each left out for none: */
+  /** The camera is never further than this from its look-at point (zoom out, and flying back). */
+  maxDistance?: number;
+  /** The camera and its look-at point stay inside this circle on the ground (inside the ring of trees). */
+  keepInside?: { x: number; z: number; radius: number };
+  /** The camera and its look-at point stay at or in front of this line, z at least this (in front of the trees behind the back fence). */
+  minZ?: number;
 }
 
 /** The limits for a graveyard with these bounds. */
@@ -97,33 +104,58 @@ const clamp = (value: number, low: number, high: number): number => Math.min(hig
  * - The look-at point's height is held between 0 and `maxTargetHeight`. The camera does not move for this, so a
  *   camera that keeps rising tilts down onto the graveyard.
  * - The camera's height is held between `minCameraHeight` and `maxCameraHeight`.
+ * - With the scene's extra limits: the look-at point and the camera are brought in front of `minZ` and inside `keepInside`
+ *   (the look-at point's move carries the camera with it, like the area's).
  * - The camera is held at least `minTiltDeg` above the horizontal, seen from the look-at point: if it is lower, it is lifted
  *   (the stronger of this and the floor wins). If the ceiling would stop the lift, the camera is brought nearer to the look-at
  *   point along the ground instead, to where the angle is just right at the ceiling.
+ * - The camera is brought in along the line to its look-at point to `maxDistance`, if it is further.
  *
  * Returns the same object when the pose is already inside the limits, and never changes the pose it is given.
  * Clamping a clamped pose changes nothing.
  */
-export function clampPose(pose: CameraPose, limits: CameraLimits): CameraPose {
+export function clampPose(pose: CameraPose, limits: CameraLimits, mode: ClampMode = 'pull'): CameraPose {
   const { area } = limits;
   const tx = clamp(pose.target.x, area.x, area.x + area.w);
   const ty = clamp(pose.target.y, 0, limits.maxTargetHeight);
   const tz = clamp(pose.target.z, area.z, area.z + area.d);
-  const dx = tx - pose.target.x;
-  const dz = tz - pose.target.z;
+  let tz2 = limits.minZ !== undefined ? Math.max(tz, limits.minZ) : tz;
+  let tx2 = tx;
+  if (limits.keepInside) [tx2, tz2] = intoCircle(tx2, tz2, limits.keepInside);
+  const dx = tx2 - pose.target.x;
+  const dz = tz2 - pose.target.z;
   const cx = dx === 0 ? pose.position.x : pose.position.x + dx;
   const cz = dz === 0 ? pose.position.z : pose.position.z + dz;
   let cx2 = cx;
   let cz2 = cz;
   let cy = clamp(pose.position.y, limits.minCameraHeight, limits.maxCameraHeight);
+  // The camera into the half-plane and the circle. Both hold the look-at point, and bringing a point into a convex region never
+  // takes it further from a point inside it, so the camera only comes nearer its look-at point here and the tilt only grows.
+  let px = cx2;
+  let pz = cz2;
+  if (limits.minZ !== undefined && pz < limits.minZ) pz = limits.minZ;
+  if (limits.keepInside) [px, pz] = intoCircle(px, pz, limits.keepInside);
+  if (px !== cx2 || pz !== cz2) {
+    // 'slide' (the camera and its look-at point moved together: a pan or a flight): stop both, by the same amount, so the view
+    // slides to a stop and its direction does not change, as long as the look-at point stays where it may be. Otherwise ('pull',
+    // and when the look-at point could not go there) only the camera comes in.
+    const sx = tx2 + (px - cx2);
+    const sz = tz2 + (pz - cz2);
+    if (mode === 'slide' && targetAllowed(sx, sz, limits)) {
+      tx2 = sx;
+      tz2 = sz;
+    }
+    cx2 = px;
+    cz2 = pz;
+  }
 
   if (limits.minTiltDeg > 0) {
     const slope = Math.tan((limits.minTiltDeg * Math.PI) / 180);
-    const ox = cx2 - tx;
-    const oz = cz2 - tz;
+    const ox = cx2 - tx2;
+    const oz = cz2 - tz2;
     const along = Math.hypot(ox, oz);
     const needed = ty + along * slope; // the lowest the camera may be here
-    if (cy < needed) {
+    if (cy < needed - 1e-9 * along * slope) { // (a camera exactly at the limit, up to rounding of the rise, is at it)
       if (needed <= limits.maxCameraHeight) {
         cy = needed;
       } else {
@@ -132,15 +164,65 @@ export function clampPose(pose: CameraPose, limits: CameraLimits): CameraPose {
         const allowed = Math.max(0, (cy - ty) / slope) * (1 - 1e-12);
         if (along > allowed) {
           const k = along > 0 ? allowed / along : 0;
-          cx2 = tx + ox * k;
-          cz2 = tz + oz * k;
+          cx2 = tx2 + ox * k;
+          cz2 = tz2 + oz * k;
         }
       }
     }
   }
 
-  if (tx === pose.target.x && ty === pose.target.y && tz === pose.target.z && cy === pose.position.y && cx2 === pose.position.x && cz2 === pose.position.z) return pose;
-  return { position: vec3(cx2, cy, cz2), target: vec3(tx, ty, tz) };
+  // Not further than maxDistance from the look-at point: in along the line to it, so the direction and the tilt stay the same.
+  if (limits.maxDistance !== undefined) {
+    const far = Math.hypot(cx2 - tx2, cy - ty, cz2 - tz2);
+    if (far > limits.maxDistance) {
+      const reach = limits.maxDistance * (1 - 1e-12);
+      const k = reach / far;
+      cx2 = tx2 + (cx2 - tx2) * k;
+      cy = ty + (cy - ty) * k;
+      cz2 = tz2 + (cz2 - tz2) * k;
+      if (cy < limits.minCameraHeight) {
+        // That would take it under the floor: stay at the floor and come in along the ground instead.
+        cy = limits.minCameraHeight;
+        const ox = cx2 - tx2;
+        const oz = cz2 - tz2;
+        const along = Math.hypot(ox, oz);
+        const room = Math.sqrt(Math.max(0, reach * reach - (cy - ty) * (cy - ty)));
+        if (along > room) {
+          const j = along > 0 ? room / along : 0;
+          cx2 = tx2 + ox * j;
+          cz2 = tz2 + oz * j;
+        }
+      }
+    }
+  }
+
+  if (tx2 === pose.target.x && ty === pose.target.y && tz2 === pose.target.z && cy === pose.position.y && cx2 === pose.position.x && cz2 === pose.position.z) return pose;
+  return { position: vec3(cx2, cy, cz2), target: vec3(tx2, ty, tz2) };
+}
+
+/**
+ * How `clampPose` brings the camera inside the circle and the line: 'pull' brings only the camera in (after a zoom or an orbit,
+ * which do not move the look-at point); 'slide' stops the camera and its look-at point together (after a pan or a flight).
+ */
+export type ClampMode = 'pull' | 'slide';
+
+/** Whether the look-at point may be at (x, z): inside the area, the circle and in front of the line, exactly as the clamp has it. */
+function targetAllowed(x: number, z: number, limits: CameraLimits): boolean {
+  const { area } = limits;
+  if (x < area.x || x > area.x + area.w || z < area.z || z > area.z + area.d) return false;
+  if (limits.minZ !== undefined && z < limits.minZ) return false;
+  if (limits.keepInside && Math.hypot(x - limits.keepInside.x, z - limits.keepInside.z) > limits.keepInside.radius) return false;
+  return true;
+}
+
+/** A point on the ground brought just inside a circle (left alone when it is inside). */
+function intoCircle(x: number, z: number, circle: { x: number; z: number; radius: number }): [number, number] {
+  const ox = x - circle.x;
+  const oz = z - circle.z;
+  const r = Math.hypot(ox, oz);
+  if (r <= circle.radius) return [x, z];
+  const k = (circle.radius * (1 - 1e-12)) / r;
+  return [circle.x + ox * k, circle.z + oz * k];
 }
 
 export function movementFromKeys(pressed: ReadonlySet<string>): FlyInput {

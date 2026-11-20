@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from '
 import * as THREE from 'three';
 import type { CameraPose } from '../model/camera-pose';
 import { safeEstablishingShot } from '../model/framing';
-import { MIN_TILT_DEG, boundsRadius, cameraLimits, clampPose, flySpeed, isFast, maxCameraDistance, moveCamera, movementFromKeys } from '../model/fly-controls';
+import { sceneCameraLimits } from '../model/camera-bounds';
+import { MIN_TILT_DEG, boundsRadius, clampPose, flySpeed, isFast, moveCamera, movementFromKeys } from '../model/fly-controls';
 import type { SceneModel } from '../model/scene-model';
 import { vec3 } from '../model/vec3';
 import { registerScene } from './api';
@@ -32,12 +33,13 @@ export function CameraRig({ model }: { model: SceneModel }) {
   const scene = useThree((state) => state.scene);
   const controls = useRef<Controls>(null);
   const flight = useRef<FlightState>(IDLE);
+  const lastTarget = useRef<{ x: number; z: number } | null>(null);
 
   const radius = boundsRadius(model.layout.bounds);
-  const limits = useMemo(() => cameraLimits(model.layout.bounds), [model]);
-
   // The establishing shot for this graveyard, this lens and the window's shape now.
   const aspect = size.height > 0 ? size.width / size.height : undefined;
+  // The limits, inside the trees around the graveyard; the zoom-out is measured from the establishing shot for this window.
+  const limits = useMemo(() => sceneCameraLimits(model.layout.bounds, aspect), [model, aspect]);
   const shot = useMemo(() => safeEstablishingShot(model.layout.bounds, camera.fov, aspect), [model, camera.fov, aspect]);
   const latestShot = useRef(shot);
   latestShot.current = shot;
@@ -164,7 +166,11 @@ export function CameraRig({ model }: { model: SceneModel }) {
       position: vec3(camera.position.x, camera.position.y, camera.position.z),
       target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
     };
-    const clamped = clampPose(now, limits);
+    // A pan or a flight moves the look-at point; a zoom or an orbit does not. The first slides to a stop at the limits, the
+    // second brings the camera in.
+    const moved = lastTarget.current !== null && (lastTarget.current.x !== now.target.x || lastTarget.current.z !== now.target.z);
+    const clamped = clampPose(now, limits, moved ? 'slide' : 'pull');
+    lastTarget.current = clamped.target;
     if (clamped !== now) {
       camera.position.set(clamped.position.x, clamped.position.y, clamped.position.z);
       orbit.target.set(clamped.target.x, clamped.target.y, clamped.target.z);
@@ -183,7 +189,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
       // The camera stays at least MIN_TILT_DEG above the horizontal, seen from the point it looks at (clampPose says the same).
       maxPolarAngle={Math.PI / 2 - (MIN_TILT_DEG * Math.PI) / 180}
       minDistance={3}
-      maxDistance={maxCameraDistance(radius)}
+      maxDistance={limits.maxDistance}
       onStart={() => {
         flight.current = cancelFlight();
       }}

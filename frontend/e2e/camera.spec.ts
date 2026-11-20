@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, startPose, type CameraPose } from '../src/model/camera-pose';
-import { boundsRadius, cameraLimits, flySpeed } from '../src/model/fly-controls';
+import { sceneCameraLimits } from '../src/model/camera-bounds';
+import { boundsRadius, flySpeed } from '../src/model/fly-controls';
 import { buildSceneModel } from '../src/model/scene-model';
 import { distance } from '../src/model/vec3';
 
@@ -15,7 +16,8 @@ import { distance } from '../src/model/vec3';
 const FILE = fileURLToPath(new URL('../public/graveyards/demo.spatialql.graveyard.json', import.meta.url));
 const graveyard = JSON.parse(readFileSync(FILE, 'utf8')) as Graveyard;
 const model = buildSceneModel(graveyard);
-const limits = cameraLimits(model.layout.bounds);
+// The app's limits for the playwright.config.ts viewport, 1280 by 720: the graveyard's, inside the trees around it.
+const limits = sceneCameraLimits(model.layout.bounds, 1280 / 720);
 // The default pose is the establishing shot for the window's shape: the viewport of playwright.config.ts, 1280 by 720.
 const start = startPose(model.layout.bounds, DEFAULT_FOV_Y, 1280 / 720);
 const aFile = graveyard.files[0]!.path;
@@ -25,7 +27,7 @@ const EPS = 1e-6;
 const { area } = limits;
 const left = area.x;
 const right = area.x + area.w;
-const near = area.z;
+const near = Math.max(area.z, limits.minZ ?? -Infinity); // the back edge: the line in front of the trees behind the back fence
 const far = area.z + area.d;
 
 const pose = (page: Page): Promise<CameraPose> => page.evaluate(() => window.repoInPeace!.getPose());
@@ -59,6 +61,11 @@ async function drag(page: Page, from: [number, number], to: [number, number], bu
 const insideSideways = (p: CameraPose): boolean =>
   p.target.x >= left - EPS && p.target.x <= right + EPS && p.target.z >= near - EPS && p.target.z <= far + EPS;
 const atAnEdge = (value: number, low: number, high: number, slack = 1): boolean => Math.abs(value - low) <= slack || Math.abs(value - high) <= slack;
+/** The camera is stopped by the scene's limits around the trees: at the edge of the circle, or at the line in front of the back trees. */
+const cameraAtTreeLimit = (p: CameraPose, slack = 1): boolean => {
+  const k = limits.keepInside!;
+  return Math.abs(Math.hypot(p.position.x - k.x, p.position.z - k.z) - k.radius) <= slack || Math.abs(p.position.z - limits.minZ!) <= slack;
+};
 
 test.describe('camera limits, in the real app', () => {
   test('1. holding Q: the camera comes down as far as the limits let it, to the floor or the tilt limit, and no lower', async ({ page }) => {
@@ -102,13 +109,13 @@ test.describe('camera limits, in the real app', () => {
     await page.waitForTimeout(1000);
     let p = await pose(page);
     expect(insideSideways(p), `after sideways right-drags: ${JSON.stringify(p.target)}`).toBe(true);
-    expect(atAnEdge(p.target.x, left, right), `x ${p.target.x} should be at an edge`).toBe(true);
+    expect(atAnEdge(p.target.x, left, right) || cameraAtTreeLimit(p), `x ${p.target.x} should be at an edge, or the camera ${JSON.stringify(p.position)} at the limit inside the trees`).toBe(true);
 
     for (let i = 0; i < 6; i++) await drag(page, [640, 640], [640, 80], 'right'); // forward and back
     await page.waitForTimeout(1000);
     p = await pose(page);
     expect(insideSideways(p), `after vertical right-drags: ${JSON.stringify(p.target)}`).toBe(true);
-    expect(atAnEdge(p.target.z, near, far), `z ${p.target.z} should be at an edge`).toBe(true);
+    expect(atAnEdge(p.target.z, near, far) || cameraAtTreeLimit(p), `z ${p.target.z} should be at an edge, or the camera ${JSON.stringify(p.position)} at the limit inside the trees`).toBe(true);
 
     await page.keyboard.down('Shift');
     for (let i = 0; i < 6; i++) await drag(page, [180, 200], [1100, 560], 'left'); // Shift + left-drag pans too

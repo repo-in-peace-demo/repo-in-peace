@@ -82,7 +82,7 @@ test.describe('folder signs, in the real app', () => {
     expect(Math.min(...actual.map((s) => s.opacity)), 'a sign should be partly faded here, or this check proves nothing').toBeLessThan(0.95);
   });
 
-  test('flying into a small folder shows its sign, and backing out from the overview fades it', async ({ page }) => {
+  test('flying into a small folder shows its sign, and zooming out from the overview fades it', async ({ page }) => {
     await page.evaluate((p) => window.repoInPeace!.flyTo(p), deepFile);
     const close = await expectPageMatchesCamera(page);
     expect(close.map((s) => s.text), 'the sign of the folder you are in should show').toContain('data');
@@ -94,17 +94,14 @@ test.describe('folder signs, in the real app', () => {
     const overviewOpacity = overview.find((s) => s.text === 'data')?.opacity ?? 0;
     expect(overviewOpacity, 'the sign should be no clearer from the overview than up close').toBeLessThanOrEqual(closeOpacity + 0.02);
 
-    // Backing away from the overview, the sign fades: fainter than it was, or gone.
+    // Zooming out from the overview (as far as the limits inside the trees allow), the sign fades: fainter than it was, or gone.
+    await page.mouse.move(640, 360);
+    for (let i = 0; i < 30; i++) await page.mouse.wheel(0, 600);
     await page.mouse.move(640, 20); // off the stones, so no hover label
-    await page.keyboard.down('Shift');
-    await page.keyboard.down('KeyS');
-    await page.waitForTimeout(1500);
-    await page.keyboard.up('KeyS');
-    await page.keyboard.up('Shift');
     const away = await expectPageMatchesCamera(page);
     const awayOpacity = away.find((s) => s.text === 'data')?.opacity ?? 0;
     expect(overviewOpacity, 'the sign should show in the overview, or there is nothing to fade').toBeGreaterThan(0.1);
-    expect(awayOpacity, `the sign should fade as the camera backs away (overview ${overviewOpacity.toFixed(2)}, further out ${awayOpacity.toFixed(2)})`).toBeLessThan(overviewOpacity - 0.1);
+    expect(awayOpacity, `the sign should fade as the camera zooms out (overview ${overviewOpacity.toFixed(2)}, further out ${awayOpacity.toFixed(2)})`).toBeLessThan(overviewOpacity - 0.1);
   });
 
   test('the pool is 30 elements that are never created or removed, however the camera moves', async ({ page }) => {
