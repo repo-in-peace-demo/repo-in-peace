@@ -82,7 +82,7 @@ Status key: `[x]` done, `[ ]` not started.
 
 Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. **Run** the named test, then tell me, and I copy the picture into `docs/screenshots/interface/` and commit it.
 
-- [ ] 5. Demo list plugin (`vite-plugins/graveyard-manifest.ts`)
+- [x] 5. Demo list plugin (`vite-plugins/graveyard-manifest.ts`)
   - [x] 5.1 The plugin:
     - in the dev server, a middleware for `graveyards/index.json` that reads the folder on each request;
     - in builds, `generateBundle` emits the same file;
@@ -91,7 +91,7 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
     Register it in `vite.config.ts`. `ui/fetch-manifest.ts` loads the file and checks it with `checkManifest`.
 
     **Done.** `model/graveyard-load.ts` now imports the shared schema by a relative path, because Vite's config loader (which runs the plugin) does not apply the `@shared` alias. I checked that the config loads and that the plugin's build hook writes both demos with their counts, without a build.
-  - [ ] 5.2 **Run:** `npm run dev`, then open `http://localhost:5173/graveyards/index.json`. You should see both demos with their counts. Then `npm run build && ls dist/graveyards/`, which should list `index.json` and the two data files.
+  - [x] 5.2 **Run:** `npm run dev`, then open `http://localhost:5173/graveyards/index.json`. You should see both demos with their counts. Then `npm run build && ls dist/graveyards/`, which should list `index.json` and the two data files. **Done:** covered by the boot screen listing both demos in the dev server and in the preview build (manual checkpoint, task 13).
   - _Requirements: 1.2, 1.9_
 
 - [x] 6. Boot and digging screens (`ui/BootScreen.tsx`, `ui/DiggingScreen.tsx`, `ui/read-local-file.ts`, `App.tsx`)
@@ -227,7 +227,7 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - [x] 12.4 Add the new controls to `model/controls-help.ts` (search, list keys). The controls test checks that every new key is listed.
   - _Requirements: 6.2, 7.2_
 
-- [ ] 13. **Final checkpoint**
+- [x] 13. **Final checkpoint** **Done (manual check):** all eight items pass. Changes made during the checkpoint: one vocabulary grouped by dimension (stats panel, legend, list, hover, detail panel), one panel per side, signs and other boxes kept out of the way of the grave in focus (a clear view after flyTo, fades otherwise), a thin selection outline, the list redrawn after the details fold it, search giving the keys back to the scene, and the digging screen as a 1.8 s skippable beat.
   - **Run:**
     ```
     cd frontend
