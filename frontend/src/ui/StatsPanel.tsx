@@ -1,7 +1,8 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
 import { useYieldsTo } from '../store/detail-side-store';
+import { onStatsCollapseRequest } from '../store/panel-events';
 import { clearSelection } from '../store/selection-store';
 import { statsHeading, statsLayout } from '../model/overlay-text';
 import type { Stats } from '../model/stats';
@@ -15,6 +16,8 @@ export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
   const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
   // While the detail panel is on the left, only the header bar shows; the open state is kept for when it closes.
   const yielded = useYieldsTo('left');
+  // The list asks for the room when it opens on a window too short for both (store/panel-events.ts).
+  useEffect(() => onStatsCollapseRequest(() => setOpen(false)), []);
   const shown = open && !yielded;
   const heading = statsHeading(meta);
   const layout = statsLayout(stats, meta);

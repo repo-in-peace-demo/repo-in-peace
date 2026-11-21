@@ -746,8 +746,8 @@ body,
 .list-body {
   display: flex;
   flex-direction: column;
-  /* Short enough to start below the open stats panel (about 15rem tall from the top) on a large window. */
-  height: max(12rem, calc(100vh - 27rem));
+  /* ListView measures the stats panel and keeps the list below it when it is open; this is the height with room to spare. */
+  height: max(12rem, calc(100vh - 18rem));
   padding: 0 0.6rem 0.6rem;
 }
 

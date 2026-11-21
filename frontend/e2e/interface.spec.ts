@@ -364,6 +364,8 @@ test.describe('layout and access', () => {
         ['left', leftItem, 'right', ['.legend']],
         ['right', rightItem, 'left', ['.stats', '.list']],
       ] as const) {
+        // What was open before: it comes back exactly so (at 1280 × 720 the list's opening has folded the stats panel already).
+        const before = await Promise.all(folded.map((panel) => page.locator(`${panel} .panel-toggle`).getAttribute('aria-expanded')));
         await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), item.p);
         await expect(page.locator('.detail')).toHaveClass(new RegExp(`detail-${side}`));
         for (const panel of folded) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', 'false');
@@ -371,11 +373,54 @@ test.describe('layout and access', () => {
         await noOverlaps(`an item on the ${label}, the details on the ${side}`);
         // Closing the details brings back what was open.
         await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
-        for (const panel of folded) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', 'true');
+        for (const [i, panel] of folded.entries()) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', before[i]!);
         await noOverlaps(`the details closed after the ${label} item`);
       }
     });
   }
+
+  test('the list shows its rows again after the details folded it, from the top, in sort order', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.locator('.list .panel-toggle').click();
+    const rowsBox = page.getByRole('listbox', { name: 'Files and ghosts' });
+    const firstName = sortRows(buildRows(oikos), 'decay')[0]!.name;
+    // A stone on the right half: the details open on the left and fold the list (which has just scrolled to that stone's row).
+    const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
+    const right = (points.filter((x) => x.at && x.at.x < 1280 && x.at.y > 0 && x.at.y < 720) as Array<{ p: string; at: { x: number; y: number } }>).reduce((a, b) => (b.at.x > a.at.x ? b : a));
+    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), right.p);
+    await expect(page.locator('.detail')).toHaveClass(/detail-left/);
+    await expect(rowsBox).toHaveCount(0);
+    const showsRowsFromTheTop = async (what: string): Promise<void> => {
+      await expect(rowsBox, what).toBeVisible();
+      const rows = rowsBox.locator('[role=option]');
+      await expect.poll(() => rows.count(), { message: `${what}: rows drawn` }).toBeGreaterThan(5);
+      const first = rows.first();
+      await expect(first.locator('.list-name'), `${what}: the first row is first in sort order`).toHaveText(firstName);
+      const [box, row] = [(await rowsBox.boundingBox())!, (await first.boundingBox())!];
+      expect(row.y >= box.y - 1 && row.y + row.height <= box.y + box.height + 1, `${what}: the first row is in view`).toBe(true);
+    };
+    // Closing the details brings the list back.
+    await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
+    await showsRowsFromTheTop('back after the details closed');
+    // And closing and opening it again.
+    await page.locator('.list .panel-toggle').click();
+    await page.locator('.list .panel-toggle').click();
+    await showsRowsFromTheTop('opened again');
+  });
+
+  test('at 1280 × 720 the stats panel folds as the list opens, so the list has room for at least 8 rows; at 1920 × 1080 both stay open', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.locator('.stats .panel-toggle').click();
+    await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await page.locator('.list .panel-toggle').click();
+    await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'false');
+    const rows = (await page.getByRole('listbox', { name: 'Files and ghosts' }).boundingBox())!;
+    expect(rows.height / 30, 'rows the list has room for').toBeGreaterThanOrEqual(8);
+
+    await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
+    await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('.list .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
+  });
 
   test('the legend\'s header, folded under the details, brings the legend back and closes the details', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');

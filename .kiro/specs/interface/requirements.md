@@ -87,6 +87,7 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 4. THE list SHALL offer filters in two groups: the kinds **fresh**, **stale**, **ancient**, **ghosts** (what a row is), which combine with OR, and the flags **unused**, **hot**, which combine with AND. The two groups combine with AND: a row SHALL be shown when it is one of the selected kinds (any kind when none is selected) and has every selected flag (a ghost has neither flag). THE list SHALL show how many rows match, out of how many.
 5. A click on a row, or Enter on a focused row, SHALL select its file or ghost and fly to it with `flyTo`.
 6. WHEN the selection changes from anywhere else (the scene, search) THE list SHALL highlight the matching row and scroll it into view. WHEN the selected row is filtered out THE list SHALL highlight nothing and say that the selection is hidden by the filters.
+7b. WHENEVER the list becomes visible (opened, or back after the details folded it) its rows SHALL be drawn from its own scroll position, measured again, and the scroll position SHALL stay within the rows. WHEN the user opens it below the open stats panel with room for fewer than 8 rows (a 1280 × 720 window) THE stats panel SHALL fold to its header.
 7. THE list SHALL stay smooth with 2,000 rows: it SHALL draw only the rows in view (virtualised), and sorting or filtering 2,000 rows SHALL take under 16 ms.
 8. Each row SHALL show the file name, its folder, its state (with the same colour cue as the legend, and a word, not colour alone), and marks for unused, hot and ghost.
 

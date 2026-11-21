@@ -7,10 +7,14 @@ import { useYieldsTo } from '../store/detail-side-store';
 import type { SceneModel } from '../model/scene-model';
 import { scrollToShow, visibleRange } from '../model/virtual-window';
 import { flyTo } from '../scene/api';
+import { requestStatsCollapse } from '../store/panel-events';
 import { clearSelection, select, useSelection } from '../store/selection-store';
 
 /** Every row is this tall, so the list can draw only the rows in view. */
 export const ROW_HEIGHT = 30;
+
+/** Fewer rows than this below the open stats panel, and the stats panel folds as the list opens. */
+export const LIST_MIN_ROWS = 8;
 
 const SORTS: ReadonlyArray<{ key: SortKey; label: string }> = [
   { key: 'decay', label: 'decay' },
@@ -45,6 +49,8 @@ export function ListView({ model }: { model: SceneModel }) {
   const scroller = useRef<HTMLDivElement>(null);
   const aside = useRef<HTMLElement>(null);
   const toggleButton = useRef<HTMLButtonElement>(null);
+  /** Set when the user opens the list with its header (not when it comes back after the details closed). */
+  const openedByUser = useRef(false);
   // The rows' height when the list must stay below the open stats panel (a large window); null leaves it to the CSS.
   const [bodyHeight, setBodyHeight] = useState<number | null>(null);
   const selection = useSelection();
@@ -53,32 +59,55 @@ export function ListView({ model }: { model: SceneModel }) {
   const rows = useMemo(() => sortRows(filterRows(all, kinds, flags), sort.key, sort.reversed), [all, kinds, flags, sort]);
   const highlighted = highlightedIndex(rows, selection);
 
-  // The viewport's height, kept up to date.
+  // Whenever the rows become visible (the list opening, or coming back after the details folded it): the scroll box is new, so the
+  // viewport is measured again and the scroll position taken from the box itself. A position kept from before would draw rows far
+  // below the top of a box that starts at the top, and the list would look empty.
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
     setViewport(el.clientHeight);
+    setScrollTop(el.scrollTop);
     const observer = new ResizeObserver(() => setViewport(el.clientHeight));
     observer.observe(el);
     return () => observer.disconnect();
   }, [open]);
 
+  // Never scrolled past the content: fewer rows (a filter) bring the position back within them.
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const max = Math.max(0, rows.length * ROW_HEIGHT - el.clientHeight);
+    if (el.scrollTop > max) el.scrollTop = max;
+    setScrollTop(Math.min(el.scrollTop, max));
+  }, [rows.length]);
+
   // Keep below the stats panel when there is room: measured on opening, on a resize, and when the stats panel opens or closes.
   useLayoutEffect(() => {
     if (!open) return;
-    const fit = (): void => {
+    const fit = (): number => {
       const el = aside.current;
       const stats = document.querySelector<HTMLElement>('.stats');
-      if (!el) return;
+      if (!el) return Number.POSITIVE_INFINITY;
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-      const cssDefault = Math.max(12 * rem, window.innerHeight - 27 * rem);
+      const cssDefault = Math.max(12 * rem, window.innerHeight - 18 * rem); // as in index.css; the measured room keeps it below the stats
       const limit = (stats ? stats.getBoundingClientRect().bottom : 0) + 8;
       const room = el.getBoundingClientRect().bottom - limit - (toggleButton.current?.offsetHeight ?? 0);
       // Never below 8rem: on a short window with the stats open, the list overlays it rather than vanish.
       setBodyHeight(Math.max(8 * rem, Math.min(cssDefault, room)));
+      return room;
     };
-    fit();
-    const observer = new ResizeObserver(fit);
+    // Opening below the open stats panel with room for fewer than LIST_MIN_ROWS rows (a 1280 × 720 window): the stats panel folds to
+    // its header, once, as the list opens; the list then fits again in the room it leaves.
+    const room = fit();
+    const askedFor = openedByUser.current;
+    openedByUser.current = false;
+    const statsOpen = document.querySelector('.stats .panel-toggle')?.getAttribute('aria-expanded') === 'true';
+    const tools = (scroller.current?.offsetTop ?? 0) - (scroller.current?.parentElement?.offsetTop ?? 0);
+    // Only when the user opened it: coming back after the details closed restores both panels as they were.
+    if (askedFor && statsOpen && room - tools < LIST_MIN_ROWS * ROW_HEIGHT) requestStatsCollapse();
+    const observer = new ResizeObserver(() => {
+      fit();
+    });
     const stats = document.querySelector<HTMLElement>('.stats');
     if (stats) observer.observe(stats);
     window.addEventListener('resize', fit);
@@ -143,6 +172,7 @@ export function ListView({ model }: { model: SceneModel }) {
         aria-controls="list-body"
         title={yielded ? 'Close the details and show the list' : undefined}
         onClick={() => {
+          openedByUser.current = yielded || !userOpen;
           if (yielded) {
             clearSelection();
             setOpen(true);
