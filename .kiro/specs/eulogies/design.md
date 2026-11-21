@@ -81,7 +81,7 @@ function ghostInput(ghost: RawGhost, contents: Contents, people: People): Eulogy
 - Otherwise the text is decoded from the longest prefix of at most `budget` bytes that ends at a line end (`\n`). If the first line alone is longer than the budget, it is cut at the budget, backed off to a UTF-8 character boundary. `cut` is true when anything was left out.
 - Read from git with the existing batch reader (`mapBlobs`): a current file by its blob SHA, and a ghost by `<lastExistingSha>:<path>`, which `git cat-file --batch` accepts. Both are one batch.
 
-**Redaction** (`core/redact.ts`, P7): `redact(text, people)` replaces every author name and e-mail address of the repository with "someone".
+**Redaction** (`core/redact.ts`, P7): `redact(text, people)` replaces every author name, e-mail address and handle of the repository with "someone". A handle is the part of an e-mail before the `@` (after the `+` in GitHub's noreply addresses), at least 3 characters, not only digits, and not a service name like `noreply`; names shorter than 2 characters are not matched.
 - Matching is case-insensitive, on word boundaries, longest first.
 - Any other e-mail-like string becomes "someone" too.
 - It runs on the subjects. Contents are not redacted: they are the file as it is in the clone. The output check (below) still rejects any author name in a eulogy.

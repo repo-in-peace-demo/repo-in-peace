@@ -31,11 +31,11 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 2: The pure eulogy pipeline
 
-- [ ] 4. Contents and redaction (`core/eulogy-contents.ts`, `core/redact.ts`)
-  - [ ] 4.1 `cutContents`.
+- [x] 4. Contents and redaction (`core/eulogy-contents.ts`, `core/redact.ts`)
+  - [x] 4.1 `cutContents`.
     - **P6:** for any bytes and budget, the result is at most the budget, a prefix, valid UTF-8, and ends at a newline when one fits.
     - **Examples:** NUL is binary, zero bytes is empty, and a 10 KB file is cut to under 4096 bytes and marked cut.
-  - [ ] 4.2 `redact`.
+  - [x] 4.2 `redact` (and `mentionsPerson`, for the output check). A person is a name, an e-mail, or the handle in an e-mail (the part before `@`; after the `+` in GitHub's noreply addresses).
     - **P7:** no name or e-mail of `people` survives, in any case or at any position.
     - **Examples:** "Merge PR #4 from alice/fix" becomes "Merge PR #4 from someone/fix", and an unknown e-mail becomes "someone".
   - _Requirements: 3.3, 3.4_
