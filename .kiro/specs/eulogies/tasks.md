@@ -107,11 +107,11 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 10.4 `analyser/.gitignore`: `.cache/`.
   - _Requirements: 2, 6.1, 6.4, 6.5_
 
-- [ ] 11. The pipeline (`pipeline.ts`)
-  - [ ] 11.1 The eulogy step, as in the design: check first, one `mapBlobs` batch, the run, apply the eulogies, validate again, then write. With `--eulogies` every ghost gets `eulogy` and `meta.eulogyModel` is set.
-  - [ ] 11.2 **P4, byte-identical:** the golden test is unchanged. For generated repositories, the output without the flag equals the output of the same data with no optional fields.
-  - [ ] 11.3 **P10, re-run:** with a fake client counting calls, a run fills the cache, and a second run makes no call and writes the same file byte for byte.
-  - [ ] 11.4 **Failure cases, end to end with fakes:**
+- [x] 11. The pipeline (`pipeline.ts`)
+  - [x] 11.1 The eulogy step, as in the design: check first, one `mapBlobs` batch, the run, apply the eulogies, validate again, then write. With `--eulogies` every ghost gets `eulogy` and `meta.eulogyModel` is set.
+  - [x] 11.2 **P4, byte-identical:** the golden test is unchanged. For generated repositories, the output without the flag equals the output of the same data with no optional fields.
+  - [x] 11.3 **P10, re-run:** with a fake client counting calls, a run fills the cache, and a second run makes no call and writes the same file byte for byte.
+  - [x] 11.4 **Failure cases, end to end with fakes:**
     - Ollama not running: exit 1, no output file, nothing asked.
     - The model missing: the `ollama pull` message.
     - One grave's request failing: only that eulogy is empty, and the summary says why.

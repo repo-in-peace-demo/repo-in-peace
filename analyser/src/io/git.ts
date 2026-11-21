@@ -187,6 +187,36 @@ export function mapBlobs<T>(
   });
 }
 
+/** How many `<commit>:<path>` names go to one `git rev-parse`, to stay well under the argument length limit. */
+const REV_PARSE_CHUNK = 200;
+
+/**
+ * The blob SHA of each `<commit>:<path>` name, for `mapBlobs` (which needs SHAs: cat-file answers with the SHA, not the name).
+ * A name git cannot resolve is left out of the result.
+ */
+export async function resolveBlobNames(repo: string, names: Iterable<string>): Promise<Map<string, string>> {
+  const unique = [...new Set(names)];
+  const result = new Map<string, string>();
+  const resolveOne = async (name: string): Promise<void> => {
+    const one = await execGit(repo, ['rev-parse', '--verify', '--quiet', name]);
+    if (one.notInstalled) throw new AnalyserError(NOT_INSTALLED);
+    if (one.ok && one.stdout.trim() !== '') result.set(name, one.stdout.trim());
+  };
+  for (let i = 0; i < unique.length; i += REV_PARSE_CHUNK) {
+    const chunk = unique.slice(i, i + REV_PARSE_CHUNK);
+    const all = await execGit(repo, ['rev-parse', ...chunk]);
+    if (all.notInstalled) throw new AnalyserError(NOT_INSTALLED);
+    const lines = all.stdout.split('\n').filter((line) => line !== '');
+    if (all.ok && lines.length === chunk.length) {
+      chunk.forEach((name, j) => result.set(name, lines[j]!));
+    } else {
+      // One name did not resolve, so the whole call failed: ask about each on its own.
+      for (const name of chunk) await resolveOne(name);
+    }
+  }
+  return result;
+}
+
 /**
  * Parses `git cat-file --batch` output for the objects asked for, in order:
  * `<sha> <type> <size>\n<size bytes>\n` each, or `<sha> missing\n`.

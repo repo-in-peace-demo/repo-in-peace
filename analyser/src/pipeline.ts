@@ -11,7 +11,13 @@ import { toJson } from './core/serialise';
 import type { EulogyOptions } from './cli-args';
 import { DEFAULT_THRESHOLDS } from './core/thresholds';
 import { AnalyserError } from './errors';
-import { assertUsableRepo, listTree, mapBlobs, readLog, resolveSnapshot } from './io/git';
+import { cutContents, type Contents } from './core/eulogy-contents';
+import { fileInput, ghostInput } from './core/eulogy-input';
+import { runEulogies, type EulogyClient, type EulogyJob } from './core/eulogy-run';
+import type { HistoryResult } from './core/history';
+import { readEulogyCache, writeEulogyCache, eulogiesOf } from './io/eulogy-cache';
+import { assertUsableRepo, listTree, mapBlobs, readLog, resolveBlobNames, resolveSnapshot, type TreeFile } from './io/git';
+import { checkOllama, ollamaClient } from './io/ollama';
 import { GitLogParseError, parseGitLog } from './io/git-log-parse';
 import { readKnipResult, runKnipProcess, type KnipProcessResult, type KnipRunOptions } from './io/knip';
 import { realPathOfFuture, writeFileAtomic } from './io/write-output';
@@ -48,9 +54,16 @@ export interface PipelineDeps {
   runKnip: (options: KnipRunOptions) => Promise<KnipProcessResult>;
   /** Progress and warnings. */
   log: (message: string) => void;
+  /** The model client for eulogies. Default: Ollama over HTTP. */
+  eulogyClient?: (url: string, model: string) => EulogyClient;
+  /** Checks Ollama runs and has the model, or throws AnalyserError. Default: asks Ollama. */
+  checkOllama?: (url: string, model: string) => Promise<void>;
 }
 
 export const defaultDeps: PipelineDeps = { runKnip: runKnipProcess, log: () => {} };
+
+/** New eulogies between cache writes, so a stopped run keeps most of its work. */
+const CACHE_WRITE_EVERY = 25;
 
 export interface PipelineResult {
   outPath: string;
@@ -87,6 +100,9 @@ export async function runPipeline(
         'Choose another location with --eulogy-cache.',
     );
   }
+
+  // Ollama is asked before any slow work, so a stopped server or a missing model fails at once.
+  if (options.eulogies !== undefined) await (deps.checkOllama ?? checkOllama)(options.eulogies.ollamaUrl, options.eulogies.model);
 
   const snapshot = await resolveSnapshot(repo.root);
   log(`Analysing ${repo.name} at ${snapshot.sha.slice(0, 7)} (${snapshot.date})`);
@@ -172,8 +188,101 @@ export async function runPipeline(
     );
   }
 
-  await writeFileAtomic(outPath, toJson(graveyard));
-  return { outPath, graveyard };
+  if (options.eulogies === undefined || eulogyCachePath === undefined) {
+    await writeFileAtomic(outPath, toJson(graveyard));
+    return { outPath, graveyard };
+  }
+
+  const withEulogies = await addEulogies(graveyard, {
+    repoRoot: repo.root,
+    sourceFiles,
+    history,
+    thresholds,
+    analysedAt: options.analysedAt,
+    eulogies: options.eulogies,
+    cachePath: eulogyCachePath,
+    deps,
+  });
+  const again = validateGraveyard(withEulogies);
+  if (!again.ok) {
+    throw new AnalyserError(`The analyser built eulogies that fail the schema check. This is a bug in the analyser:\n  ${again.errors.join('\n  ')}`);
+  }
+  await writeFileAtomic(outPath, toJson(withEulogies));
+  return { outPath, graveyard: withEulogies };
+}
+
+/**
+ * The eulogy step (eulogies spec, design "Pipeline"): every grave's contents in one cat-file batch, the inputs, the run with the
+ * cache, then the eulogies set on the data. Nothing else in the data changes.
+ */
+async function addEulogies(
+  graveyard: Graveyard,
+  context: {
+    repoRoot: string;
+    sourceFiles: readonly TreeFile[];
+    history: HistoryResult;
+    thresholds: Thresholds;
+    analysedAt: string;
+    eulogies: EulogyOptions;
+    cachePath: string;
+    deps: PipelineDeps;
+  },
+): Promise<Graveyard> {
+  const { repoRoot, history, thresholds, eulogies, cachePath, deps } = context;
+  const { log } = deps;
+  const people = history.people;
+
+  // A ghost's contents are the file as it was in its last existing commit.
+  const blobByPath = new Map(context.sourceFiles.map((f): [string, string] => [f.path, f.blobSha]));
+  const rawGhosts = new Map(history.ghosts.map((g) => [g.path, g]));
+  const ghostBlobs = await resolveBlobNames(repoRoot, graveyard.ghosts.map((g) => `${g.lastExistingSha}:${g.path}`));
+  const contentsByBlob = await mapBlobs(repoRoot, [...blobByPath.values(), ...ghostBlobs.values()], (bytes) => cutContents(bytes));
+  const contentsOf = (blob: string | undefined): Contents =>
+    (blob === undefined ? undefined : contentsByBlob.get(blob)) ?? { text: '', cut: false, kind: 'empty' };
+
+  const jobs: EulogyJob[] = [
+    ...graveyard.files.map((file) => ({
+      path: file.path,
+      input: fileInput(file, history.perFile.get(file.path)!, thresholds, contentsOf(blobByPath.get(file.path)), people),
+    })),
+    ...graveyard.ghosts.map((ghost) => ({
+      path: ghost.path,
+      input: ghostInput(rawGhosts.get(ghost.path)!, contentsOf(ghostBlobs.get(`${ghost.lastExistingSha}:${ghost.path}`)), people),
+    })),
+  ];
+
+  const entries = await readEulogyCache(cachePath, log);
+  let newSinceWrite = 0;
+  let writing: Promise<void> = Promise.resolve();
+  const save = (): Promise<void> => (writing = writing.then(() => writeEulogyCache(cachePath, entries)));
+
+  log(`Writing eulogies with ${eulogies.model} for ${jobs.length} graves (${eulogies.concurrency} at a time)`);
+  const result = await runEulogies(jobs, {
+    client: (deps.eulogyClient ?? ollamaClient)(eulogies.ollamaUrl, eulogies.model),
+    cache: eulogiesOf(entries),
+    model: eulogies.model,
+    concurrency: eulogies.concurrency,
+    people,
+    log,
+    onNew: (key, eulogy) => {
+      entries.set(key, { eulogy, model: eulogies.model, at: context.analysedAt });
+      if (++newSinceWrite >= CACHE_WRITE_EVERY) {
+        newSinceWrite = 0;
+        save().catch(() => {}); // a failed write is reported by the final save below
+      }
+    },
+  });
+  await save();
+  for (const { path, reason } of result.empty.slice(0, 20)) log(`  left empty: ${path} (${reason})`);
+  if (result.empty.length > 20) log(`  ... and ${result.empty.length - 20} more`);
+
+  const eulogyOf = (path: string): string => result.eulogies.get(path) ?? '';
+  return {
+    ...graveyard,
+    meta: { ...graveyard.meta, eulogyModel: eulogies.model },
+    files: graveyard.files.map((file) => ({ ...file, eulogy: eulogyOf(file.path) })),
+    ghosts: graveyard.ghosts.map((ghost) => ({ ...ghost, eulogy: eulogyOf(ghost.path) })),
+  };
 }
 
 async function isFile(path: string): Promise<boolean> {

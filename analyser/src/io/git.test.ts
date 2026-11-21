@@ -12,6 +12,7 @@ import {
   parseCatFileBatch,
   parseLsTree,
   readLog,
+  resolveBlobNames,
   resolveSnapshot,
 } from './git';
 import { parseGitLog } from './git-log-parse';
@@ -240,5 +241,32 @@ describe('read-only guarantee', () => {
     await readLog(main.dir, snapshot.sha);
     expect(execFileSync('git', ['-C', main.dir, 'status', '--porcelain=v2', '--branch'], { encoding: 'utf8' })).toBe(before);
     expect(execFileSync('git', ['-C', main.dir, 'rev-parse', 'HEAD'], { encoding: 'utf8' })).toBe(headBefore);
+  });
+});
+
+describe('resolveBlobNames', () => {
+  it('gives the blob of each <commit>:<path>, including odd names, and leaves out what git cannot find', async () => {
+    const [first, second] = main.shas as [string, string];
+    const tree = await listTree(main.dir, first);
+    const blob = (path: string) => tree.find((f) => f.path === path)!.blobSha;
+    const names = [`${first}:index.ts`, `${first}:sp ace.ts`, `${first}:src/é.ts`, `${second}:index.ts`, `${first}:nope.ts`];
+    const result = await resolveBlobNames(main.dir, names);
+    expect(result).toEqual(
+      new Map([
+        [`${first}:index.ts`, blob('index.ts')],
+        [`${first}:sp ace.ts`, blob('sp ace.ts')],
+        [`${first}:src/é.ts`, blob('src/é.ts')],
+      ]),
+    );
+    const contents = await mapBlobs(main.dir, result.values(), (bytes) => new TextDecoder().decode(bytes));
+    expect(contents.get(blob('index.ts'))).toBe('export {};\n');
+  });
+
+  it('resolves more names than fit in one call', async () => {
+    const [first] = main.shas as [string];
+    const names = Array.from({ length: 450 }, (_, i) => (i % 2 === 0 ? `${first}:index.ts` : `${first}:missing-${i}.ts`));
+    names.push(`${first}:src/big.ts`);
+    const result = await resolveBlobNames(main.dir, names);
+    expect([...result.keys()]).toEqual([`${first}:index.ts`, `${first}:src/big.ts`]);
   });
 });

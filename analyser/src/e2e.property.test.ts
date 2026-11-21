@@ -17,6 +17,7 @@ import {
 import { makeRepo } from '../test/make-repo';
 import { MS_PER_DAY } from './core/decay';
 import { countNonBlankLines, isTrackedSourcePath } from './core/files';
+import { toJson } from './core/serialise';
 import { compareCodePoint } from './core/sort';
 import type { KnipProcessResult } from './io/knip';
 import { runPipeline, type PipelineDeps } from './pipeline';
@@ -99,6 +100,11 @@ describe('end to end on random real repositories', () => {
 
               const g = JSON.parse(first) as Graveyard;
               expect(validateGraveyard(g)).toEqual({ ok: true });
+
+              // P4 (eulogies): without --eulogies there are no eulogy fields, and the bytes are the data written without them.
+              expect(g.meta).not.toHaveProperty('eulogyModel');
+              expect(g.ghosts.some((ghost) => 'eulogy' in ghost)).toBe(false);
+              expect(toJson(g)).toBe(first);
 
               // The thresholds are recorded, and every file's decay agrees with them (P7), by formulas written out here.
               expect(g.meta.thresholds).toEqual(thresholds);

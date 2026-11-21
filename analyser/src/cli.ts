@@ -21,7 +21,7 @@ export interface CliEnv {
 export async function main(
   argv: readonly string[],
   env: CliEnv,
-  deps: Pick<PipelineDeps, 'runKnip'> = defaultDeps,
+  deps: Pick<PipelineDeps, 'runKnip' | 'eulogyClient' | 'checkOllama'> = defaultDeps,
 ): Promise<number> {
   const parsed = parseCliArgs(argv, env.now);
 
@@ -37,7 +37,7 @@ export async function main(
   try {
     const { outPath, graveyard } = await runPipeline(
       { ...parsed.options, cwd: env.cwd },
-      { runKnip: deps.runKnip, log: (message) => env.stderr(`${message}\n`) },
+      { ...deps, log: (message) => env.stderr(`${message}\n`) },
     );
     env.stderr(
       `Wrote ${outPath}: ${graveyard.files.length} files, ${graveyard.ghosts.length} ghosts, ${graveyard.folders.length} folders\n`,

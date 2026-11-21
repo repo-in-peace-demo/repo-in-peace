@@ -190,11 +190,13 @@ async function runEulogies(jobs: ReadonlyArray<{ path: string; input: EulogyInpu
 ## Pipeline (`analyser/src/pipeline.ts`)
 
 After the graveyard is assembled and validated, and only with `options.eulogies`:
-1. `checkOllama` runs. It fails before any eulogy request.
-2. The inputs are gathered: one `mapBlobs` batch for the files' blobs and the ghosts' `<lastExistingSha>:<path>` objects, reduced with `cutContents`, then `fileInput` and `ghostInput`.
+1. `checkOllama` runs. It fails before any eulogy request. (Refined while building: it runs right after the cheap option checks, before the snapshot, Knip and history, so a stopped server or a missing model fails at once instead of after the slow work.)
+2. The inputs are gathered: one `mapBlobs` batch for the files' blobs and the ghosts' blobs, reduced with `cutContents`, then `fileInput` and `ghostInput`. (Refined while building: `cat-file --batch` answers with the object's SHA, not the name it was asked for, so the ghosts' `<lastExistingSha>:<path>` names are first turned into blob SHAs by `resolveBlobNames` in `io/git.ts`, through `git rev-parse` in chunks of 200. A name git cannot resolve gives empty contents.)
 3. The cache is read, `runEulogies` runs, and the cache is written every 25 new eulogies and at the end.
 4. The eulogies are applied: each file's `eulogy` and each ghost's `eulogy` (`""` when none) are set, along with `meta.eulogyModel`. This is the only change to the data (P5).
 5. The data is validated again, then written.
+
+Each eulogy left empty is logged with its reason (`left empty: src/f3.ts (request failed: …)`), the first 20 of them.
 
 `PipelineDeps` gains `eulogyClient?: (url, model) => EulogyClient` and `checkOllama?`, so tests pass a fake client and never touch the network.
 
