@@ -611,8 +611,10 @@ body,
   right: 1rem;
 }
 
+/* On the left it ends above the list's tab and the buttons at the bottom left. */
 .detail-left {
   left: 1rem;
+  max-height: calc(100vh - 4rem - 6.6rem);
 }
 
 .detail-close {
@@ -700,6 +702,15 @@ body,
   background: none;
   color: var(--ink-dim);
   font: inherit;
+  cursor: pointer;
+}
+
+/* Bury and Resurrect arrive with the PR function: plainly disabled (dimmed, dashed, a not-allowed cursor, no hover change). */
+.detail-actions button[aria-disabled='true'],
+.detail-actions button[aria-disabled='true']:hover {
+  border-style: dashed;
+  color: var(--ink-dim);
+  opacity: 0.45;
   cursor: not-allowed;
 }
 

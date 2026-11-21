@@ -4,6 +4,7 @@ import { buryOffered, calendarDay, fileType, hotDetail, linesText, shortenPath, 
 import { nudgeNeeded, panelSide, type Side } from '../model/panel-placement';
 import type { SceneModel } from '../model/scene-model';
 import { isFlying, nudge, screenBoxOf } from '../scene/api';
+import { setDetailSide } from '../store/detail-side-store';
 import { clearSelection, useSelection } from '../store/selection-store';
 
 /** How many characters of a path the heading keeps (the file name always whole). */
@@ -13,15 +14,15 @@ const PATH_CHARS = 44;
  * The selected stone or ghost, in words (interface spec, Req 4): what it is, why it looks as it does, its eulogy, and the actions that
  * will come with the PR function. Opens on any selection (scene, list, search) and closes when the selection is cleared (×, Escape,
  * an empty-ground click). It sits on the side of the window away from the selected item, and moves the picture sideways only if it
- * would still cover it. Everything from the data file is put on the page as text.
+ * would still cover it. One panel per side: while it is open, the other panels on its side fold to their header bar (the legend on
+ * the right; the stats panel and the list on the left), and they come back as they were when it closes. Everything from the data
+ * file is put on the page as text.
  */
 export function DetailPanel({ model }: { model: SceneModel }) {
   const selection = useSelection();
   const [side, setSide] = useState<Side>('right');
   // Set once the side has been worked out for the current selection: the nudge waits for it (it must measure the panel on its side).
   const [placed, setPlaced] = useState(0);
-  // Where its top goes: below the panel above it on its side (the legend on the right, the stats on the left) when there is room.
-  const [top, setTop] = useState<number | null>(null);
   const panel = useRef<HTMLElement>(null);
 
   const found = selection ? model.lookup.get(selection.path) : undefined;
@@ -42,7 +43,6 @@ export function DetailPanel({ model }: { model: SceneModel }) {
       const box = screenBoxOf(path);
       const nextSide = box ? panelSide((box.x0 + box.x1) / 2, window.innerWidth) : 'right';
       setSide(nextSide);
-      setTop(topBelow(nextSide));
       settled = true;
       setPlaced((n) => n + 1);
     };
@@ -69,34 +69,24 @@ export function DetailPanel({ model }: { model: SceneModel }) {
     return () => cancelAnimationFrame(frame);
   }, [placed]); // after each placement, with the panel already on its side
 
+  // One panel per side: the panels on this side fold to their header bar while this one is open, and come back when it closes.
+  const shownOn = item ? side : null;
+  useEffect(() => {
+    setDetailSide(shownOn);
+  }, [shownOn]);
+  useEffect(() => () => setDetailSide(null), []);
+
   if (!item || !selection) return null;
   const meta = model.graveyard.meta;
   const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} />;
   return (
-    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave" style={top === null ? undefined : { top, maxHeight: `calc(100vh - ${top}px - 4rem)` }}>
+    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave">
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
         ×
       </button>
       {content}
     </aside>
   );
-}
-
-/** The least height the panel needs below the panel above it; with less room it overlays that panel instead (from the default top). */
-const MIN_ROOM_PX = 280;
-const GAP_PX = 8;
-
-/**
- * The top of the detail panel on this side: just below the legend (right) or the stats panel (left) when that panel is there and
- * leaves room under it, or null for the default (the CSS top, overlaying a collapsed one).
- */
-function topBelow(side: Side): number | null {
-  const above = document.querySelector<HTMLElement>(side === 'right' ? '.legend' : '.stats');
-  if (!above) return null;
-  const bottom = above.getBoundingClientRect().bottom + GAP_PX;
-  const defaultTop = 4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
-  if (bottom <= defaultTop) return null; // collapsed: the default top already clears it
-  return window.innerHeight - bottom >= MIN_ROOM_PX ? bottom : null;
 }
 
 function Heading({ path, ghost }: { path: string; ghost: boolean }) {

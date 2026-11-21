@@ -1,6 +1,8 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
 import { useState } from 'react';
 import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
+import { useYieldsTo } from '../store/detail-side-store';
+import { clearSelection } from '../store/selection-store';
 import { statsHeading, statsLayout } from '../model/overlay-text';
 import type { Stats } from '../model/stats';
 
@@ -11,6 +13,9 @@ import type { Stats } from '../model/stats';
  */
 export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
   const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
+  // While the detail panel is on the left, only the header bar shows; the open state is kept for when it closes.
+  const yielded = useYieldsTo('left');
+  const shown = open && !yielded;
   const heading = statsHeading(meta);
   const layout = statsLayout(stats, meta);
   return (
@@ -18,18 +23,21 @@ export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
       <button
         type="button"
         className="panel-toggle"
-        aria-expanded={open}
+        aria-expanded={shown}
         aria-controls="stats-body"
-        title={open ? 'Collapse the statistics' : 'Show the statistics'}
+        title={yielded ? 'Close the details and show the statistics' : shown ? 'Collapse the statistics' : 'Show the statistics'}
         onClick={(event) => {
-          setOpen((o) => !o);
+          if (yielded) {
+            clearSelection();
+            setOpen(true);
+          } else setOpen((o) => !o);
           event.currentTarget.blur(); // give the keyboard back to the scene
         }}
       >
         <span className="stats-name">{heading.name}</span>
-        <span aria-hidden="true">{open ? '–' : '+'}</span>
+        <span aria-hidden="true">{shown ? '–' : '+'}</span>
       </button>
-      {open && (
+      {shown && (
         <div id="stats-body">
           <p className="stats-detail">{heading.detail}</p>
           <dl className="stats-top">

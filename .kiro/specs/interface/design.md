@@ -138,6 +138,8 @@ function shortenPath(path: string, maxChars: number): string;    // middle ellip
   - Both are `<button aria-disabled="true">` that stay in the focus order, with the note "Arrives with the PR function." linked by `aria-describedby`. They do nothing.
 - **Closing:** the close button (×, `aria-label="Close"`) calls `clearSelection()`. Escape already clears the selection through `Picker`, so the panel adds no Escape handler of its own.
 
+**One panel per side** (Req 4.8b): `store/detail-side-store.ts` holds the detail panel's side, or null. The legend (right), the stats panel and the list (left) read it with `useYieldsTo(side)` and, while it is theirs, show only their header bar without touching their own open state; their header then closes the details and opens them. The detail panel's top is always 4rem (clear of a folded header) and, on the left, it ends above the list's tab. `e2e/interface.spec.ts` checks at 1280 × 720, 1920 × 1080 and 900 × 700, with every panel open and the details on either side, that no two panels overlap and that closing the details restores them.
+
 **Not covering the selected item** (Req 4.8, P9), in `model/panel-placement.ts`:
 ```ts
 type Side = 'left' | 'right';

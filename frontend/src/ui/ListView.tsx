@@ -3,10 +3,11 @@ import { OWNS_KEYS_ATTRIBUTE } from '../model/fly-controls';
 import { FACT_NAMES, factNameOne } from '../model/grave-facts';
 import { FLAGS, KINDS, buildRows, filterRows, highlightedIndex, sortRows, type Flag, type Kind, type Row, type SortKey } from '../model/list-rows';
 import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
+import { useYieldsTo } from '../store/detail-side-store';
 import type { SceneModel } from '../model/scene-model';
 import { scrollToShow, visibleRange } from '../model/virtual-window';
 import { flyTo } from '../scene/api';
-import { select, useSelection } from '../store/selection-store';
+import { clearSelection, select, useSelection } from '../store/selection-store';
 
 /** Every row is this tall, so the list can draw only the rows in view. */
 export const ROW_HEIGHT = 30;
@@ -31,7 +32,10 @@ const kindOfRow = (row: Row): Kind => (row.kind === 'ghost' ? 'ghost' : row.stat
  * anywhere else is highlighted here and scrolled into view. Arrow keys inside it move through the rows and never fly the camera.
  */
 export function ListView({ model }: { model: SceneModel }) {
-  const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth()));
+  const [userOpen, setOpen] = useState(() => panelsStartOpen(currentWindowWidth()));
+  // While the detail panel is on the left, only the tab shows; the open state is kept for when it closes.
+  const yielded = useYieldsTo('left');
+  const open = userOpen && !yielded;
   const [sort, setSort] = useState<{ key: SortKey; reversed: boolean }>({ key: 'decay', reversed: false });
   const [kinds, setKinds] = useState<ReadonlySet<Kind>>(new Set());
   const [flags, setFlags] = useState<ReadonlySet<Flag>>(new Set());
@@ -131,7 +135,20 @@ export function ListView({ model }: { model: SceneModel }) {
 
   return (
     <aside ref={aside} className={`list${open ? ' list-open' : ''}`} aria-label="Graves">
-      <button ref={toggleButton} type="button" className="panel-toggle" aria-expanded={open} aria-controls="list-body" onClick={() => setOpen((o) => !o)}>
+      <button
+        ref={toggleButton}
+        type="button"
+        className="panel-toggle"
+        aria-expanded={open}
+        aria-controls="list-body"
+        title={yielded ? 'Close the details and show the list' : undefined}
+        onClick={() => {
+          if (yielded) {
+            clearSelection();
+            setOpen(true);
+          } else setOpen((o) => !o);
+        }}
+      >
         <span>
           List · {all.length.toLocaleString('en-US')}
         </span>

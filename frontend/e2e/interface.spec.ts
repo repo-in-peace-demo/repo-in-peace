@@ -322,16 +322,79 @@ test.describe('layout and access', () => {
     }
   });
 
-  test('at 1920 × 1080, with every panel open, the list starts below the stats and the detail panel below the legend', async ({ page }) => {
-    await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
-    await expect(page.getByRole('button', { name: /List · / })).toHaveAttribute('aria-expanded', 'true'); // open from 1600 px
+  for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }, { width: 900, height: 700 }]) {
+    test(`at ${size.width} × ${size.height}, with every panel open: no two panels ever overlap, whichever side the details open on, and closing them restores the panels`, async ({ page }) => {
+      await openScene(page, 'demo.oikosledger', size);
+      // Every panel open: the stats panel, the legend and the list (they start collapsed below 1600 px).
+      for (const toggle of [page.locator('.stats .panel-toggle'), page.locator('.legend .panel-toggle'), page.locator('.list .panel-toggle')]) {
+        if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      }
+      await page.mouse.move(size.width / 2, 5);
+      const visible = async (): Promise<Array<{ name: string; box: Box }>> => {
+        const out: Array<{ name: string; box: Box }> = [];
+        for (const name of ['.stats', '.legend', '.search', '.list', '.detail', '.controls-buttons']) {
+          const el = page.locator(name).first();
+          if ((await el.count()) === 0 || !(await el.isVisible())) continue;
+          out.push({ name, box: (await el.boundingBox())! });
+        }
+        return out;
+      };
+      const noOverlaps = async (what: string): Promise<void> => {
+        const boxes = await visible();
+        for (let i = 0; i < boxes.length; i++) {
+          for (let j = i + 1; j < boxes.length; j++) {
+            const [a, b] = [boxes[i]!, boxes[j]!];
+            expect(overlaps(a.box, b.box), `${what}: ${a.name} ${JSON.stringify(a.box)} and ${b.name} ${JSON.stringify(b.box)} overlap`).toBe(false);
+          }
+        }
+      };
+      await noOverlaps('every panel open, nothing selected');
+
+      // An item on the left half of the window: the details open on the right, and the legend folds to its header bar.
+      const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
+      const inView = points.filter((x) => x.at && x.at.x > 0 && x.at.x < size.width && x.at.y > 0 && x.at.y < size.height) as Array<{ p: string; at: { x: number; y: number } }>;
+      const leftItem = inView.reduce((a, b) => (b.at.x < a.at.x ? b : a));
+      const rightItem = inView.reduce((a, b) => (b.at.x > a.at.x ? b : a));
+      for (const [label, item, side, folded] of [
+        ['left', leftItem, 'right', ['.legend']],
+        ['right', rightItem, 'left', ['.stats', '.list']],
+      ] as const) {
+        await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), item.p);
+        await expect(page.locator('.detail')).toHaveClass(new RegExp(`detail-${side}`));
+        for (const panel of folded) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', 'false');
+        await page.waitForTimeout(900); // a nudge, if any, has landed
+        await noOverlaps(`an item on the ${label}, the details on the ${side}`);
+        // Closing the details brings back what was open.
+        await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
+        for (const panel of folded) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', 'true');
+        await noOverlaps(`the details closed after the ${label} item`);
+      }
+    });
+  }
+
+  test('the legend\'s header, folded under the details, brings the legend back and closes the details', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.locator('.legend .panel-toggle').click();
+    const at = await pointAt(page, 'app/components/voice/index.ts');
+    await page.mouse.click(at.x, at.y);
+    await expect(page.locator('.detail')).toHaveClass(/detail-right/);
+    await expect(page.locator('.legend .panel-toggle')).toHaveAttribute('aria-expanded', 'false');
+    await page.locator('.legend .panel-toggle').click();
+    await expect(page.locator('.detail')).toHaveCount(0);
+    await expect(page.locator('.legend .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('Bury and Resurrect look disabled: dimmed, dashed, a not-allowed cursor', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
     await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
-    await expect(page.getByRole('complementary', { name: 'Selected grave' })).toBeVisible();
-    await page.waitForTimeout(900);
-    const box = async (selector: string) => (await page.locator(selector).first().boundingBox())!;
-    const [stats, list, legend, detail] = [await box('.stats'), await box('.list'), await box('.legend'), await box('.detail')];
-    expect(overlaps(stats, list), `stats ${JSON.stringify(stats)} and list ${JSON.stringify(list)}`).toBe(false);
-    expect(overlaps(legend, detail), `legend ${JSON.stringify(legend)} and detail ${JSON.stringify(detail)}`).toBe(false);
+    const bury = page.locator('.detail').getByRole('button', { name: 'Bury' });
+    const style = await bury.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { opacity: Number(s.opacity), cursor: s.cursor, border: s.borderTopStyle };
+    });
+    expect(style.opacity).toBeLessThan(0.6);
+    expect(style.cursor).toBe('not-allowed');
+    expect(style.border).toBe('dashed');
   });
 
   test('Tab reaches every control, each with a name and a visible focus ring', async ({ page }) => {
