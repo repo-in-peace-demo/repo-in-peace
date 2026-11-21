@@ -60,8 +60,8 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 7.2 **P3:** changing any one field (the model, the version, any input field, or one byte of contents) changes the key. Equal values built in a different key order give the same key.
   - _Requirements: 6.4_
 
-- [ ] 8. The run (`core/eulogy-run.ts`)
-  - [ ] 8.1 `runEulogies`, with:
+- [x] 8. The run (`core/eulogy-run.ts`)
+  - [x] 8.1 `runEulogies`, with:
     - the worker pool, sorted by path;
     - the cache first;
     - one retry on a rejection;
@@ -69,9 +69,9 @@ Status key: `[x]` done, `[ ]` not started.
     - stopping after 5 request errors in a row;
     - the model check on the first 8 answers;
     - progress and the summary.
-  - [ ] 8.2 **P5, isolation:** with a fake client that fails, rejects or answers per path at random, every result key is a job's path, and each job's eulogy is the same as when run alone.
-  - [ ] 8.3 **P12, the model check:** when the first 8 answers are all rejected, the run stops with the model message. When any of them passes, or when some are cache hits, it doesn't.
-  - [ ] 8.4 **Examples:**
+  - [x] 8.2 **P5, isolation:** with a fake client that fails, rejects or answers per path at random, every result key is a job's path, and each job's eulogy is the same as when run alone.
+  - [x] 8.3 **P12, the model check:** when the first 8 answers are all rejected, the run stops with the model message. When any of them passes, or when some are cache hits, it doesn't.
+  - [x] 8.4 **Examples:**
     - concurrency 1 to 4 gives the same results;
     - 5 errors in a row stop the run, with `stoppedEarly`;
     - the summary counts add up to the number of jobs.

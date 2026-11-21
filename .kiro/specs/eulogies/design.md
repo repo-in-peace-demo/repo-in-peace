@@ -178,7 +178,9 @@ async function runEulogies(jobs: ReadonlyArray<{ path: string; input: EulogyInpu
   - Then `generate` runs, followed by `cleanEulogy`. A rejection retries once with `retry: true`. A second rejection leaves it empty with the reason.
   - A thrown request (timeout, server error) leaves it empty with the error, and isn't retried.
 - **Stopping early:** after 5 request errors in a row with no success in between, the run stops taking new jobs. The rest stay empty, it reports "Ollama stopped answering after N eulogies; the rest are left empty", and `stoppedEarly` is true.
-- **A model that never follows the rules** (P12): the run counts answered requests (not cache hits, not thrown requests). If each of the first 8 is rejected after its retry, the run throws `AnalyserError`: "The model {model} wrote no usable eulogy in its first 8 answers (they quoted code, named authors, or broke the format). Try another model, see the README." The pipeline writes no output and keeps nothing new in the cache. One answer that passes switches the check off for the rest of the run.
+- **A model that never follows the rules** (P12): the run counts answered requests (not cache hits, not thrown requests). If each of the first 8 is rejected after its retry, the run throws `AnalyserError`: "The model {model} wrote no usable eulogy in its first 8 answers (they quoted code, named authors, or broke the format). Try another model, see the README." The pipeline writes no output and keeps nothing new in the cache. One answer that passes switches the check off for the rest of the run. Refined while building:
+  - The first 8 answered jobs are counted **in path order**, not in the order requests finish, so the outcome never depends on timing or on `--eulogy-concurrency`.
+  - New eulogies are held back from `onNew` (and so from the cache file) until the check has passed. A run that fails it keeps nothing.
 - **Isolation:** a job's result depends only on its own input and the client's answers to it, so one failure never touches another (P5).
 - **Progress:** `Eulogies: 40/251 (12 from the cache)`, at most once a second, plus a summary at the end:
   ```
