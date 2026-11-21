@@ -248,19 +248,18 @@ test.describe('screenshots to judge by eye', () => {
     }
   });
 
-  // Interface spec, task 6: the boot screen with its choices, and the digging screen (the data file is slowed down to catch it).
+  // Interface spec, task 6: the boot screen with its choices, and the digging screen during its beat.
   test('interface boot', async ({ page }) => {
     mkdirSync(OUT, { recursive: true });
+    await page.addInitScript(() => {
+      window.__repoInPeaceNoDigHold = false; // the digging screen's beat, to catch it
+    });
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
     await page.keyboard.press('KeyX');
     await page.getByRole('button', { name: /oikos_ledger/ }).waitFor();
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${OUT}interface-boot.png` });
-    await page.route('**/graveyards/demo.spatialql.graveyard.json', async (route) => {
-      await new Promise((r) => setTimeout(r, 1500));
-      await route.continue();
-    });
     await page.getByRole('button', { name: /spatialql/ }).click();
     await page.getByRole('main', { name: 'Opening the graveyard' }).getByText('raising the fences').waitFor(); // the counts come from the demo list
     await page.waitForTimeout(200);

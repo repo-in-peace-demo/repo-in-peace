@@ -137,7 +137,7 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
             <ul aria-label="Demo graveyards">
               {manifest.graveyards.map((g, index) => (
                 <li key={g.name}>
-                  <button type="button" {...choiceProps(index)} onClick={() => onChooseDemo(g.name, { repo: g.repo, files: g.files, ghosts: g.ghosts })}>
+                  <button type="button" {...choiceProps(index)} onClick={() => onChooseDemo(g.name, { repo: g.repo, files: g.files, unused: g.unused, ghosts: g.ghosts })}>
                     <span className="terminal-choice-name">{g.repo}</span>
                     <span className="terminal-dim">
                       {' '}

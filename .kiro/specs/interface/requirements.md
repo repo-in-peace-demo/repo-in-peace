@@ -43,9 +43,9 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 
 ### 3. Digging screen
 
-1. WHILE the data file loads and the scene model is built THE app SHALL show the digging screen: a few terminal-style lines using the real counts of the graveyard being opened, such as "exhuming 129 graves…" and "summoning 2 ghosts…" (no ghost line when there are none).
-2. THE digging screen SHALL add no artificial delay of more than 1 second beyond the real loading. WHEN loading is instant it SHALL show for a brief beat (at least 400 ms) so it does not flash.
-3. Under reduced motion its lines SHALL appear at once.
+1. WHILE the data file loads and the scene model is built THE app SHALL show the digging screen: a few short terminal-style lines using the real counts of the graveyard being opened, in the one vocabulary: "opening oikos_ledger…", "exhuming 129 graves…", "12 lie Unused…", "summoning 2 ghosts…" (no line for a count of none), "raising the fences…".
+2. THE digging screen SHALL be an intentional beat: it SHALL show for at least 1.8 seconds from the choice, long enough for its lines to type out and be read, and longer only while the loading takes longer. Any key or click SHALL skip the rest of it at once.
+3. Under reduced motion its lines SHALL appear at once and it SHALL hold for about 0.6 seconds.
 4. Load errors (not found, wrong version, invalid) SHALL replace the digging screen with the scene spec's messages, plus a way back to the boot screen.
 
 ### 4. Detail panel
@@ -132,7 +132,7 @@ Supporting properties:
 
 - **P6** The manifest lists exactly the `*.graveyard.json` files of the folder, with the counts in each file (Req 1.2).
 - **P7** A local file with any `schemaVersion` other than 2 always gives the version message, and a valid version-2 file always loads (Req 1.8).
-- **P8** The digging screen's added delay is between 0 and 1 second and its total time is at least 400 ms, for any loading time (Req 3.2).
+- **P8** The digging screen is held for the rest of its minimum (1.8 s from the choice; 0.6 s under reduced motion) and for nothing once that has passed, for any loading time (Req 3.2, 3.3).
 - **P9** The panel side: the detail panel is always placed on the half of the window away from the selected item's screen position (Req 4.8).
 - **P10** Middle shortening of a long path always keeps the whole file name (Req 4.9).
 - **P11** The hover line of a stone starts with the state word that matches its `decayState`, carries its last commit date and its lines, and has exactly the flags that apply (unused when `unused`, hot with `recentCommits` when `hot`) and no others; a ghost's line starts with "Ghost" and ends with its toe-tag type. The words are the same as the detail panel's for the same item (Req 4b.2 to 4b.5).
@@ -160,4 +160,4 @@ Settled in review:
 6. **A local file is not kept:** a reload returns to the boot screen.
 7. **Sides:** the list on the left, the detail panel on the right, switching sides when the item is on the right half of the screen; the camera nudges only if the panel would still cover it.
 8. **Hover dates:** month and day, with the year only when it differs from the snapshot's, in UTC.
-9. The digging screen shows for at least 400 ms and adds at most 1 s; a ghost's file type comes from its extension; Escape in the search box clears the text first, then leaves the box, without clearing the selection.
+9. The digging screen is a beat of at least 1.8 s (0.6 s under reduced motion), skippable with any key or click (changed in review from at least 400 ms and at most 1 s added); a ghost's file type comes from its extension; Escape in the search box clears the text first, then leaves the box, without clearing the selection.

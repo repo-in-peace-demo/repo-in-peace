@@ -17,12 +17,15 @@ async function skipTyping(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /oikos_ledger/ })).toBeVisible({ timeout: 2000 });
 }
 
-test('a bare address shows the boot screen; a key shows it all, and Enter opens the first demo, through the digging screen', async ({ page }) => {
-  // Slow the data file a little, so the digging screen can be seen with its counts.
-  await page.route('**/graveyards/demo.oikosledger.graveyard.json', async (route) => {
-    await new Promise((r) => setTimeout(r, 800));
-    await route.continue();
+/** The digging screen's beat is off for the other checks (`./fixtures`); these look at it, so they turn it back on. */
+const withDigHold = (page: Page) =>
+  page.addInitScript(() => {
+    window.__repoInPeaceNoDigHold = false;
   });
+const digging = (page: Page) => page.getByRole('main', { name: 'Opening the graveyard' });
+
+test('a bare address shows the boot screen; a key shows it all, and Enter opens the first demo, through the digging screen with its real counts', async ({ page }) => {
+  await withDigHold(page);
   await page.goto('/');
   await expect(boot(page)).toContainText('RIP/OS');
   await expect(boot(page)).not.toContainText(/sgi|irix|fsn/i);
@@ -31,10 +34,50 @@ test('a bare address shows the boot screen; a key shows it all, and Enter opens 
   await expect(first).toBeFocused({ timeout: 2000 });
   await expect(page.getByRole('button', { name: /spatialql — 120 files, 2 ghosts/ })).toBeVisible();
   expect(new URL(page.url()).search).toBe('');
+  const chosen = Date.now();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\?graveyard=demo\.oikosledger$/);
-  await expect(page.getByRole('main', { name: 'Opening the graveyard' })).toContainText('exhuming 129 graves', { timeout: 3000 });
+  // No delayed network: the beat alone keeps the screen up long enough to read its lines as they type.
+  await expect(digging(page)).toContainText('exhuming 129 graves');
+  await expect(digging(page)).toContainText('12 lie Unused', { timeout: 1500 });
+  await expect(digging(page)).toContainText('raising the fences', { timeout: 1500 });
   await sceneUp(page);
+  expect(Date.now() - chosen, 'the digging screen held its beat').toBeGreaterThanOrEqual(1700);
+});
+
+test('any key or click skips the digging screen at once', async ({ page }) => {
+  await withDigHold(page);
+  for (const skip of ['key', 'click'] as const) {
+    await page.goto('/');
+    await page.keyboard.press('KeyX');
+    await page.getByRole('button', { name: /spatialql/ }).waitFor();
+    const chosen = Date.now();
+    await page.getByRole('button', { name: /spatialql/ }).click();
+    await expect(digging(page)).toBeVisible();
+    await page.waitForTimeout(300);
+    if (skip === 'key') await page.keyboard.press('Space');
+    else await page.mouse.click(640, 400);
+    await sceneUp(page);
+    expect(Date.now() - chosen, `a ${skip} skipped the rest of the beat`).toBeLessThan(1500);
+  }
+});
+
+test('under reduced motion the digging lines are there at once, and the screen holds for a shorter beat', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.__repoInPeaceNoOpening = true;
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /oikos_ledger/ }).waitFor();
+  const chosen = Date.now();
+  await page.getByRole('button', { name: /oikos_ledger/ }).click();
+  await expect(page.getByRole('main', { name: 'Opening the graveyard' })).toContainText('raising the fences', { timeout: 300 });
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  const took = Date.now() - chosen;
+  expect(took).toBeGreaterThanOrEqual(550);
+  expect(took).toBeLessThan(1700);
+  await context.close();
 });
 
 test('under reduced motion the boot text is there at once, with the choices', async ({ browser }) => {

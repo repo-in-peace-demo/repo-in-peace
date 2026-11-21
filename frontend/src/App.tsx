@@ -18,6 +18,7 @@ import { SearchBox } from './ui/SearchBox';
 import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
 import { hasWebGL } from './ui/webgl';
+import { prefersReducedMotion } from './scene/reduced-motion';
 import { clearSelection } from './store/selection-store';
 
 /** Development builds only: the performance overlay and the other extras (`dev/DevExtras.tsx`). Null, and not in the bundle, in production. */
@@ -120,7 +121,8 @@ const sourceKey = (source: Source): string => (source.kind === 'demo' ? `demo:${
 
 /**
  * The digging screen and the work behind it: load the file (a demo), make the graveyard (development), or take the file already read,
- * then build the scene model after the screen has been painted, and hold the screen for `digHoldMs` so it never flashes.
+ * then build the scene model after the screen has been painted, and hold the screen for its beat (`digHoldMs`: 1.8 s from the choice,
+ * 0.6 s under reduced motion) so its lines can be read; any key or click skips the rest.
  */
 function Digging({ state, baseUrl, dispatch }: { state: Extract<FlowState, { screen: 'digging' }>; baseUrl: string; dispatch: (e: FlowEvent) => void }) {
   // The source is fixed for this component (it is keyed on it); the effect runs once per mount. (StrictMode mounts twice in
@@ -130,6 +132,22 @@ function Digging({ state, baseUrl, dispatch }: { state: Extract<FlowState, { scr
     const { source, startedAt } = first.current;
     let gone = false;
     const timers: number[] = [];
+    // The beat: the rest of the minimum once the model is built (1.8 s from the choice, 0.6 s under reduced motion; none at all
+    // when a browser test turns it off). Any key or click skips the rest at once (or goes as soon as the model is ready).
+    const reduced = prefersReducedMotion();
+    const noHold = import.meta.env.DEV && window.__repoInPeaceNoDigHold === true;
+    let ready: SceneModel | null = null;
+    let skipped = false;
+    const go = (): void => {
+      if (!gone && ready !== null) dispatch({ type: 'loaded', model: ready });
+    };
+    const skip = (event: Event): void => {
+      if (event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey || event.altKey)) return; // the browser's own shortcuts
+      skipped = true;
+      go();
+    };
+    window.addEventListener('keydown', skip);
+    window.addEventListener('pointerdown', skip);
     const finish = (graveyard: Graveyard): void => {
       if (gone) return;
       dispatch({ type: 'counts', counts: countsOf(graveyard) });
@@ -144,8 +162,10 @@ function Digging({ state, baseUrl, dispatch }: { state: Extract<FlowState, { scr
             dispatch({ type: 'failed', title: 'Could not build the graveyard', message: error instanceof Error ? error.message : String(error), details: [] });
             return;
           }
-          const work = performance.now() - startedAt;
-          timers.push(window.setTimeout(() => !gone && dispatch({ type: 'loaded', model }), digHoldMs(work)));
+          ready = model;
+          const hold = skipped || noHold ? 0 : digHoldMs(performance.now() - startedAt, reduced);
+          if (hold === 0) go();
+          else timers.push(window.setTimeout(go, hold));
         }, 0),
       );
     };
@@ -164,6 +184,8 @@ function Digging({ state, baseUrl, dispatch }: { state: Extract<FlowState, { scr
       gone = true;
       controller.abort();
       timers.forEach((t) => window.clearTimeout(t));
+      window.removeEventListener('keydown', skip);
+      window.removeEventListener('pointerdown', skip);
     };
   }, [baseUrl, dispatch]);
   return <DiggingScreen counts={state.counts} />;

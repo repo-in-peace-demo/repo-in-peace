@@ -24,6 +24,8 @@ export type Source =
 export interface Counts {
   repo: string;
   files: number;
+  /** Files Knip lists as unused. */
+  unused: number;
   ghosts: number;
 }
 
@@ -50,7 +52,7 @@ export type FlowEvent =
   | { type: 'back' };
 
 /** The counts of a graveyard that is already in hand. */
-export const countsOf = (g: Graveyard): Counts => ({ repo: g.meta.name, files: g.files.length, ghosts: g.ghosts.length });
+export const countsOf = (g: Graveyard): Counts => ({ repo: g.meta.name, files: g.files.length, unused: g.files.filter((f) => f.unused).length, ghosts: g.ghosts.length });
 
 /** The first screen for a page address (`routeFromAddress`). */
 export function initialFlow(route: Route, now: number): FlowState {

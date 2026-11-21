@@ -48,7 +48,7 @@ describe('P6: the manifest', () => {
         });
         const { manifest, skipped } = buildManifest(unique.map((i) => entryOf(i.kind, i.name, i.files, i.ghosts)));
         const valid = unique.filter((i) => i.kind === 'valid' && GRAVEYARD_NAME_PATTERN.test(i.name)).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-        const expected = valid.map((i) => ({ name: i.name, repo: `repo-${i.name}`, files: i.files, ghosts: i.ghosts }));
+        const expected = valid.map((i) => ({ name: i.name, repo: `repo-${i.name}`, files: i.files, unused: 0, ghosts: i.ghosts }));
         const expectedSkipped = unique.filter((i) => ['old-version', 'broken', 'not-json'].includes(i.kind)).map((i) => `${i.name}.graveyard.json`).sort();
         return JSON.stringify(manifest.graveyards) === JSON.stringify(expected) && JSON.stringify(skipped) === JSON.stringify(expectedSkipped) && checkManifest(manifest) !== null;
       }),
@@ -60,16 +60,16 @@ describe('P6: the manifest', () => {
     const { manifest, skipped } = buildManifest(REAL_GRAVEYARDS.map((name) => ({ fileName: `${name}.graveyard.json`, json: loadRealGraveyard(name) })));
     expect(skipped).toEqual([]);
     expect(manifest.graveyards).toEqual([
-      { name: 'demo.oikosledger', repo: 'oikos_ledger', files: 129, ghosts: 0 },
-      { name: 'demo.spatialql', repo: 'spatialql', files: 120, ghosts: 2 },
+      { name: 'demo.oikosledger', repo: 'oikos_ledger', files: 129, unused: 12, ghosts: 0 },
+      { name: 'demo.spatialql', repo: 'spatialql', files: 120, unused: 2, ghosts: 2 },
     ]);
   });
 });
 
 describe('checkManifest', () => {
   it('accepts a manifest and refuses anything else', () => {
-    expect(checkManifest({ version: 1, graveyards: [{ name: 'a', repo: 'r', files: 1, ghosts: 0 }] })).not.toBeNull();
-    for (const bad of [null, [], 'x', { version: 2, graveyards: [] }, { version: 1 }, { version: 1, graveyards: [{ name: '../x', repo: 'r', files: 1, ghosts: 0 }] }, { version: 1, graveyards: [{ name: 'a', repo: '', files: 1, ghosts: 0 }] }, { version: 1, graveyards: [{ name: 'a', repo: 'r', files: -1, ghosts: 0 }] }]) {
+    expect(checkManifest({ version: 1, graveyards: [{ name: 'a', repo: 'r', files: 1, unused: 0, ghosts: 0 }] })).not.toBeNull();
+    for (const bad of [null, [], 'x', { version: 2, graveyards: [] }, { version: 1 }, { version: 1, graveyards: [{ name: '../x', repo: 'r', files: 1, unused: 0, ghosts: 0 }] }, { version: 1, graveyards: [{ name: 'a', repo: '', files: 1, unused: 0, ghosts: 0 }] }, { version: 1, graveyards: [{ name: 'a', repo: 'r', files: -1, unused: 0, ghosts: 0 }] }, { version: 1, graveyards: [{ name: 'a', repo: 'r', files: 1, ghosts: 0 }] }]) {
       expect(checkManifest(bad)).toBeNull();
     }
   });

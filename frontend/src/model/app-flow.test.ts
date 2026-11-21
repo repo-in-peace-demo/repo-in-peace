@@ -26,13 +26,13 @@ describe('the flow', () => {
     s = flow(s, { type: 'choose', source: demo, now: 10 });
     expect(s).toEqual({ screen: 'digging', source: demo, startedAt: 10, counts: null });
     s = flow(s, { type: 'counts', counts: countsOf(spatialql) });
-    expect(s).toMatchObject({ screen: 'digging', counts: { repo: 'spatialql', files: 120, ghosts: 2 } });
+    expect(s).toMatchObject({ screen: 'digging', counts: { repo: 'spatialql', files: 120, unused: 2, ghosts: 2 } });
     s = flow(s, { type: 'loaded', model });
     expect(s).toEqual({ screen: 'scene', source: demo, model });
   });
 
   it('takes a demo\'s counts from the demo list when it is chosen, so the digging screen shows them while the file loads', () => {
-    const s = flow({ screen: 'boot', notice: null }, { type: 'choose', source: demo, now: 0, counts: { repo: 'spatialql', files: 120, ghosts: 2 } });
+    const s = flow({ screen: 'boot', notice: null }, { type: 'choose', source: demo, now: 0, counts: { repo: 'spatialql', files: 120, unused: 2, ghosts: 2 } });
     expect(s).toMatchObject({ screen: 'digging', counts: { files: 120, ghosts: 2 } });
   });
 

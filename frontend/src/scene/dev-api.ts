@@ -64,6 +64,8 @@ declare global {
     repoInPeace?: RepoInPeaceDevApi;
     /** Set by the browser tests (`e2e/fixtures.ts`) before the page loads: the scene opens on the establishing shot, without the opening move. Read in development builds only. */
     __repoInPeaceNoOpening?: boolean;
+    /** Set by the browser tests (`e2e/fixtures.ts`): the digging screen goes as soon as the scene is built. Read in development builds only. */
+    __repoInPeaceNoDigHold?: boolean;
   }
 }
 

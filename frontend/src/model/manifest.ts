@@ -15,6 +15,8 @@ export interface ManifestEntry {
   /** The repository's name, from the file's `meta.name`. */
   repo: string;
   files: number;
+  /** Files Knip lists as unused (for the digging screen). */
+  unused: number;
   ghosts: number;
 }
 
@@ -41,7 +43,7 @@ export function buildManifest(entries: ReadonlyArray<{ fileName: string; json: u
       continue;
     }
     const g = checked.graveyard;
-    graveyards.push({ name, repo: g.meta.name, files: g.files.length, ghosts: g.ghosts.length });
+    graveyards.push({ name, repo: g.meta.name, files: g.files.length, unused: g.files.filter((f) => f.unused).length, ghosts: g.ghosts.length });
   }
   graveyards.sort((a, b) => compareCodePoint(a.name, b.name));
   skipped.sort(compareCodePoint);
@@ -57,10 +59,11 @@ export function checkManifest(value: unknown): Manifest | null {
   for (const e of v['graveyards'] as unknown[]) {
     if (typeof e !== 'object' || e === null) return null;
     const r = e as Record<string, unknown>;
-    const { name, repo, files, ghosts } = r;
+    const { name, repo, files, unused, ghosts } = r;
     if (typeof name !== 'string' || !GRAVEYARD_NAME_PATTERN.test(name) || typeof repo !== 'string' || repo.length === 0) return null;
-    if (!Number.isInteger(files) || (files as number) < 0 || !Number.isInteger(ghosts) || (ghosts as number) < 0) return null;
-    graveyards.push({ name, repo, files: files as number, ghosts: ghosts as number });
+    const count = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0;
+    if (!count(files) || !count(ghosts) || !count(unused)) return null;
+    graveyards.push({ name, repo, files, unused, ghosts });
   }
   return { version: 1, graveyards };
 }

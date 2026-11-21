@@ -28,10 +28,18 @@ export function bootLines(manifest: Manifest | null): string[] {
 
 const plural = (n: number, one: string, many: string): string => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
-/** The digging screen: the real counts of the graveyard being opened, and no ghost line when it has none. */
+/**
+ * The digging screen: a few short lines with the real counts of the graveyard being opened, in the one vocabulary (Unused, ghosts):
+ *   opening oikos_ledger…
+ *   exhuming 129 graves…
+ *   12 lie Unused…
+ *   summoning 2 ghosts…   (only when there are ghosts)
+ *   raising the fences…
+ */
 export function diggingLines(counts: Counts | null): string[] {
   if (counts === null) return ['opening the gates…'];
   const lines = [`opening ${counts.repo}…`, `exhuming ${plural(counts.files, 'grave', 'graves')}…`];
+  if (counts.unused > 0) lines.push(`${counts.unused.toLocaleString('en-US')} ${counts.unused === 1 ? 'lies' : 'lie'} Unused…`);
   if (counts.ghosts > 0) lines.push(`summoning ${plural(counts.ghosts, 'ghost', 'ghosts')}…`);
   lines.push('raising the fences…');
   return lines;

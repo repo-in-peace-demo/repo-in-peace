@@ -86,13 +86,7 @@ function flow(state: FlowState, event: FlowEvent): FlowState;
 
 `ui/DiggingScreen.tsx`, in the same terminal style. For a demo chosen on the boot screen, the counts come from the demo list with the choice (the `choose` event carries them), so the lines show them while the file loads; for a direct link they appear when the file has arrived. `App` loads the file for a demo, which also covers the counts lines. A local file is already parsed. It then builds `buildSceneModel` in a `setTimeout(0)` after the first paint, so the screen shows before the work starts. The lines come from `diggingLines(counts)` (`model/boot-script.ts`): `opening <repo>…`, `exhuming 129 graves…`, `summoning 2 ghosts…` (no ghost line when there are none) and `raising the fences…`.
 
-Timing (`model/digging-timing.ts`, P8):
-```ts
-const DIG_MIN_MS = 400;   // never a flash
-const DIG_MAX_ADDED_MS = 1000;
-function digHoldMs(workMs: number): number  // = clamp(DIG_MIN_MS - workMs, 0, DIG_MAX_ADDED_MS)
-```
-The scene is shown `digHoldMs(workMs)` after the model is ready. Because of `DIG_MIN_MS` the added delay is never more than 400 ms in practice; `DIG_MAX_ADDED_MS` caps it if the constant is ever raised. The opening move starts when the scene mounts, as now.
+Timing (`model/digging-timing.ts`, P8): an intentional beat. `digHoldMs(workMs, reducedMotion)` is the rest of `DIG_MIN_MS` (1800) from the choice, or of `DIG_MIN_REDUCED_MS` (600) under reduced motion, and 0 once the loading has taken longer. Any key or click while it shows skips the rest (or goes as soon as the model is built). The browser tests turn the beat off (`window.__repoInPeaceNoDigHold`, development builds only, set by `e2e/fixtures.ts`) except `e2e/boot.spec.ts`, which looks at it. The demo list carries each graveyard's unused count too, so the lines show all their counts from the moment a demo is chosen.
 
 ## Shared wording: `model/grave-facts.ts`
 
