@@ -15,6 +15,10 @@ export interface CommitRecord {
   date: string;
   /** Author name. */
   author: string;
+  /** Author e-mail. Never written to the data: used to keep authors out of eulogies. */
+  authorEmail: string;
+  /** The commit message's subject line. Never written to the data: a eulogy's input. */
+  subject: string;
   /** File changes. Empty for merge commits and empty commits, since plain `git log` shows no diff for merges. */
   changes: Change[];
 }

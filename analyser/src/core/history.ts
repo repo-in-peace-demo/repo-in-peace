@@ -24,6 +24,8 @@ export interface FileHistory {
   lastCommitDate: string;
   lastCommitAuthor: string;
   recentCommits: number;
+  /** The last commit's subject: a eulogy's input, never written to the data. */
+  lastCommitSubject: string;
 }
 
 export interface RawGhost {
@@ -33,12 +35,21 @@ export interface RawGhost {
   deletedBy: string;
   /** First parent of the deleting commit. */
   lastExistingSha: string;
+  /** The deleting commit's subject: a eulogy's input, never written to the data. */
+  deletedSubject: string;
+}
+
+/** Everyone in the history, by name and e-mail: what a eulogy must never mention. */
+export interface People {
+  names: ReadonlySet<string>;
+  emails: ReadonlySet<string>;
 }
 
 export interface HistoryResult {
   perFile: Map<string, FileHistory>;
   /** In discovery order. The caller sorts. */
   ghosts: RawGhost[];
+  people: People;
 }
 
 export class HistoryError extends Error {
@@ -52,6 +63,7 @@ interface Accumulator {
   lastMs: number;
   lastDate: string;
   lastAuthor: string;
+  lastSubject: string;
   count: number;
 }
 
@@ -69,7 +81,12 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
   const decidedPaths = new Set<string>();
   const ghosts: RawGhost[] = [];
 
+  const names = new Set<string>();
+  const emails = new Set<string>();
+
   for (const commit of commits) {
+    if (commit.author.trim() !== '') names.add(commit.author.trim());
+    if (commit.authorEmail.trim() !== '') emails.add(commit.authorEmail.trim());
     const commitMs = Date.parse(commit.date);
     const inWindow = commitMs > windowStartMs && commitMs <= snapshotMs;
 
@@ -100,7 +117,7 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
     for (const file of touchedFiles) {
       let entry = accumulators.get(file);
       if (entry === undefined) {
-        entry = { lastMs: Number.NEGATIVE_INFINITY, lastDate: '', lastAuthor: '', count: 0 };
+        entry = { lastMs: Number.NEGATIVE_INFINITY, lastDate: '', lastAuthor: '', lastSubject: '', count: 0 };
         accumulators.set(file, entry);
       }
       // Latest date wins. On a tie the commit listed first wins, because this only replaces on greater.
@@ -108,6 +125,7 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
         entry.lastMs = commitMs;
         entry.lastDate = commit.date;
         entry.lastAuthor = commit.author;
+        entry.lastSubject = commit.subject;
       }
       if (inWindow) entry.count++;
     }
@@ -133,6 +151,7 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
       deletedDate: commit.date,
       deletedBy: commit.author,
       lastExistingSha,
+      deletedSubject: commit.subject,
     });
   }
 
@@ -149,8 +168,9 @@ export function analyseHistory(input: HistoryInput): HistoryResult {
       lastCommitDate: entry.lastDate,
       lastCommitAuthor: entry.lastAuthor,
       recentCommits: entry.count,
+      lastCommitSubject: entry.lastSubject,
     });
   }
 
-  return { perFile, ghosts };
+  return { perFile, ghosts, people: { names, emails } };
 }

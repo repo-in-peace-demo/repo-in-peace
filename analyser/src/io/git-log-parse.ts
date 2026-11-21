@@ -11,14 +11,15 @@ export const GIT_LOG_ARGS = [
   '-z',
   '--name-status',
   '-M',
-  '--format=%x1e%H%x1f%P%x1f%cI%x1f%an',
+  // The subject is last: everything after the fifth separator is the subject, so one with a separator character still parses.
+  '--format=%x1e%H%x1f%P%x1f%cI%x1f%an%x1f%ae%x1f%s',
 ] as const;
 
 /*
  * Output layout, confirmed against real git output (see test/fixtures):
  *
  *   record     = RS header NUL [LF entries]
- *   header     = sha US parents US committerDate US authorName
+ *   header     = sha US parents US committerDate US authorName US authorEmail US subject
  *   parents    = space-separated SHAs, empty for a root commit
  *   entries    = (status NUL path NUL [path2 NUL])*
  *
@@ -56,16 +57,10 @@ function parseRecord(chunk: string, index: number): CommitRecord {
   if (headerEnd === -1) throw new GitLogParseError(`${where}: header is not terminated`);
 
   const fields = chunk.slice(0, headerEnd).split(US);
-  const [sha, parentsField, dateField, author] = fields;
-  if (
-    fields.length !== 4 ||
-    sha === undefined ||
-    parentsField === undefined ||
-    dateField === undefined ||
-    author === undefined
-  ) {
-    throw new GitLogParseError(`${where}: expected 4 header fields, found ${fields.length}`);
-  }
+  if (fields.length < 6) throw new GitLogParseError(`${where}: expected 6 header fields, found ${fields.length}`);
+  const [sha, parentsField, dateField, author, authorEmail] = fields as [string, string, string, string, string];
+  // The subject is the rest, separators and all.
+  const subject = fields.slice(5).join(US);
 
   if (!SHA_PATTERN.test(sha)) throw new GitLogParseError(`${where}: bad commit SHA "${sha}"`);
   const parents = parentsField === '' ? [] : parentsField.split(' ');
@@ -87,6 +82,8 @@ function parseRecord(chunk: string, index: number): CommitRecord {
     parents,
     date: new Date(ms).toISOString(),
     author,
+    authorEmail,
+    subject,
     changes: parseChanges(rest, where),
   };
 }

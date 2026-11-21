@@ -11,6 +11,7 @@ const sha = (n: number): string => n.toString(16).padStart(40, '0');
 interface Spec {
   at: number;
   author?: string;
+  subject?: string;
   changes: Change[];
 }
 
@@ -22,6 +23,8 @@ function linear(...specs: Spec[]): CommitRecord[] {
       parents: i === 0 ? [] : [sha(i)],
       date: iso(spec.at),
       author: spec.author ?? 'Ann',
+      authorEmail: '',
+      subject: spec.subject ?? '',
       changes: spec.changes,
     }))
     .reverse();
@@ -51,6 +54,7 @@ describe('last commit and the 30-day count', () => {
       lastCommitDate: iso(ago(50)),
       lastCommitAuthor: 'Bob',
       recentCommits: 0,
+      lastCommitSubject: '',
     });
   });
 
@@ -131,6 +135,8 @@ describe('last commit and the 30-day count', () => {
       parents: [sha(1), sha(8)],
       date: iso(ago(1)),
       author: 'Zed',
+      authorEmail: '',
+      subject: '',
       changes: [],
     };
     const { perFile } = run([merge, ...base], 'a.ts');
@@ -140,23 +146,24 @@ describe('last commit and the 30-day count', () => {
   it('uses the latest date, not the log position, when branch commits are out of date order', () => {
     // Log order (newest first): the commit listed first is dated 20 days ago, the next 5 days ago.
     const commits: CommitRecord[] = [
-      { sha: sha(3), parents: [sha(2)], date: iso(ago(20)), author: 'Bob', changes: [modify('a.ts')] },
-      { sha: sha(2), parents: [sha(1)], date: iso(ago(5)), author: 'Cy', changes: [modify('a.ts')] },
-      { sha: sha(1), parents: [], date: iso(ago(40)), author: 'Ann', changes: [add('a.ts')] },
+      { sha: sha(3), parents: [sha(2)], date: iso(ago(20)), author: 'Bob', authorEmail: '', subject: '', changes: [modify('a.ts')] },
+      { sha: sha(2), parents: [sha(1)], date: iso(ago(5)), author: 'Cy', authorEmail: '', subject: '', changes: [modify('a.ts')] },
+      { sha: sha(1), parents: [], date: iso(ago(40)), author: 'Ann', authorEmail: '', subject: '', changes: [add('a.ts')] },
     ];
     const { perFile } = run(commits, 'a.ts');
     expect(perFile.get('a.ts')).toEqual({
       lastCommitDate: iso(ago(5)),
       lastCommitAuthor: 'Cy',
       recentCommits: 2,
+      lastCommitSubject: '',
     });
   });
 
   it('on equal dates picks the commit listed first in the log', () => {
     const commits: CommitRecord[] = [
-      { sha: sha(3), parents: [sha(2)], date: iso(ago(5)), author: 'First', changes: [modify('a.ts')] },
-      { sha: sha(2), parents: [sha(1)], date: iso(ago(5)), author: 'Second', changes: [modify('a.ts')] },
-      { sha: sha(1), parents: [], date: iso(ago(40)), author: 'Ann', changes: [add('a.ts')] },
+      { sha: sha(3), parents: [sha(2)], date: iso(ago(5)), author: 'First', authorEmail: '', subject: '', changes: [modify('a.ts')] },
+      { sha: sha(2), parents: [sha(1)], date: iso(ago(5)), author: 'Second', authorEmail: '', subject: '', changes: [modify('a.ts')] },
+      { sha: sha(1), parents: [], date: iso(ago(40)), author: 'Ann', authorEmail: '', subject: '', changes: [add('a.ts')] },
     ];
     expect(run(commits, 'a.ts').perFile.get('a.ts')?.lastCommitAuthor).toBe('First');
   });
@@ -246,6 +253,7 @@ describe('ghosts', () => {
         deletedDate: iso(ago(80)),
         deletedBy: 'Bob',
         lastExistingSha: sha(1),
+        deletedSubject: '',
       },
     ]);
   });
@@ -292,10 +300,10 @@ describe('ghosts', () => {
   it('picks the deletion listed first in the log even when its date is older', () => {
     // Chain: addX -> delX -> addY -> delY. Dates run backwards along the chain.
     const commits: CommitRecord[] = [
-      { sha: sha(4), parents: [sha(3)], date: iso(ago(80)), author: 'Y', changes: [del('a.ts')] },
-      { sha: sha(3), parents: [sha(2)], date: iso(ago(85)), author: 'Y', changes: [add('a.ts')] },
-      { sha: sha(2), parents: [sha(1)], date: iso(ago(10)), author: 'X', changes: [del('a.ts')] },
-      { sha: sha(1), parents: [], date: iso(ago(15)), author: 'X', changes: [add('a.ts')] },
+      { sha: sha(4), parents: [sha(3)], date: iso(ago(80)), author: 'Y', authorEmail: '', subject: '', changes: [del('a.ts')] },
+      { sha: sha(3), parents: [sha(2)], date: iso(ago(85)), author: 'Y', authorEmail: '', subject: '', changes: [add('a.ts')] },
+      { sha: sha(2), parents: [sha(1)], date: iso(ago(10)), author: 'X', authorEmail: '', subject: '', changes: [del('a.ts')] },
+      { sha: sha(1), parents: [], date: iso(ago(15)), author: 'X', authorEmail: '', subject: '', changes: [add('a.ts')] },
     ];
     const { ghosts } = run(commits);
     expect(ghosts).toHaveLength(1);
@@ -347,6 +355,8 @@ describe('ghosts', () => {
       parents: [sha(4), sha(3)],
       date: iso(ago(10)),
       author: 'Bob',
+      authorEmail: '',
+      subject: '',
       changes: [del('a.ts')],
     };
     expect(run([deleting]).ghosts[0]?.lastExistingSha).toBe(sha(4));
@@ -358,8 +368,36 @@ describe('ghosts', () => {
       parents: [],
       date: iso(ago(10)),
       author: 'Bob',
+      authorEmail: '',
+      subject: '',
       changes: [del('a.ts')],
     };
     expect(() => run([impossible])).toThrow(HistoryError);
   });
 });
+
+describe('commit subjects and the people in the history (eulogies spec)', () => {
+  it('keeps the subject of the commit that last changed a file, and of the commit that deleted a ghost', () => {
+    const { perFile, ghosts } = run(
+      linear(
+        { at: ago(100), subject: 'add a and gone', changes: [add('a.ts'), add('gone.ts')] },
+        { at: ago(50), author: 'Bob', subject: 'polish a', changes: [modify('a.ts')] },
+        { at: ago(20), subject: 'drop gone', changes: [del('gone.ts')] },
+      ),
+      'a.ts',
+    );
+    expect(perFile.get('a.ts')?.lastCommitSubject).toBe('polish a');
+    expect(ghosts[0]?.deletedSubject).toBe('drop gone');
+  });
+
+  it('lists every author name and e-mail of the history once', () => {
+    const commits: CommitRecord[] = [
+      { sha: sha(2), parents: [sha(1)], date: iso(ago(5)), author: 'Bob', authorEmail: 'bob@example.com', subject: 'x', changes: [modify('a.ts')] },
+      { sha: sha(1), parents: [], date: iso(ago(9)), author: 'Ann', authorEmail: 'ann@example.com', subject: 'y', changes: [add('a.ts')] },
+    ];
+    const { people } = run(commits, 'a.ts');
+    expect([...people.names].sort()).toEqual(['Ann', 'Bob']);
+    expect([...people.emails].sort()).toEqual(['ann@example.com', 'bob@example.com']);
+  });
+});
+

@@ -2,7 +2,7 @@
 # Regenerates the git log fixtures used by io/git-log-parse.test.ts.
 #
 #   git-log-sample.bin           raw output of the exact `git log` command the analyser runs
-#   git-log-sample.expected.tsv  sha, parents, committer date (as git prints it), author per commit
+#   git-log-sample.expected.tsv  sha, parents, committer date (as git prints it), author, author e-mail, subject per commit
 #
 # Commit dates, authors and file contents are fixed, so the SHAs are the same on every run.
 # Run from anywhere: bash analyser/test/fixtures/make-git-log-sample.sh
@@ -62,8 +62,8 @@ commit "empty commit" "Fy" "2026-01-08T10:00:00+00:00" --allow-empty
 
 # Keep in sync with GIT_LOG_ARGS in src/io/git-log-parse.ts.
 git log --topo-order -z --name-status -M \
-  --format='%x1e%H%x1f%P%x1f%cI%x1f%an' main > "$HERE/git-log-sample.bin"
+  --format='%x1e%H%x1f%P%x1f%cI%x1f%an%x1f%ae%x1f%s' main > "$HERE/git-log-sample.bin"
 
-git log --topo-order --format='%H%x09%P%x09%cI%x09%an' main > "$HERE/git-log-sample.expected.tsv"
+git log --topo-order --format='%H%x09%P%x09%cI%x09%an%x09%ae%x09%s' main > "$HERE/git-log-sample.expected.tsv"
 
 echo "wrote $HERE/git-log-sample.bin and git-log-sample.expected.tsv"

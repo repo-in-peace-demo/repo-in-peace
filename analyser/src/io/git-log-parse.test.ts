@@ -24,6 +24,8 @@ interface ExpectedHeader {
   parents: string[];
   date: string;
   author: string;
+  authorEmail: string;
+  subject: string;
 }
 
 function readExpectedHeaders(): ExpectedHeader[] {
@@ -32,12 +34,14 @@ function readExpectedHeaders(): ExpectedHeader[] {
     .split('\n')
     .filter((line) => line !== '')
     .map((line) => {
-      const [sha = '', parents = '', date = '', author = ''] = line.split('\t');
+      const [sha = '', parents = '', date = '', author = '', authorEmail = '', ...subject] = line.split('\t');
       return {
         sha,
         parents: parents === '' ? [] : parents.split(' '),
         date: new Date(date).toISOString(),
         author,
+        authorEmail,
+        subject: subject.join('\t'),
       };
     });
 }
@@ -67,7 +71,7 @@ describe('parseGitLog on real git output', () => {
   });
 
   it('reads sha, parents, author and date for every commit', () => {
-    expect(records.map(({ sha, parents, date, author }) => ({ sha, parents, date, author }))).toEqual(
+    expect(records.map(({ sha, parents, date, author, authorEmail, subject }) => ({ sha, parents, date, author, authorEmail, subject }))).toEqual(
       headers,
     );
   });
@@ -102,7 +106,7 @@ describe('parseGitLog on real git output', () => {
 describe('parseGitLog on hand-built input', () => {
   const sha = 'a'.repeat(40);
   const parent = 'b'.repeat(40);
-  const header = `\x1e${sha}\x1f${parent}\x1f2026-02-01T10:00:00Z\x1fAnn`;
+  const header = `\x1e${sha}\x1f${parent}\x1f2026-02-01T10:00:00Z\x1fAnn\x1fann@example.com\x1fadd things`;
 
   it('returns an empty list for empty output', () => {
     expect(parseGitLog('')).toEqual([]);
@@ -124,6 +128,13 @@ describe('parseGitLog on hand-built input', () => {
     expect(() => parseGitLog('hello')).toThrow(GitLogParseError);
   });
 
+  it('reads the author e-mail and the subject, and a subject with a separator character in it whole', () => {
+    expect(parseGitLog(`${header}\0`)[0]).toMatchObject({ author: 'Ann', authorEmail: 'ann@example.com', subject: 'add things' });
+    const odd = `\x1e${sha}\x1f${parent}\x1f2026-02-01T10:00:00Z\x1fAnn\x1fann@example.com\x1fa\x1fb\0`;
+    expect(parseGitLog(odd)[0]?.subject).toBe('a\x1fb');
+    expect(parseGitLog(`\x1e${sha}\x1f${parent}\x1f2026-02-01T10:00:00Z\x1fAnn\x1f\x1f\0`)[0]).toMatchObject({ authorEmail: '', subject: '' });
+  });
+
   it('rejects a header with the wrong number of fields', () => {
     expect(() => parseGitLog(`\x1e${sha}\x1f${parent}\x1fAnn\0`)).toThrow(GitLogParseError);
   });
@@ -133,13 +144,13 @@ describe('parseGitLog on hand-built input', () => {
   });
 
   it('rejects a bad sha', () => {
-    expect(() => parseGitLog(`\x1enot-a-sha\x1f\x1f2026-02-01T10:00:00Z\x1fAnn\0`)).toThrow(
+    expect(() => parseGitLog(`\x1enot-a-sha\x1f\x1f2026-02-01T10:00:00Z\x1fAnn\x1fa@b.c\x1fs\0`)).toThrow(
       GitLogParseError,
     );
   });
 
   it('rejects an unparseable date', () => {
-    expect(() => parseGitLog(`\x1e${sha}\x1f\x1fyesterday\x1fAnn\0`)).toThrow(GitLogParseError);
+    expect(() => parseGitLog(`\x1e${sha}\x1f\x1fyesterday\x1fAnn\x1fa@b.c\x1fs\0`)).toThrow(GitLogParseError);
   });
 
   it('rejects an unknown status letter', () => {
@@ -164,7 +175,7 @@ describe('GIT_LOG_ARGS', () => {
       '-z',
       '--name-status',
       '-M',
-      '--format=%x1e%H%x1f%P%x1f%cI%x1f%an',
+      '--format=%x1e%H%x1f%P%x1f%cI%x1f%an%x1f%ae%x1f%s',
     ]);
   });
 });

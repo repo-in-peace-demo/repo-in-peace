@@ -9,7 +9,7 @@ const SHA_B = 'b'.repeat(40);
 const SHA_C = 'c'.repeat(40);
 
 function history(lastCommitDate: string, recentCommits = 0, lastCommitAuthor = 'Ann'): FileHistory {
-  return { lastCommitDate, lastCommitAuthor, recentCommits };
+  return { lastCommitDate, lastCommitAuthor, recentCommits, lastCommitSubject: 'fix the thing' };
 }
 
 function sampleInput(): AssembleInput {
@@ -31,8 +31,8 @@ function sampleInput(): AssembleInput {
     ]),
     unused: new Set(['src/old.ts', 'not/a/current/file.ts']),
     ghosts: [
-      { path: 'z/gone.ts', deletedInSha: SHA_B, deletedDate: '2025-06-01T10:00:00.000Z', deletedBy: 'Bob', lastExistingSha: SHA_C },
-      { path: 'a/lost.js', deletedInSha: SHA_C, deletedDate: '2025-07-01T10:00:00.000Z', deletedBy: 'Cy', lastExistingSha: SHA_B },
+      { path: 'z/gone.ts', deletedInSha: SHA_B, deletedDate: '2025-06-01T10:00:00.000Z', deletedBy: 'Bob', lastExistingSha: SHA_C, deletedSubject: 'remove gone' },
+      { path: 'a/lost.js', deletedInSha: SHA_C, deletedDate: '2025-07-01T10:00:00.000Z', deletedBy: 'Cy', lastExistingSha: SHA_B, deletedSubject: 'remove lost' },
     ],
   };
 }
@@ -178,3 +178,13 @@ describe('assembleGraveyard', () => {
     expect(result.files.find((f) => f.path === 'index.ts')?.decayScore).toBe(0);
   });
 });
+
+describe('the commit subjects (eulogies spec)', () => {
+  it('never reach the data: neither a file\'s last subject nor a ghost\'s deleting subject is in the graveyard', () => {
+    const text = JSON.stringify(assembleGraveyard(sampleInput()));
+    expect(text).not.toContain('fix the thing');
+    expect(text).not.toContain('remove gone');
+    expect(text).not.toContain('Subject');
+  });
+});
+

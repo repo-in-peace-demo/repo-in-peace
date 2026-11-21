@@ -24,8 +24,8 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 5_
 
 - [ ] 3. Git: subject and e-mail (`io/git-log-parse.ts`, `core/commit-record.ts`, `core/history.ts`)
-  - [ ] 3.1 `GIT_LOG_ARGS` gets `%ae` and `%s`, with the subject last and parsed as everything after the fifth separator. Update `test/fixtures/make-git-log-sample.sh`, the sample and the parser tests, including a subject containing a separator character.
-  - [ ] 3.2 `history` keeps each file's last subject, each ghost's deleting subject, and the people (names and e-mails). None of them goes into the data: the golden output is unchanged.
+  - [ ] 3.1 (Code and tests done; the recorded sample needs `bash analyser/test/fixtures/make-git-log-sample.sh` run.) `GIT_LOG_ARGS` gets `%ae` and `%s`, with the subject last and parsed as everything after the fifth separator. Update `test/fixtures/make-git-log-sample.sh`, the sample and the parser tests, including a subject containing a separator character.
+  - [x] 3.2 `history` keeps each file's last subject, each ghost's deleting subject, and the people (names and e-mails). None of them goes into the data: the golden output is unchanged.
   - **Run:** `cd analyser && npm test` (includes the live git tests).
   - _Requirements: 3.1, 3.2, 3.3_
 

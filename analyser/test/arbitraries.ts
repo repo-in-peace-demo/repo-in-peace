@@ -126,6 +126,7 @@ export interface ExpectedFileHistory {
   lastCommitDate: string;
   lastCommitAuthor: string;
   recentCommits: number;
+  lastCommitSubject: string;
 }
 
 export interface Replayed {
@@ -261,6 +262,8 @@ export function replay(
       parents: index === 0 ? [] : [shaFor(index - 1)],
       date: new Date(scripted.date).toISOString(),
       author: scripted.author,
+      authorEmail: '',
+      subject: `change ${index}`,
       changes,
     });
   });
@@ -276,6 +279,7 @@ export function replay(
     expectedHistory.set(path, {
       lastCommitDate: new Date(script[best]!.date).toISOString(),
       lastCommitAuthor: script[best]!.author,
+      lastCommitSubject: `change ${best}`,
       recentCommits: indexes.filter((i) => {
         const date = script[i]!.date;
         return date > windowStart && date <= snapshotMs;
