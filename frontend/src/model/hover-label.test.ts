@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { hoverLabel } from './hover-label';
+import { hoverLabel, hoverSummary } from './hover-label';
 
 describe('hoverLabel', () => {
   it('shows the name and the full folder path of a file', () => {
@@ -28,5 +28,22 @@ describe('hoverLabel', () => {
         return rebuilt === path && !label.name.includes('/') && label.ghost === (kind === 'ghost');
       }),
     );
+  });
+});
+
+describe('hoverSummary (interface spec, 4b)', () => {
+  it('gives a stone its summary line and a ghost its own, from the same words as the detail panel', async () => {
+    const { loadRealGraveyard } = await import('../../test/real-data');
+    const { buildSceneModel } = await import('./scene-model');
+    const { ghostSummary, stoneSummary } = await import('./grave-facts');
+    const oikos = buildSceneModel(loadRealGraveyard('demo.oikosledger'));
+    const voice = oikos.stones.find((s) => s.file.path === 'app/components/voice/index.ts')!;
+    expect(hoverSummary(oikos, { kind: 'file', path: voice.file.path })).toBe(stoneSummary(voice.file, oikos.graveyard.meta));
+    expect(hoverSummary(oikos, { kind: 'file', path: voice.file.path })).toMatch(/^Fresh · last commit .* · unused$/);
+    const spatialql = buildSceneModel(loadRealGraveyard('demo.spatialql'));
+    const ghost = spatialql.ghosts[0]!;
+    expect(hoverSummary(spatialql, { kind: 'ghost', path: ghost.ghost.path })).toBe(ghostSummary(ghost.ghost, spatialql.graveyard.meta));
+    expect(hoverSummary(spatialql, { kind: 'file', path: ghost.ghost.path })).toBeNull(); // the wrong kind
+    expect(hoverSummary(spatialql, { kind: 'file', path: 'no/such.ts' })).toBeNull();
   });
 });

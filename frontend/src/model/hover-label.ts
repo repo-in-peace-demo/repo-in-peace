@@ -1,3 +1,6 @@
+import { ghostSummary, stoneSummary } from './grave-facts';
+import type { SceneModel } from './scene-model';
+
 /**
  * The words of the hover label: the file's name in full contrast, its folder path dimmed, and "ghost" in front of a
  * deleted file. Pure. The folder is the file's real folder path, in full.
@@ -18,4 +21,15 @@ export function hoverLabel(target: { kind: 'file' | 'ghost'; path: string }): Ho
     name: target.path.slice(cut + 1),
     folder: cut < 0 ? '/' : target.path.slice(0, cut),
   };
+}
+
+/**
+ * The hover label's summary line (interface spec, Req 4b): the same words as the detail panel, from `grave-facts.ts`. Null for a
+ * path that is not in the scene.
+ */
+export function hoverSummary(model: Pick<SceneModel, 'lookup' | 'stones' | 'ghosts' | 'graveyard'>, target: { kind: 'file' | 'ghost'; path: string }): string | null {
+  const found = model.lookup.get(target.path);
+  if (found === undefined || found.kind !== target.kind) return null;
+  const meta = model.graveyard.meta;
+  return found.kind === 'file' ? stoneSummary(model.stones[found.index]!.file, meta) : ghostSummary(model.ghosts[found.index]!.ghost, meta);
 }

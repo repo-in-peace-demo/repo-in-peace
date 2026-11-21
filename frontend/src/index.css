@@ -322,6 +322,15 @@ body,
   color: var(--ink-dim);
 }
 
+.hover-summary {
+  margin-top: 0.1rem;
+  color: var(--ink);
+  /* One line: cut at the end, so the flags go first and the state and date always show. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hover-ghost {
   color: #8fe8f0;
   font-style: italic;

@@ -94,7 +94,7 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - [ ] 5.2 **Run:** `npm run dev`, then open `http://localhost:5173/graveyards/index.json`. You should see both demos with their counts. Then `npm run build && ls dist/graveyards/`, which should list `index.json` and the two data files.
   - _Requirements: 1.2, 1.9_
 
-- [ ] 6. Boot and digging screens (`ui/BootScreen.tsx`, `ui/DiggingScreen.tsx`, `ui/read-local-file.ts`, `App.tsx`)
+- [x] 6. Boot and digging screens (`ui/BootScreen.tsx`, `ui/DiggingScreen.tsx`, `ui/read-local-file.ts`, `App.tsx`)
   - [x] 6.1 Rework `App.tsx` around the flow: `pushState` when a demo is chosen, `popstate` to go back, and a back button on the error screen.
   - [x] 6.2 The boot screen, as in the design:
     - the terminal style;
@@ -128,13 +128,13 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - **Commit** with the screenshots.
   - _Requirements: 1, 2, 3_
 
-- [ ] 7. Hover label (`ui/HoverLabel.tsx`)
-  - [ ] 7.1 Add the summary line (`stoneSummary`, `ghostSummary`). It stays on one line, cut with an ellipsis if needed, and is still hidden while dragging.
-  - [ ] 7.2 Browser check in `e2e/interface.spec.ts`:
+- [x] 7. Hover label (`ui/HoverLabel.tsx`)
+  - [x] 7.1 Add the summary line (`stoneSummary`, `ghostSummary`). It stays on one line, cut with an ellipsis if needed, and is still hidden while dragging.
+  - [x] 7.2 Browser check in `e2e/interface.spec.ts`:
     - hovering `app/components/voice/index.ts` (oikos) shows "Fresh · last commit … · … lines · unused";
     - a spatialql ghost shows "Ghost · deleted … · .ts";
     - the label is gone during a drag.
-  - [ ] 7.3 Screenshot test `interface hover`: a stone with flags, and a ghost.
+  - [x] 7.3 Screenshot test `interface hover`: a stone with flags, and a ghost.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "hover"`, then the screenshot.
   - **Commit** with the screenshots.
   - _Requirements: 4b_

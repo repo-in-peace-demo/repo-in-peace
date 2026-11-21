@@ -266,4 +266,26 @@ test.describe('screenshots to judge by eye', () => {
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${OUT}interface-digging.png` });
   });
+
+  // Interface spec, task 7: the hover line on a stone with flags (oikos, a hot stone) and on a ghost (spatialql).
+  test('interface hover', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    for (const [name, path, file] of [
+      ['demo.oikosledger', 'app/app/api/insights/query/route.ts', 'interface-hover-stone'],
+      ['demo.spatialql', 'src/surface-placement.ts', 'interface-hover-ghost'],
+    ] as const) {
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      await page.evaluate((p) => window.repoInPeace!.flyTo(p), path);
+      await page.waitForTimeout(1800);
+      const at = (await page.evaluate((p) => window.repoInPeace!.getScreenPoint(p), path))!;
+      await page.mouse.move(at.x - 3, at.y - 3);
+      await page.mouse.move(at.x, at.y, { steps: 3 });
+      await page.locator('.hover-summary').waitFor();
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: `${OUT}${file}.png` });
+    }
+  });
 });

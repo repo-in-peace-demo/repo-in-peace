@@ -174,7 +174,7 @@ function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
       <Legend legend={model.legend} />
       <ControlsPanel onBack={onBack} />
-      <HoverLabel />
+      <HoverLabel model={model} />
       {DevExtras && (
         <Suspense fallback={null}>
           <DevExtras />

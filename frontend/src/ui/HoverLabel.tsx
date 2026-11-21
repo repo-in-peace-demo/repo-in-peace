@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
-import { hoverLabel } from '../model/hover-label';
+import { hoverLabel, hoverSummary } from '../model/hover-label';
+import type { SceneModel } from '../model/scene-model';
 import { getPointer, subscribePointer, useHover } from '../store/hover-store';
 
 /** How far the label sits from the pointer, in pixels. */
@@ -8,10 +9,10 @@ const OFFSET_Y = 18;
 
 /**
  * The name of the stone or ghost under the pointer, with its folder path dimmed and "ghost" in front of a deleted
- * file. It follows the pointer by moving its own element, not by rendering again. Everything is a text node, so a
+ * file, and one summary line (state, last commit, lines and flags; or a ghost's deletion and type) on a single line. It follows the pointer by moving its own element, not by rendering again. Everything is a text node, so a
  * file named `<script>` is shown as text.
  */
-export function HoverLabel() {
+export function HoverLabel({ model }: { model: SceneModel }) {
   const target = useHover();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -32,6 +33,7 @@ export function HoverLabel() {
 
   if (target === null) return null;
   const label = hoverLabel(target);
+  const summary = hoverSummary(model, target);
   return (
     <div ref={ref} className="hover-label" role="status">
       <div className="hover-name">
@@ -39,6 +41,7 @@ export function HoverLabel() {
         {label.name}
       </div>
       <div className="hover-folder">{label.folder}</div>
+      {summary !== null && <div className="hover-summary">{summary}</div>}
     </div>
   );
 }
