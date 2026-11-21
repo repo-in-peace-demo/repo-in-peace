@@ -305,14 +305,19 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 
   // The rim, an edge glow and not a tint: pale for the stone under the pointer, the ring's colour and a slow pulse for the selected one.
   if (vHighlight > 0.01) {
-    // A thin outline of the same width on screen (about 2 pixels) whatever the stone's size: only where the surface turns away
-    // from the camera fast enough to reach its silhouette within that many pixels (fwidth of how much it faces away). A broad
-    // fresnel term tinted most of a short stone, whose arch is most of it; the stone's own colours and cracks now stay as they are,
-    // and the ring at its base is the main sign of the selection.
-    float away = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
-    float perPixel = max(fwidth(away), 1e-4);
-    float pixelsToEdge = (1.0 - away) / perPixel;
-    float edge = (1.0 - smoothstep(1.0, 2.5, pixelsToEdge)) * smoothstep(0.55, 0.85, away);
+    // A thin outline of the same width on screen (about 2 pixels) whatever the stone's size, along the stone's own shape: on the
+    // front and back faces the distance to the tombstone's outline (its sides, then the arch), on the sides and the top band the
+    // distance to their front and back edges; turned into pixels with how far one pixel reaches on the surface (fwidth of the
+    // position). (The facing of the surface cannot be used: the curved band is flat facets, so it does not change within one.) The
+    // stone's own colours and cracks stay as they are; the ring at its base is the main sign of the selection.
+    float r = uStoneSize.x * 0.5;
+    float body = max(vStoneHeight - r, 0.01);
+    vec2 q = vLocalPos.xy;
+    float toProfile = q.y <= body ? r - abs(q.x) : r - length(vec2(q.x, q.y - body));
+    float toDepthEdge = uStoneSize.y * 0.5 - abs(vLocalPos.z);
+    float toEdge = abs(vFront) > 0.7 ? toProfile : toDepthEdge;
+    float pixelsToEdge = max(toEdge, 0.0) / max(length(fwidth(vLocalPos)), 1e-5);
+    float edge = 1.0 - smoothstep(1.0, 2.5, pixelsToEdge);
     vec3 rim = vHighlight > 0.75 ? uSelectedColor * (1.8 + 0.35 * sin(uTime * 2.5)) : uHoverColor * 1.1;
     totalEmissiveRadiance += rim * edge;
   }
