@@ -9,7 +9,7 @@ const OFFSET_Y = 18;
 
 /**
  * The name of the stone or ghost under the pointer, with its folder path dimmed and "ghost" in front of a deleted
- * file, and one summary line (state, last commit, lines and flags; or a ghost's deletion and type) on a single line. It follows the pointer by moving its own element, not by rendering again. Everything is a text node, so a
+ * file, and one summary line (state, when it last changed, lines and flags; or a ghost's deletion and type) on a single line. It follows the pointer by moving its own element, not by rendering again. Everything is a text node, so a
  * file named `<script>` is shown as text.
  */
 export function HoverLabel({ model }: { model: SceneModel }) {

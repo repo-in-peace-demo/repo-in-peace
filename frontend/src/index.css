@@ -159,7 +159,7 @@ body,
   left: 1rem;
   z-index: 10;
   min-width: 12rem;
-  max-width: 18rem;
+  max-width: 20rem; /* room for a rule beside each name */
   background: var(--panel);
   border: 1px solid var(--rim);
   border-radius: 4px;
@@ -188,25 +188,49 @@ body,
 }
 
 .stats-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 4.2rem 1fr 2.6rem; /* name, rule, count */
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0 0.5rem;
 }
 
 .stats-row dt {
-  flex: 0 0 4.5rem;
+  grid-column: 1;
+}
+
+.stats-rule {
+  grid-column: 2;
+  color: var(--ink-dim);
+  font-size: 0.7rem;
+  line-height: 1.3;
 }
 
 .stats-row dd {
-  flex: 0 0 3rem;
+  grid-column: 3;
   margin: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.stats-hint {
+.stats-top .stats-row dd {
+  grid-column: 2 / 4;
+}
+
+/* A dimension's heading, in the stats panel and the legend alike. */
+.stats-group-title,
+.legend-group-title {
+  margin: 0.55rem 0 0.15rem;
   color: var(--ink-dim);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.legend-note {
+  margin: 0 0 0.35rem;
+  color: var(--ink-dim);
+  font-size: 0.72rem;
 }
 
 /* The heading button of a collapsible panel (statistics, legend). */
@@ -290,9 +314,10 @@ body,
 }
 
 .swatch-fresh { background: #8d939e; }
-.swatch-moss { background: linear-gradient(to top, #5f8f4a 55%, #8d939e 55%); }
+.swatch-moss,
+.swatch-stale { background: linear-gradient(to top, #5f8f4a 55%, #8d939e 55%); }
 .swatch-ancient { background: linear-gradient(to top, #3f6b33 85%, #6e747e 85%); transform: rotate(-8deg); }
-.swatch-unused { background: #8d939e; box-shadow: 0 0 6px 1px rgba(224, 80, 80, 0.7); border-color: #c0504d; }
+.swatch-unused { background: #8d939e; box-shadow: 0 0 6px 1px rgba(232, 88, 42, 0.7); border-color: #e8582a; } /* the crack glow's red-orange */
 .swatch-hot { background: #f0c24b; border-radius: 50% 50% 2px 2px; }
 .swatch-ghost { background: linear-gradient(to bottom, rgba(143, 232, 240, 0.85), rgba(143, 232, 240, 0.1)); border-color: rgba(143, 232, 240, 0.7); border-radius: 50% 50% 2px 2px; box-shadow: 0 0 6px rgba(143, 232, 240, 0.6); }
 .swatch-floor { background: #1f2d26; border-radius: 2px; border-color: rgba(255, 255, 255, 0.4); }
@@ -820,9 +845,13 @@ body,
 
 .list-marks {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
   color: var(--ink-dim);
   font-size: 0.72rem;
+}
+
+.list-sep {
+  color: var(--ink-dim);
 }
 
 .list-mark-unused {

@@ -118,6 +118,10 @@ function shortenPath(path: string, maxChars: number): string;    // middle ellip
 - Ages come from the existing `ageDays` (snapshot-relative, never the clock). Month names are fixed English three-letter names, from `getUTCMonth`, never `toLocaleDateString`, so the output does not depend on the viewer's locale or time zone.
 - `stateSentence` takes the state from `decayState`. The day count and the threshold are worded to agree with it (P5). The data file is the analyser's, so it can't disagree with its own thresholds. A test checks both demo files anyway.
 
+### The one vocabulary
+
+`grave-facts.ts` also holds every user-facing name and rule: `FACT_NAMES` (Fresh, Stale, Ancient, Unused, Hot, Ghosts), `FACT_GROUPS` (Age, Usage, Activity, History, in that order, each with its facts), `factRule(fact, thresholds)` ("under 21 days", "21–45 days", "over 45 days", "nothing imports it (Knip)", "5+ commits in the 30 days before the snapshot", "deleted files"), `factRuleSentence`, `FACT_LOOKS` (how each looks, for the legend), `INDEPENDENCE_NOTE`, `usageDetail` and `hotDetail`. `legend.ts` builds the legend's groups from them (plus a Layout group for the ground), `overlay-text.ts` the stats panel's (`statsLayout`), and the list's buttons and tags, the hover line and the detail panel use the same names. The detail panel's rows are named after the groups: Age, Last changed, Usage, Activity, Size. On a large window the list measures the open stats panel (which grew) and stays below it.
+
 ## Detail panel
 
 `ui/DetailPanel.tsx`: an `<aside aria-label="Selected grave">`, 340 px wide, below the legend, the full height down to above the bottom buttons. It reads `useSelection()` and `model.lookup`.

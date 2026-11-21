@@ -317,7 +317,7 @@ test.describe('screenshots to judge by eye', () => {
     await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
     await page.waitForTimeout(800);
     await page.getByRole('button', { name: /List · / }).click();
-    await page.getByRole('button', { name: 'unused', exact: true }).click();
+    await page.getByRole('button', { name: 'Unused', exact: true }).click();
     await page.mouse.move(640, 8);
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${OUT}interface-list.png` });
@@ -351,6 +351,23 @@ test.describe('screenshots to judge by eye', () => {
       await page.mouse.move(w / 2, 8);
       await page.waitForTimeout(1200);
       await page.screenshot({ path: `${OUT}interface-layout-${w}x${h}.png` });
+    }
+  });
+
+  // Interface spec, vocabulary: the stats panel and the legend open, grouped by dimension, on both demo files.
+  test('interface vocabulary', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      for (const toggle of [page.locator('.stats .panel-toggle'), page.locator('.legend .panel-toggle')]) {
+        if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      }
+      await page.mouse.move(640, 880);
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${OUT}interface-vocabulary-${name}.png` });
     }
   });
 });

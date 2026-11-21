@@ -102,7 +102,17 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 3. Opening or closing a panel SHALL NOT move the camera, and SHALL NOT end the opening move unless it is a click or a key press (which end it anyway).
 4. All new text SHALL use the browser's own fonts. No font, image or sound file is added.
 
-## Correctness properties
+### 8. One vocabulary, grouped by dimension
+
+**User story:** As a viewer, I see the same names for the same facts everywhere, and I can tell that age and usage are separate things.
+
+1. THE names and rules for states, flags and ghosts SHALL come from one module (`model/grave-facts.ts`), used by the stats panel, the legend, the list's tags, the hover line and the detail panel.
+2. States SHALL always be named Fresh, Stale and Ancient; flags Unused and Hot; deleted files Ghosts (one is a Ghost). A file's age SHALL always be "last changed", always "before the snapshot" (never "untouched" or "last commit").
+3. THE stats panel and the legend SHALL use the same four groups in the same order: **Age** (Fresh "under S days", Stale "S–A days", Ancient "over A days"), **Usage** (Unused "nothing imports it (Knip)"), **Activity** (Hot "H+ commits in the W days before the snapshot") and **History** (Ghosts "deleted files"), with the numbers from the data file. The stats panel keeps Files and Folders at the top and shows each row's rule beside its count; the legend names each fact, how it looks and its rule, with the darker ground in a final **Layout** group.
+4. THE legend SHALL say, in its Age group, that a file's age and its usage are independent, so a fresh file can be unused.
+5. A list row's tag SHALL keep the dimensions apart: "Stale · Unused".
+
+
 
 Each property gets a fast-check property test.
 
@@ -123,6 +133,7 @@ Supporting properties:
 - **P10** Middle shortening of a long path always keeps the whole file name (Req 4.9).
 - **P11** The hover line of a stone starts with the state word that matches its `decayState`, carries its last commit date and its lines, and has exactly the flags that apply (unused when `unused`, hot with `recentCommits` when `hot`) and no others; a ghost's line starts with "Ghost" and ends with its toe-tag type. The words are the same as the detail panel's for the same item (Req 4b.2 to 4b.5).
 - **P12** Dates on the hover line are the data file's dates in UTC, for any time zone the tests run in, and carry the year exactly when it differs from the snapshot's (Req 4b.4).
+- **P14** For any thresholds, the stats panel, the legend and the detail panel give the same name and the same rule wording for every fact, the hover line the same state name, and the stats panel and legend the same groups in the same order (Req 8).
 - **P13** Bury is offered exactly for unused stones, whatever their state, and never for a used stone or a ghost; Resurrect exactly for ghosts (Req 4.7).
 
 ## Out of scope

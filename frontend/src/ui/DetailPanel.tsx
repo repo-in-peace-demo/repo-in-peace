@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FileEntry, Ghost, RepoMeta } from '@shared/graveyard-schema';
-import { buryOffered, calendarDay, fileType, hotDetail, linesText, shortenPath, stateSentence } from '../model/grave-facts';
+import { buryOffered, calendarDay, fileType, hotDetail, linesText, shortenPath, stateSentence, usageDetail } from '../model/grave-facts';
 import { nudgeNeeded, panelSide, type Side } from '../model/panel-placement';
 import type { SceneModel } from '../model/scene-model';
 import { isFlying, nudge, screenBoxOf } from '../scene/api';
@@ -120,18 +120,18 @@ function StoneDetail({ file, meta }: { file: FileEntry; meta: RepoMeta }) {
     <>
       <Heading path={file.path} ghost={false} />
       <dl className="detail-facts">
-        <dt>State</dt>
+        <dt>Age</dt>
         <dd>{stateSentence(file, meta)}</dd>
-        <dt>Last commit</dt>
+        <dt>Last changed</dt>
         <dd>
           {calendarDay(file.lastCommitDate, meta.snapshotDate)} by {file.lastCommitAuthor}
         </dd>
+        <dt>Usage</dt>
+        <dd>{usageDetail(file, meta)}</dd>
+        <dt>Activity</dt>
+        <dd>{hotDetail(file, meta)}</dd>
         <dt>Size</dt>
         <dd>{linesText(file.linesOfCode)}</dd>
-        <dt>Unused</dt>
-        <dd>{file.unused ? 'yes: Knip lists it as unused' : 'no'}</dd>
-        <dt>Hot</dt>
-        <dd>{hotDetail(file, meta)}</dd>
         <dt>Decay score</dt>
         <dd>{file.decayScore.toFixed(2)}</dd>
       </dl>

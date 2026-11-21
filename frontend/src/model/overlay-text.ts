@@ -1,6 +1,7 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
 import { snapshotDay } from './legend';
 import type { Stats } from './stats';
+import { FACT_GROUPS, FACT_NAMES, factRule, type FactId, type GroupId } from './grave-facts';
 
 /**
  * The words and numbers of the statistics panel. Pure, so a test can check them without a page. The panel only
@@ -25,22 +26,52 @@ export function statsHeading(meta: RepoMeta): StatsHeading {
 
 export interface StatsRow {
   id: keyof Stats;
+  /** The fact's name, from the one vocabulary. */
   label: string;
   value: number;
-  /** A few words under the label, where the number could be misread. */
-  hint?: string;
+  /** The rule beside the name, from the data file's thresholds: "21–45 days". */
+  rule?: string;
 }
 
-/** The rows in the order they are shown. Fresh, stale and ancient add up to the files; unused and hot do not. */
-export function statsRows(stats: Stats): StatsRow[] {
-  return [
-    { id: 'files', label: 'Files', value: stats.files },
-    { id: 'folders', label: 'Folders', value: stats.folders },
-    { id: 'fresh', label: 'Fresh', value: stats.fresh },
-    { id: 'stale', label: 'Stale', value: stats.stale },
-    { id: 'ancient', label: 'Ancient', value: stats.ancient },
-    { id: 'unused', label: 'Unused', value: stats.unused, hint: 'of any age' },
-    { id: 'hot', label: 'Hot', value: stats.hot, hint: 'of any age' },
-    { id: 'ghosts', label: 'Ghosts', value: stats.ghosts, hint: 'deleted files' },
-  ];
+export interface StatsGroup {
+  id: GroupId;
+  /** "Age", "Usage", "Activity", "History", in that order. */
+  title: string;
+  /** What the dimension is: "last change before the snapshot". */
+  about: string;
+  rows: StatsRow[];
 }
+
+export interface StatsLayout {
+  /** Files and folders, at the top. */
+  top: StatsRow[];
+  /** The same groups, in the same order, as the legend. */
+  groups: StatsGroup[];
+}
+
+const STAT_OF: Record<FactId, keyof Stats> = { fresh: 'fresh', stale: 'stale', ancient: 'ancient', unused: 'unused', hot: 'hot', ghost: 'ghosts' };
+
+/**
+ * The stats panel: files and folders, then one group per dimension (Age, Usage, Activity, History), each row its name, its rule and
+ * its count. Fresh, stale and ancient add up to the files; unused and hot are counted among all files, of any age.
+ */
+export function statsLayout(stats: Stats, meta: RepoMeta): StatsLayout {
+  return {
+    top: [
+      { id: 'files', label: 'Files', value: stats.files },
+      { id: 'folders', label: 'Folders', value: stats.folders },
+    ],
+    groups: FACT_GROUPS.map((group) => ({
+      id: group.id,
+      title: group.title,
+      about: group.about,
+      rows: group.facts.map((fact) => ({ id: STAT_OF[fact], label: FACT_NAMES[fact], value: stats[STAT_OF[fact]], rule: factRule(fact, meta.thresholds) })),
+    })),
+  };
+}
+
+/** Every row, in the order shown. */
+export const statsRows = (stats: Stats, meta: RepoMeta): StatsRow[] => {
+  const layout = statsLayout(stats, meta);
+  return [...layout.top, ...layout.groups.flatMap((g) => g.rows)];
+};

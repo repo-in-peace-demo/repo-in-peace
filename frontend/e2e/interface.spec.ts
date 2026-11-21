@@ -2,7 +2,7 @@ import { expect, test, type Page } from './fixtures';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
-import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary } from '../src/model/grave-facts';
+import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary, usageDetail } from '../src/model/grave-facts';
 import { buildRows, filterRows, sortRows } from '../src/model/list-rows';
 import { makeSyntheticGraveyard } from '../src/model/synthetic';
 
@@ -33,7 +33,7 @@ async function pointAt(page: Page, path: string): Promise<{ x: number; y: number
 }
 
 test.describe('the hover line', () => {
-  test('a stone shows its state, last commit, lines and only its flags, on one line', async ({ page }) => {
+  test('a stone shows its state, when it last changed, lines and only its flags, on one line', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     const voice = oikos.files.find((f) => f.path === 'app/components/voice/index.ts')!;
     await pointAt(page, voice.path);
@@ -41,7 +41,7 @@ test.describe('the hover line', () => {
     await expect(label).toContainText('index.ts');
     const summary = label.locator('.hover-summary');
     await expect(summary).toHaveText(stoneSummary(voice, oikos.meta));
-    await expect(summary).toHaveText(/^Fresh · last commit .* · unused$/);
+    await expect(summary).toHaveText(/^Fresh · last changed .* · Unused$/);
     const box = await summary.boundingBox();
     expect(box!.height, 'one line').toBeLessThan(24);
   });
@@ -76,7 +76,7 @@ test.describe('the detail panel', () => {
     await expect(panel(page)).toContainText(stateSentence(voice, oikos.meta));
     await expect(panel(page)).toContainText(`${calendarDay(voice.lastCommitDate, oikos.meta.snapshotDate)} by ${voice.lastCommitAuthor}`);
     await expect(panel(page)).toContainText(hotDetail(voice, oikos.meta));
-    await expect(panel(page)).toContainText('yes: Knip lists it as unused');
+    await expect(panel(page)).toContainText(usageDetail(voice, oikos.meta));
     await expect(panel(page)).toContainText(voice.decayScore.toFixed(2));
     await expect(panel(page)).toContainText('[No eulogy yet.');
     const bury = panel(page).getByRole('button', { name: 'Bury' });
@@ -153,14 +153,14 @@ test.describe('the list', () => {
     const expected = sortRows(buildRows(oikos), 'decay').slice(0, 8).map((r) => r.name);
     const names = await rowsBox(page).locator('.list-name').allTextContents();
     expect(names.slice(0, 8)).toEqual(expected);
-    await list(page).getByRole('button', { name: 'unused', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Unused', exact: true }).click();
     await expect(list(page)).toContainText('12 of 129');
-    await list(page).getByRole('button', { name: 'ancient', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Ancient', exact: true }).click();
     const both = filterRows(buildRows(oikos), new Set(['ancient']), new Set(['unused'])).length;
     await expect(list(page)).toContainText(`${both} of 129`);
-    await list(page).getByRole('button', { name: 'unused', exact: true }).click();
-    await list(page).getByRole('button', { name: 'ancient', exact: true }).click();
-    await list(page).getByRole('button', { name: 'hot', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Unused', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Ancient', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Hot', exact: true }).click();
     await expect(list(page)).toContainText('7 of 129');
   });
 
@@ -170,7 +170,7 @@ test.describe('the list', () => {
     const sortRow = list(page).getByRole('group', { name: 'Sort' });
     const showRow = list(page).getByRole('group', { name: 'Show' });
     await expect(sortRow.getByRole('button')).toHaveText([/^decay/, /^age/, /^name/, /^size/]);
-    await expect(showRow.getByRole('button')).toHaveText(['fresh', 'stale', 'ancient', 'ghosts', 'unused', 'hot']);
+    await expect(showRow.getByRole('button')).toHaveText(['Fresh', 'Stale', 'Ancient', 'Ghosts', 'Unused', 'Hot']);
     // The labels come first in their rows, and the first buttons of both rows line up.
     const [sortLabel, showLabel] = [await sortRow.getByText('Sort', { exact: true }).boundingBox(), await showRow.getByText('Show', { exact: true }).boundingBox()];
     const [firstSort, firstShow] = [await sortRow.getByRole('button').first().boundingBox(), await showRow.getByRole('button').first().boundingBox()];
@@ -217,7 +217,7 @@ test.describe('the list', () => {
     await expect(selectedRows()).toHaveCount(1);
     await expect(selectedRows()).toBeInViewport();
     // Filtered out: no row, and the list says so.
-    await list(page).getByRole('button', { name: 'ghosts', exact: true }).click();
+    await list(page).getByRole('button', { name: 'Ghosts', exact: true }).click();
     await expect(selectedRows()).toHaveCount(0);
     await expect(list(page)).toContainText('hidden by the filters');
   });

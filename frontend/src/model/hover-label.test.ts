@@ -39,7 +39,7 @@ describe('hoverSummary (interface spec, 4b)', () => {
     const oikos = buildSceneModel(loadRealGraveyard('demo.oikosledger'));
     const voice = oikos.stones.find((s) => s.file.path === 'app/components/voice/index.ts')!;
     expect(hoverSummary(oikos, { kind: 'file', path: voice.file.path })).toBe(stoneSummary(voice.file, oikos.graveyard.meta));
-    expect(hoverSummary(oikos, { kind: 'file', path: voice.file.path })).toMatch(/^Fresh · last commit .* · unused$/);
+    expect(hoverSummary(oikos, { kind: 'file', path: voice.file.path })).toMatch(/^Fresh · last changed .* · Unused$/);
     const spatialql = buildSceneModel(loadRealGraveyard('demo.spatialql'));
     const ghost = spatialql.ghosts[0]!;
     expect(hoverSummary(spatialql, { kind: 'ghost', path: ghost.ghost.path })).toBe(ghostSummary(ghost.ghost, spatialql.graveyard.meta));

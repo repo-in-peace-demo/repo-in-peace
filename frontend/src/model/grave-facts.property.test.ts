@@ -7,7 +7,7 @@ import type { FileEntry, Ghost, RepoMeta, Thresholds } from '@shared/graveyard-s
 import { thresholdsArb } from '../../test/arbitraries';
 import { loadRealGraveyard } from '../../test/real-data';
 import { ageDays, MS_PER_DAY } from './age';
-import { buryOffered, calendarDay, ghostSummary, hotDetail, hotText, linesText, shortenPath, stateName, stateSentence, stoneSummary } from './grave-facts';
+import { buryOffered, calendarDay, factRule, ghostSummary, hotDetail, hotText, linesText, shortenPath, stateName, stateSentence, stoneSummary } from './grave-facts';
 import { ghostTagText } from './ghost-tag';
 
 const SNAPSHOT = Date.parse('2026-08-18T00:38:17.000Z');
@@ -44,10 +44,7 @@ describe('P5: the state sentence', () => {
         const s = stateSentence(f, metaOf(t));
         const days = ageDays(f.lastCommitDate, metaOf(t).snapshotDate);
         const unit = (n: number) => `${n.toLocaleString('en-US')} ${n === 1 ? 'day' : 'days'}`;
-        if (!s.startsWith(`${stateName(f)}:`) || !s.includes(` ${unit(days)} before the snapshot`)) return false;
-        if (f.decayState === 'stale') return s.endsWith(`(stale from ${unit(t.staleAfterDays)})`);
-        if (f.decayState === 'ancient') return s.endsWith(`(ancient after ${unit(t.ancientAfterDays)})`);
-        return !s.includes('(');
+        return s === `${stateName(f)}: last changed ${unit(days)} before the snapshot (${stateName(f)} is ${factRule(f.decayState, t)})`;
       }),
     );
   });
@@ -66,7 +63,7 @@ describe('P5: the state sentence', () => {
   it('uses the singular for one day', () => {
     const t: Thresholds = { staleAfterDays: 21, ancientAfterDays: 45, decayCapDays: 90, hotCommits: 5, hotWindowDays: 30 };
     const f = { ...fc.sample(fileArb(t), 1)[0]!, lastCommitDate: iso(SNAPSHOT - MS_PER_DAY), decayState: 'fresh' as const };
-    expect(stateSentence(f, metaOf(t))).toBe('Fresh: last touched 1 day before the snapshot');
+    expect(stateSentence(f, metaOf(t))).toBe('Fresh: last changed 1 day before the snapshot (Fresh is under 21 days)');
   });
 });
 
@@ -77,8 +74,8 @@ describe('P11: the hover line', () => {
         const meta = metaOf(t);
         const parts = stoneSummary(f, meta).split(' · ');
         const flags = parts.slice(3);
-        const expectedFlags = [...(f.unused ? ['unused'] : []), ...(f.hot ? [hotText(f)!] : [])];
-        return parts[0] === stateName(f) && parts[1] === `last commit ${calendarDay(f.lastCommitDate, meta.snapshotDate)}` && parts[2] === linesText(f.linesOfCode) && JSON.stringify(flags) === JSON.stringify(expectedFlags);
+        const expectedFlags = [...(f.unused ? ['Unused'] : []), ...(f.hot ? [hotText(f)!] : [])];
+        return parts[0] === stateName(f) && parts[1] === `last changed ${calendarDay(f.lastCommitDate, meta.snapshotDate)}` && parts[2] === linesText(f.linesOfCode) && JSON.stringify(flags) === JSON.stringify(expectedFlags);
       }),
     );
   });
@@ -86,7 +83,7 @@ describe('P11: the hover line', () => {
   it('reads as in the spec for the oikos stone voice/index.ts, and for a ghost', () => {
     const g = loadRealGraveyard('demo.oikosledger');
     const voice = g.files.find((f) => f.path === 'app/components/voice/index.ts')!;
-    expect(stoneSummary(voice, g.meta)).toMatch(/^Fresh · last commit [A-Z][a-z]{2} \d{1,2} · [\d,]+ lines? · unused$/);
+    expect(stoneSummary(voice, g.meta)).toMatch(/^Fresh · last changed [A-Z][a-z]{2} \d{1,2} · [\d,]+ lines? · Unused$/);
     const s = loadRealGraveyard('demo.spatialql');
     for (const ghost of s.ghosts) expect(ghostSummary(ghost, s.meta)).toBe(`Ghost · deleted ${calendarDay(ghost.deletedDate, s.meta.snapshotDate)} · ${ghostTagText(ghost.path)}`);
   });
@@ -95,9 +92,9 @@ describe('P11: the hover line', () => {
     expect(linesText(1)).toBe('1 line');
     expect(linesText(26)).toBe('26 lines');
     const hot1 = { hot: true, recentCommits: 1 } as FileEntry;
-    expect(hotText(hot1)).toBe('hot (1 commit)');
+    expect(hotText(hot1)).toBe('Hot (1 commit)');
     expect(hotText({ hot: false, recentCommits: 9 } as FileEntry)).toBeNull();
-    expect(hotDetail({ hot: false, recentCommits: 1 } as FileEntry, metaOf({ staleAfterDays: 1, ancientAfterDays: 2, decayCapDays: 4, hotCommits: 5, hotWindowDays: 30 }))).toBe('no, 1 commit in the last 30 days');
+    expect(hotDetail({ hot: false, recentCommits: 1 } as FileEntry, metaOf({ staleAfterDays: 1, ancientAfterDays: 2, decayCapDays: 4, hotCommits: 5, hotWindowDays: 30 }))).toBe('Not hot: 1 commit in the 30 days before the snapshot (Hot is 5+)');
   });
 });
 

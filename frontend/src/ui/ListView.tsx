@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { OWNS_KEYS_ATTRIBUTE } from '../model/fly-controls';
+import { FACT_NAMES, factNameOne } from '../model/grave-facts';
 import { FLAGS, KINDS, buildRows, filterRows, highlightedIndex, sortRows, type Flag, type Kind, type Row, type SortKey } from '../model/list-rows';
 import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
 import type { SceneModel } from '../model/scene-model';
@@ -16,8 +17,9 @@ const SORTS: ReadonlyArray<{ key: SortKey; label: string }> = [
   { key: 'name', label: 'name' },
   { key: 'size', label: 'size' },
 ];
-const KIND_LABELS: Record<Kind, string> = { fresh: 'fresh', stale: 'stale', ancient: 'ancient', ghost: 'ghosts' };
-const STATE_WORDS: Record<Kind, string> = { fresh: 'Fresh', stale: 'Stale', ancient: 'Ancient', ghost: 'Ghost' };
+// The filter buttons and the row tags use the one vocabulary (grave-facts.ts): Fresh, Stale, Ancient, Ghosts, Unused, Hot.
+const KIND_LABELS: Record<Kind, string> = { fresh: FACT_NAMES.fresh, stale: FACT_NAMES.stale, ancient: FACT_NAMES.ancient, ghost: FACT_NAMES.ghost };
+const STATE_WORDS: Record<Kind, string> = { fresh: FACT_NAMES.fresh, stale: FACT_NAMES.stale, ancient: FACT_NAMES.ancient, ghost: factNameOne('ghost') };
 const SWATCH: Record<Kind, string> = { fresh: 'swatch-fresh', stale: 'swatch-moss', ancient: 'swatch-ancient', ghost: 'swatch-ghost' };
 
 const rowId = (row: Row): string => `row-${row.kind}-${encodeURIComponent(row.path)}`;
@@ -37,6 +39,10 @@ export function ListView({ model }: { model: SceneModel }) {
   const [viewport, setViewport] = useState(400);
   const [active, setActive] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
+  const aside = useRef<HTMLElement>(null);
+  const toggleButton = useRef<HTMLButtonElement>(null);
+  // The rows' height when the list must stay below the open stats panel (a large window); null leaves it to the CSS.
+  const [bodyHeight, setBodyHeight] = useState<number | null>(null);
   const selection = useSelection();
 
   const all = useMemo(() => buildRows(model.graveyard), [model]);
@@ -51,6 +57,31 @@ export function ListView({ model }: { model: SceneModel }) {
     const observer = new ResizeObserver(() => setViewport(el.clientHeight));
     observer.observe(el);
     return () => observer.disconnect();
+  }, [open]);
+
+  // Keep below the stats panel when there is room: measured on opening, on a resize, and when the stats panel opens or closes.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const fit = (): void => {
+      const el = aside.current;
+      const stats = document.querySelector<HTMLElement>('.stats');
+      if (!el) return;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const cssDefault = Math.max(12 * rem, window.innerHeight - 27 * rem);
+      const limit = (stats ? stats.getBoundingClientRect().bottom : 0) + 8;
+      const room = el.getBoundingClientRect().bottom - limit - (toggleButton.current?.offsetHeight ?? 0);
+      // Never below 8rem: on a short window with the stats open, the list overlays it rather than vanish.
+      setBodyHeight(Math.max(8 * rem, Math.min(cssDefault, room)));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    const stats = document.querySelector<HTMLElement>('.stats');
+    if (stats) observer.observe(stats);
+    window.addEventListener('resize', fit);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', fit);
+    };
   }, [open]);
 
   // A selection from elsewhere (or a new order): its row becomes the active one and is scrolled into view.
@@ -99,15 +130,15 @@ export function ListView({ model }: { model: SceneModel }) {
   const activeRow = rows[Math.min(active, rows.length - 1)];
 
   return (
-    <aside className={`list${open ? ' list-open' : ''}`} aria-label="Graves">
-      <button type="button" className="panel-toggle" aria-expanded={open} aria-controls="list-body" onClick={() => setOpen((o) => !o)}>
+    <aside ref={aside} className={`list${open ? ' list-open' : ''}`} aria-label="Graves">
+      <button ref={toggleButton} type="button" className="panel-toggle" aria-expanded={open} aria-controls="list-body" onClick={() => setOpen((o) => !o)}>
         <span>
           List · {all.length.toLocaleString('en-US')}
         </span>
         <span aria-hidden="true">{open ? '–' : '+'}</span>
       </button>
       {open && (
-        <div id="list-body" className="list-body">
+        <div id="list-body" className="list-body" style={bodyHeight === null ? undefined : { height: bodyHeight }}>
           <div className="list-tools" role="group" aria-labelledby="list-sort-label">
             <span id="list-sort-label" className="list-tools-label">
               Sort
@@ -139,7 +170,7 @@ export function ListView({ model }: { model: SceneModel }) {
             ))}
             {FLAGS.map((f) => (
               <button key={f} type="button" aria-pressed={flags.has(f)} onClick={() => setFlags((s) => toggle(s, f))}>
-                {f}
+                {FACT_NAMES[f]}
               </button>
             ))}
             </span>
@@ -181,8 +212,18 @@ export function ListView({ model }: { model: SceneModel }) {
                     <span className="list-folder">{row.folder === '' ? '/' : row.folder}</span>
                     <span className="list-marks">
                       <span className="list-state">{STATE_WORDS[kind]}</span>
-                      {row.unused && <span className="list-mark-unused" title="Unused (cracked)">unused</span>}
-                      {row.hot && <span className="list-mark-hot" title="Hot (a candle)">hot</span>}
+                      {row.unused && (
+                        <>
+                          <span className="list-sep" aria-hidden="true">·</span>
+                          <span className="list-mark-unused">{FACT_NAMES.unused}</span>
+                        </>
+                      )}
+                      {row.hot && (
+                        <>
+                          <span className="list-sep" aria-hidden="true">·</span>
+                          <span className="list-mark-hot">{FACT_NAMES.hot}</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 );
