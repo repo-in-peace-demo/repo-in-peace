@@ -84,7 +84,7 @@ function ghostInput(ghost: RawGhost, contents: Contents, people: People): Eulogy
 **Redaction** (`core/redact.ts`, P7): `redact(text, people)` replaces every author name, e-mail address and handle of the repository with "someone". A handle is the part of an e-mail before the `@` (after the `+` in GitHub's noreply addresses), at least 3 characters, not only digits, and not a service name like `noreply`; names shorter than 2 characters are not matched.
 - Matching is case-insensitive, on word boundaries, longest first.
 - Any other e-mail-like string becomes "someone" too.
-- It runs on the subjects. Contents are not redacted: they are the file as it is in the clone. The output check (below) still rejects any author name in a eulogy.
+- It runs on the subjects, and on the contents after they are cut (changed while building: a file can name its author in a comment, and Req 3.3 says the model is never given one). The path and the file name are given as they are, because the eulogy must be accurate about them. The output check (below) still rejects any author name in a eulogy.
 
 ## Prompt (`analyser/src/core/eulogy-prompt.ts`)
 

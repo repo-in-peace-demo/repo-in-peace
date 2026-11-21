@@ -40,9 +40,9 @@ Status key: `[x]` done, `[ ]` not started.
     - **Examples:** "Merge PR #4 from alice/fix" becomes "Merge PR #4 from someone/fix", and an unknown e-mail becomes "someone".
   - _Requirements: 3.3, 3.4_
 
-- [ ] 5. Inputs and the prompt (`core/eulogy-input.ts`, `core/eulogy-prompt.ts`)
-  - [ ] 5.1 `fileInput` and `ghostInput`, with the state and flags in the shared vocabulary ("Stale (21–45 days)", "Unused (nothing imports it (Knip))", "Hot (…)").
-  - [ ] 5.2 `buildPrompt` and `PROMPT_VERSION`.
+- [x] 5. Inputs and the prompt (`core/eulogy-input.ts`, `core/eulogy-prompt.ts`)
+  - [x] 5.1 `fileInput` and `ghostInput`, with the state and flags in the shared vocabulary ("Stale (21–45 days)", "Unused (nothing imports it (Knip))", "Hot (…)").
+  - [x] 5.2 `buildPrompt` and `PROMPT_VERSION`.
     - **P7, second half:** for any input, the prompt contains no name or e-mail of `people`.
     - **Examples:** the retry line is added only on a retry; cut, binary and empty contents are described; the worked example is not about a real file.
   - _Requirements: 3, 4.2, 4.3_
