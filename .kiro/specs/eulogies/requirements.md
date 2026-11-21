@@ -19,7 +19,7 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 ### 1. Turning it on
 
 1. THE analyser SHALL take three new optional flags: `--eulogies` turns eulogies on; `--eulogy-model <name>` names the Ollama model, with no default; `--ollama-url <url>` names the Ollama server, default `http://localhost:11434`.
-2. WITHOUT `--eulogies` THE analyser SHALL behave exactly as before: no request is made, every eulogy is `""`, and the output is byte-identical to what it wrote before this spec (apart from the agreed schema change, Req 5).
+2. WITHOUT `--eulogies` THE analyser SHALL behave exactly as before: no request is made, every file's eulogy is `""`, and the output is byte-identical to what it wrote before this spec, with no exceptions (Req 5).
 3. `--eulogies` without `--eulogy-model` SHALL be a command-line error (exit 2) that says how to choose and pull a model. `--eulogy-model` or `--ollama-url` without `--eulogies` SHALL also be an error, so a typo does not silently skip the eulogies.
 4. THE Ollama URL SHALL be on this machine: its host SHALL be `localhost`, `127.0.0.1` or `::1`. Any other host SHALL be a command-line error, because file contents are sent to it (Req 7).
 5. THE analyser's rule that it reads only the local clone and calls no network service (repo-analyser Req 1.4) SHALL be amended: with `--eulogies`, and only then, it MAY call the given local Ollama server, and nothing else.
@@ -48,8 +48,8 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 
 ### 5. The data file
 
-1. THE schema SHALL go to version 3: every ghost gets an `eulogy` field (a string, `""` when none) like the files' existing one, and `meta` gets `eulogyModel` (the model's name, or `null` when the analyser ran without `--eulogies`).
-2. THE frontend SHALL load both version 2 and version 3 files. A version 2 file SHALL be read as having empty ghost eulogies and no model. The analyser SHALL always write version 3.
+1. THE schema SHALL stay at version 2, with two new optional fields: `ghost.eulogy` (a string) and `meta.eulogyModel` (the model's name). THE analyser SHALL write them only with `--eulogies`: then every ghost has an `eulogy` (`""` when none was written) and `meta.eulogyModel` is set. Without `--eulogies` neither appears, so the output is byte-identical to before.
+2. THE frontend SHALL treat a missing `ghost.eulogy` as empty and a missing `meta.eulogyModel` as no model (no credit shown). Files that exist today load as they do.
 3. Every eulogy written SHALL belong to a file or a ghost in the same data file; the eulogy field SHALL be the only thing eulogies change in the data.
 
 ### 6. Requests, failures and the cache
@@ -81,7 +81,7 @@ Each property gets a fast-check test. No model and no network in the tests: a fa
 | P1 | Post-processing output is always at most two sentences and at most 240 characters, on one line, with no markdown or wrapping quotes, for any input. | Req 4.1, 4.4 |
 | P2 | Any output containing a code-like, URL, secret-like or e-mail string, or an author's name, is rejected (empty), wherever in the text it appears. | Req 4.3, 4.5 |
 | P3 | The cache key changes whenever the model, the prompt version or any input changes, and is the same for the same inputs. | Req 6.4 |
-| P4 | Without `--eulogies`, the analyser's output is byte-identical to the output before this spec, apart from the version-3 fields (`meta.eulogyModel: null`, empty ghost eulogies). | Req 1.2, 5.1 |
+| P4 | Without `--eulogies`, the analyser's output is byte-identical to the output before this spec, with no exceptions. | Req 1.2, 5.1 |
 | P5 | Every eulogy written belongs to a file or ghost present in the data; a failure (or a rejection) for one grave never changes another's eulogy. | Req 5.3, 6.2 |
 | P6 | Cut contents never exceed the budget in bytes, are a prefix of the original, never split a UTF-8 character, and end at a line end when one fits. | Req 3.4 |
 
@@ -89,7 +89,7 @@ Supporting properties:
 
 - **P7** The prompt never contains an author name or e-mail address of the repository, for any file and commit subject (Req 3.3).
 - **P8** The command line: `--eulogies` needs `--eulogy-model`; the model and URL flags need `--eulogies`; a non-local URL is refused; concurrency is 1 to 4 (Req 1.3, 1.4, 6.1).
-- **P9** The frontend reads a version 2 file exactly as a version 3 file with empty ghost eulogies and no model (Req 5.2).
+- **P9** The frontend reads a file without the optional fields exactly as one with empty ghost eulogies and no model; the schema check accepts the fields when present and rejects them when they are not strings (Req 5.1, 5.2).
 - **P10** With a fake client, a re-run against a filled cache makes no request and gives the same data file (Req 6.4).
 
 ## Out of scope
@@ -98,13 +98,16 @@ Supporting properties:
 - The PR function, and the bury and resurrect animations (spec 5).
 - Translating eulogies, or rewriting them by hand in the app.
 
-## Open questions for review
+## Decisions
 
-1. **Schema version 3** (Req 5.1). I propose a version bump with `ghost.eulogy` and `meta.eulogyModel` always present, the frontend reading 2 and 3. The alternative is to stay at version 2 and add both as optional fields written only with `--eulogies`; then the output without `--eulogies` stays byte-identical with no exceptions, but files and ghosts would differ (one has the field always, the other sometimes). Which?
-2. **The cache's place** (Req 6.5). "Next to the output" would put it in `frontend/public/graveyards/` for the demo files, which the site serves to anyone, and it holds file contents' hashes and the eulogies of every model tried. I propose `analyser/.cache/eulogies.json` (git-ignored) with `--eulogy-cache` to move it. Agreed?
-3. **Local only** (Req 1.4). I propose refusing any Ollama host other than this machine, since file contents are sent. A remote Ollama on your own network would then not be usable. Agreed?
-4. **The shared vocabulary** (Req 3.1). To give the model the state and flags "in our shared wording", I propose moving the names and rules (`FACT_NAMES`, `factRule`) from `frontend/src/model/grave-facts.ts` to `shared/vocabulary.ts`, imported by both. The frontend's behaviour does not change.
-5. **Commit subjects** (Req 3.1, 3.2). The analyser's git log does not read messages today. I propose adding the subject line (`%s`) to the one log it already reads, so there is no extra git call per file, and sending only the subject, not the body.
-6. **Author names in commit subjects** (Req 3.3, 4.5). Commit subjects can contain names ("Merge PR from alice"). I propose removing the repository's author names and e-mails from subjects before sending, and rejecting any eulogy that contains one. Agreed?
-7. **Concurrency** (Req 6.1). A flag `--eulogy-concurrency` (1 to 4, default 2), or a fixed 2?
-8. **The secret and code filters** (Req 4.5) will reject some harmless eulogies (one mentioning `useEffect()` with brackets, say). I prefer rejecting too much over leaking: a rejected eulogy is retried once, then left empty. Agreed?
+Settled in review:
+
+1. **Schema:** stays at version 2, with optional `ghost.eulogy` and `meta.eulogyModel`, written only with `--eulogies`; output without `--eulogies` is byte-identical with no exceptions; the frontend treats missing fields as empty (Req 5).
+2. **Cache:** `analyser/.cache/eulogies.json`, git-ignored, `--eulogy-cache <file>` to move it; never in the frontend's public folder (Req 6.5).
+3. **Local only:** any Ollama host other than `localhost`, `127.0.0.1` or `::1` is refused with a clear message (Req 1.4).
+4. **Shared vocabulary:** the names and rules move to `shared/vocabulary.ts`; the frontend's behaviour and tests do not change (Req 3.1).
+5. **Commit messages:** the subject line only, added to the git log the analyser already reads (Req 3.1, 3.2).
+6. **Author names:** the repository's author names and e-mails are removed from subjects before sending, and a eulogy containing one is rejected (Req 3.3, 4.5).
+7. **Concurrency:** `--eulogy-concurrency`, 1 to 4, default 2 (Req 6.1).
+8. **Filters:** strict; a rejected eulogy is retried once, then left empty (Req 4.5, 4.6).
+9. Also agreed: `--eulogy-model` or `--ollama-url` without `--eulogies` is an error; the analyser spec's no-network rule is amended for the local Ollama call only (Req 1.3, 1.5).
