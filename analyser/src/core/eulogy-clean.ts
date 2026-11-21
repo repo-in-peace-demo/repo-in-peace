@@ -1,3 +1,4 @@
+import type { EulogyInput } from './eulogy-input';
 import type { People } from './history';
 import { mentionsPerson } from './redact';
 import { EULOGY_MAX_CHARS } from './eulogy-prompt';
@@ -7,12 +8,17 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *   1. any reasoning block the model wrote (`<think>…</think>`, `<thinking>…`) is removed;
  *   2. the text left is checked: anything code-like, a URL, a secret-like string, an e-mail or a person of the repository rejects it
  *      (before cleaning, so removing markdown cannot hide code);
- *   3. it is cleaned: markdown, emoji, a label and wrapping quotes go, whitespace becomes single spaces, and it is cut to two sentences
- *      and the length limit.
+ *   3. it is cleaned: markdown and emoji go, broken lines are joined, a label and wrapping quotes go, whitespace becomes single spaces,
+ *      and it keeps the whole sentences that fit (two at most);
+ *   4. the cleaned text is checked again: unbalanced quotes, no whole sentence that fits, or a claim the grave's facts contradict
+ *      (a used file called unused, a file that is not ancient called ancient, a living file called forgotten) reject it.
  * Strict on purpose: a harmless eulogy that looks like code is rejected (and retried once) rather than risk a leak.
+ *
+ * Raise CLEANING_VERSION whenever these rules change: it is part of the cache key, so cached eulogies are cleaned by the new rules.
  */
+export const CLEANING_VERSION = 2;
 
-export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author';
+export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts';
 export type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
 
 // ---- 1. Reasoning blocks ----
@@ -83,11 +89,12 @@ export function rejectReason(text: string, people: People): RejectReason | null 
 const QUOTES = `"'“”‘’«»„‟‚‛`;
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu;
 
-/** The sentences of a text: a sentence ends at . ! or ? followed by a space and a capital letter (so "index.ts" does not end one). */
+/** The sentences of a text: a sentence ends at . ! or ?, perhaps with a closing quote, followed by a space and a capital letter (so
+ * "index.ts" does not end one). */
 export function sentencesOf(text: string): string[] {
   const out: string[] = [];
   let start = 0;
-  const end = /[.!?]+(?=\s+\p{Lu})/gu;
+  const end = /[.!?]+["”’»]?(?=\s+["“‘«]?\p{Lu})/gu;
   for (const m of text.matchAll(end)) {
     const stop = m.index! + m[0].length;
     out.push(text.slice(start, stop).trim());
@@ -98,25 +105,86 @@ export function sentencesOf(text: string): string[] {
   return out;
 }
 
+/** Double quotes that open and close: straight ones come in pairs, curly and angled ones match. (Single quotes are left out: they are
+ * also apostrophes.) */
+export function quotesBalanced(text: string): boolean {
+  const count = (c: string): number => text.split(c).length - 1;
+  return count('"') % 2 === 0 && count('“') === count('”') && count('«') === count('»');
+}
+
+/** Wrapping quotes go: a pair around the whole, or one at either end that has no partner. A closing quote that ends a quotation
+ * inside the text ("It whispered, "Fade."") stays. */
 function stripWrappingQuotes(text: string): string {
   let t = text.trim();
-  while (t.length > 0 && QUOTES.includes(t[0]!)) t = t.slice(1).trimStart();
-  while (t.length > 0 && QUOTES.includes(t[t.length - 1]!)) t = t.slice(0, -1).trimEnd();
-  return t;
+  const isQuote = (c: string | undefined): boolean => c !== undefined && QUOTES.includes(c);
+  for (;;) {
+    const first = t[0];
+    const last = t[t.length - 1];
+    if (t.length >= 2 && isQuote(first) && isQuote(last)) t = t.slice(1, -1).trim();
+    else if (isQuote(first) && (!quotesBalanced(t) || "'‘’".includes(first!))) t = t.slice(1).trimStart();
+    else if (isQuote(last) && !quotesBalanced(t)) t = t.slice(0, -1).trimEnd();
+    else return t;
+  }
 }
 
-/** Cut to `max` code points at the last space before it, ending with a full stop. */
-function cutToLength(text: string, max: number): string {
-  const chars = Array.from(text);
-  if (chars.length <= max) return text;
-  let head = chars.slice(0, max - 1).join('');
-  const space = head.lastIndexOf(' ');
-  if (space > 0) head = head.slice(0, space);
-  head = head.replace(/[\s,;:—–\-…]+$/u, '').replace(/[.!?]+$/u, '');
-  return `${head}.`;
+/**
+ * A line break inside a sentence: the model wrapped its line, or wrote verse. Joined with a space, and the next word loses its capital
+ * ("lies the router,\nMocking" becomes "lies the router, mocking") unless it is a name: a word with more capitals or digits, "I", or a
+ * word that the file's path or contents spell the same way (Meta, Vite).
+ */
+function joinBrokenLines(text: string, input: EulogyInput | undefined): string {
+  const known = input === undefined ? '' : `${input.path}\n${input.contents.text}`;
+  return text.replace(/([\p{Ll},;:—–-])[ \t]*\r?\n\s*(\p{Lu}\p{Ll}+)(?![\p{L}\p{N}])/gu, (_all, before: string, word: string) =>
+    known.includes(word) ? `${before} ${word}` : `${before} ${word.toLowerCase()}`,
+  );
 }
 
-export function cleanEulogy(raw: string, context: { people: People }): Cleaned {
+/** The whole sentences that fit: the first two, or the first alone when two are too long; none when the first alone is. */
+function wholeSentences(text: string, max: number): string | undefined {
+  const sentences = sentencesOf(text);
+  for (const take of [2, 1]) {
+    const joined = sentences.slice(0, take).join(' ');
+    if (Array.from(joined).length <= max) return joined;
+  }
+  return undefined;
+}
+
+// ---- 4. Checks against the grave's facts ----
+
+/** Words that make "ancient" or "unused" about something other than the file ("ancient history", "it swept unused imports"). */
+const NOT_ABOUT_THE_FILE_UNUSED =
+  /^\s+(imports?|exports?|variables?|vars|code|dependenc(?:y|ies)|deps|parameters?|params|arguments?|files?|styles?|classes|keys?|fields?|types?|props|values?|entries|rows?|branches|columns?|tables?|bytes?|memory|space|slots?|cells?|items?)\b/i;
+const NOT_ABOUT_THE_FILE_ANCIENT =
+  /^\s+(history|arts?|rites?|rituals?|lore|traditions?|wisdom|tongues?|scrolls?|times|ways|texts?|runes|maps?|mariners?|ones|gods|stars|seas|ruins|tales?|days of)\b/i;
+const NEGATED = /\b(not|never|hardly|nor|no|far from|anything but|less than)\s+(?:yet\s+|so\s+|quite\s+|at all\s+)?$/i;
+
+/** Each occurrence of `word` that the text says of the file: not negated just before it, and not followed by a word that makes it
+ * about something else. */
+function claims(text: string, word: RegExp, notAboutTheFile: RegExp): boolean {
+  for (const m of text.matchAll(word)) {
+    const before = text.slice(0, m.index);
+    const after = text.slice(m.index! + m[0].length);
+    if (NEGATED.test(before) || notAboutTheFile.test(after)) continue;
+    return true;
+  }
+  return false;
+}
+
+/** Phrases that say a file is not used, besides "unused" itself. */
+const NOT_USED = /\b(no longer (used|imported|called|needed)|never (used|imported|called)(?=[\s.,;!?]|$)|(nothing|nobody|no one|no file) (imports|uses|calls|needs) it)\b/i;
+/** Words that call a file dead or gone: wrong for one that is fresh and in use. */
+const DEAD_WORDS = /\b(forgotten|dormant|silent|silenced|abandoned|lifeless|dead|deceased|departed|buried)\b/gi;
+
+/** Whether the eulogy says something the grave's facts contradict (Req 4.5). Ghosts have no state or flags to contradict. */
+export function contradictsFacts(text: string, input: EulogyInput): boolean {
+  if (input.kind !== 'file') return false;
+  if (!input.unused && (claims(text, /\bunused\b/gi, NOT_ABOUT_THE_FILE_UNUSED) || NOT_USED.test(text))) return true;
+  if (input.decayState !== 'ancient' && claims(text, /\bancient\b/gi, NOT_ABOUT_THE_FILE_ANCIENT)) return true;
+  if (input.decayState === 'fresh' && !input.unused && claims(text, DEAD_WORDS, /^(?!)/)) return true; // "never forgotten" is allowed
+  return false;
+}
+
+export function cleanEulogy(raw: string, context: { people: People; input?: EulogyInput }): Cleaned {
   const answer = stripReasoning(raw);
   const reason = rejectReason(answer, context.people);
   if (reason !== null) return { ok: false, reason };
@@ -130,7 +198,7 @@ export function cleanEulogy(raw: string, context: { people: People }): Cleaned {
       .replace(/^\s*>\s?/gm, '') // blockquotes
       .replace(/^\s*(?:[-*+•]|\d+[.)])(\s+|$)/gm, ''); // list markers
   }
-  text = text
+  text = joinBrokenLines(text, context.input)
     .replace(/(\*\*|__)(.+?)\1/g, '$2')
     .replace(/(^|[\s(])[*_](\S(?:.*?\S)?)[*_](?=[\s).,!?;:]|$)/g, '$1$2')
     .replace(/[*_]{2,}/g, '')
@@ -144,8 +212,15 @@ export function cleanEulogy(raw: string, context: { people: People }): Cleaned {
     text = text.replace(/^(epitaph|eulogy|here is (?:the|an|your) epitaph)\s*[:\-—]\s*/i, '');
     text = stripWrappingQuotes(text);
   }
-  text = sentencesOf(text).slice(0, 2).join(' ');
-  text = stripWrappingQuotes(cutToLength(text, EULOGY_MAX_CHARS));
   if (text === '' || !/[\p{L}\p{N}]/u.test(text)) return { ok: false, reason: 'empty' };
+
+  const fitted = wholeSentences(text, EULOGY_MAX_CHARS);
+  if (fitted === undefined) return { ok: false, reason: 'long' };
+  text = stripWrappingQuotes(fitted);
+  if (!/[.!?]["”’»]?$/u.test(text)) text = `${text.replace(/[\s,;:—–\-…]+$/u, '')}.`;
+  if (text === '' || !/[\p{L}\p{N}]/u.test(text)) return { ok: false, reason: 'empty' };
+  // A quote left open, or one that opens the eulogy (a quotation it starts with reads as quotes around it): rejected.
+  if (!quotesBalanced(text) || QUOTES.includes(text[0]!)) return { ok: false, reason: 'quotes' };
+  if (context.input !== undefined && contradictsFacts(text, context.input)) return { ok: false, reason: 'facts' };
   return { ok: true, text };
 }

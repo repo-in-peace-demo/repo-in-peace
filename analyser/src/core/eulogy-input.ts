@@ -1,4 +1,4 @@
-import type { FileEntry, Thresholds } from '../../../shared/graveyard-schema';
+import type { DecayState, FileEntry, Thresholds } from '../../../shared/graveyard-schema';
 import { FACT_NAMES, factRule } from '../../../shared/vocabulary';
 import type { Contents } from './eulogy-contents';
 import type { FileHistory, People, RawGhost } from './history';
@@ -11,7 +11,19 @@ import { redact } from './redact';
  */
 
 export type EulogyInput =
-  | { kind: 'file'; path: string; name: string; state: string; flags: string[]; lines: number; subject: string; contents: Contents }
+  | {
+      kind: 'file';
+      path: string;
+      name: string;
+      state: string;
+      flags: string[];
+      lines: number;
+      subject: string;
+      contents: Contents;
+      /** The facts behind `state` and `flags`, for the tone of the prompt and for checking the answer against them. */
+      decayState: DecayState;
+      unused: boolean;
+    }
   | { kind: 'ghost'; path: string; name: string; deletedDay: string; subject: string; contents: Contents };
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
@@ -30,6 +42,8 @@ export function fileInput(file: FileEntry, history: FileHistory, thresholds: Thr
     lines: file.linesOfCode,
     subject: redact(history.lastCommitSubject, people),
     contents: redacted(contents, people),
+    decayState: file.decayState,
+    unused: file.unused,
   };
 }
 

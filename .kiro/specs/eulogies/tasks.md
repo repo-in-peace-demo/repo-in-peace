@@ -147,6 +147,15 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 13.6 Cloud models (`…:cloud`, `…-cloud`) refused as a usage error (Req 1.4, found while writing the README), with tests in `cli-args.test.ts`.
   - _Requirements: 7_
 
+- [x] 15. Revision after the first real run (both demos with `qwen2.5:7b`)
+  - [x] 15.1 Whole sentences only; unbalanced quotes, or a quote opening the eulogy, rejected (`quotes`); a first sentence over the limit rejected (`long`).
+  - [x] 15.2 `contradictsFacts`: unused on a used file, ancient on a file that is not ancient, dead words on a fresh used file, with negation and "not about the file" exclusions. Replayed on the 251 first-run eulogies.
+  - [x] 15.3 Prompt: a tone per grave from its facts, one example per tone (none opening with "Here lies"), an opening chosen from the path. `PROMPT_VERSION` 2.
+  - [x] 15.4 Lines broken inside a sentence joined, without a capital mid-sentence (names kept when the file spells them so).
+  - [x] 15.5 `CLEANING_VERSION` 2 in the cache key, beside the prompt version.
+  - [x] 15.6 Tests for each, in `eulogy-clean`, `eulogy-prompt`, `eulogy-key` and `eulogy-run` tests.
+  - _Requirements: 3.5, 4.1, 4.4, 4.5_
+
 - [ ] 14. **Final checkpoint** (yours to run)
   - [ ] 14.1 **Run:**
     ```

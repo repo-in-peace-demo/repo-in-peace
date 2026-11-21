@@ -1,8 +1,8 @@
 import { AnalyserError } from '../errors';
 import { cleanEulogy } from './eulogy-clean';
 import type { EulogyInput } from './eulogy-input';
-import { cacheKey } from './eulogy-key';
-import { buildPrompt, PROMPT_VERSION } from './eulogy-prompt';
+import { cacheKey, EULOGY_VERSIONS } from './eulogy-key';
+import { buildPrompt } from './eulogy-prompt';
 import type { People } from './history';
 
 /**
@@ -105,7 +105,7 @@ export async function runEulogies(jobs: ReadonlyArray<EulogyJob>, deps: RunDeps)
   };
 
   const runOne = async (job: EulogyJob): Promise<Outcome> => {
-    const key = cacheKey(deps.model, PROMPT_VERSION, job.input);
+    const key = cacheKey(deps.model, EULOGY_VERSIONS, job.input);
     const hit = deps.cache.get(key);
     if (hit !== undefined && hit !== '') return { kind: 'cached', eulogy: hit };
     let lastReason = '';
@@ -118,7 +118,7 @@ export async function runEulogies(jobs: ReadonlyArray<EulogyJob>, deps: RunDeps)
         return { kind: 'failed', reason: messageOf(error), timedOut: isTimeout(error) };
       }
       errorsInARow = 0;
-      const cleaned = cleanEulogy(raw, { people: deps.people });
+      const cleaned = cleanEulogy(raw, { people: deps.people, input: job.input });
       if (cleaned.ok) {
         keep(key, cleaned.text);
         return { kind: 'written', eulogy: cleaned.text, key };

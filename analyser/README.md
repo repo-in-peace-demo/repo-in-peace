@@ -94,7 +94,7 @@ ollama pull qwen2.5:7b                            # or another model, see below
 
 **There is no default model**, so pick one. What to weigh:
 
-- **Following instructions** matters most. The eulogy must be two sentences, plain text, about the file, with no code, links or names. A model that ignores this has its answers rejected.
+- **Following instructions** matters most. The eulogy must be two sentences, plain text, about the file, in the tone its facts call for, with no code, links or names. A model that ignores this has its answers rejected.
 - **Size and speed.** A grave is one short request. A 3–4B model is quick on most laptops. A 7–8B model writes better but is slower, and wants about 8 GB of free memory.
 - **Examples** to start from: `qwen2.5:7b` (4.7 GB), `qwen2.5:3b` (1.9 GB), `llama3.2:3b`, `gemma3:4b`. Sizes for others are on [ollama.com/library](https://ollama.com/library). Reasoning models (those that "think" first) work too: the analyser asks them to skip the reasoning, and removes any `<think>` block they write anyway.
 - **Not cloud models.** A model whose tag is `cloud` or ends in `-cloud` (`gemma4:cloud`) runs on Ollama's servers, so the analyser refuses it.
@@ -128,9 +128,26 @@ Everything goes to the Ollama server on this machine and nowhere else. For each 
 
 Only commit subjects are sent, never commit bodies. Every author's name, e-mail and handle from the history is replaced by "someone" in the subjects and contents, and a eulogy that names one is rejected. Commit authors still appear in the data file, as before.
 
+### Tone
+
+The model is told how each grave should sound, from its facts:
+
+- **fresh and used:** alive and at work, never "forgotten", "silent" or "dormant";
+- **stale or ancient, and used:** old but still serving;
+- **unused:** may be mourned ("here lies");
+- **a ghost:** departed.
+
+Each grave also gets one of seven ways to begin, picked from its path, so the eulogies don't all open alike.
+
 ### What gets rejected
 
-Each answer is checked before it is kept. It is rejected if it contains code, an e-mail address, a URL, something that looks like a secret or key, or a person's name from the history. A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, and the text is cut to two sentences and 240 characters.
+Each answer is checked before it is kept. It is rejected if it contains code, an e-mail address, a URL, something that looks like a secret or key, or a person's name from the history. After tidying, it is also rejected if:
+
+- a quote is left open, or the eulogy opens with a quote;
+- its first sentence alone is longer than 240 characters;
+- it contradicts the grave's facts: a used file called "unused" (or "no longer used", "nothing imports it"), a file that isn't ancient called "ancient", or a fresh, used file called forgotten, silent or dormant. Negated words ("never forgotten") and words about something else ("unused imports", "ancient lore") are allowed.
+
+A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, lines the model broke inside a sentence are joined, and the eulogy keeps the whole sentences that fit (two at most, 240 characters). It is never cut mid-sentence.
 
 ### The summary
 
@@ -141,7 +158,7 @@ Eulogies: 230 written, 15 from the cache, 6 left empty (4 rejected twice, 2 time
 
 - **written:** new eulogies from the model.
 - **from the cache:** reused from an earlier run, with no request.
-- **left empty:** `rejected twice` (both answers failed the checks), `timed out` (no answer in 60 s), `failed` (Ollama answered with an error), or `not run` (the run stopped early, below). The first 20 are listed with their reason.
+- **left empty:** `rejected twice` (both answers failed the checks; the reason in brackets is one of `code`, `url`, `secret`, `email`, `author`, `quotes`, `long`, `facts`, `empty`), `timed out` (no answer in 60 s), `failed` (Ollama answered with an error), or `not run` (the run stopped early, below). The first 20 are listed with their reason.
 
 A progress line (`Eulogies: 40/251 (12 from the cache)`) appears at most once a second.
 
@@ -153,7 +170,7 @@ A progress line (`Eulogies: 40/251 (12 from the cache)`) appears at most once a 
 
 ### The cache
 
-New eulogies are saved in `analyser/.cache/eulogies.json` (ignored by git) every 25 eulogies and at the end. A second run on the same repository asks the model only about graves whose input changed, and writes the same file byte for byte. The key is a hash of the model, the prompt version and everything the model is shown, so changing the model, the file or its last commit subject writes that grave again. One cache serves every repository and model.
+New eulogies are saved in `analyser/.cache/eulogies.json` (ignored by git) every 25 eulogies and at the end. A second run on the same repository asks the model only about graves whose input changed, and writes the same file byte for byte. The key is a hash of the model, the prompt version, the cleaning-rules version and everything the model is shown, so changing the model, the file or its last commit subject writes that grave again, and a new analyser version with a changed prompt or new rules writes every grave again. One cache serves every repository and model.
 
 Delete the file to start again (`rm analyser/.cache/eulogies.json`). A damaged cache is reported and replaced. The model's sampling is fixed (temperature 0.2, seed 7), but a different Ollama version or machine can still word things differently, so keep the cache if you want the same words.
 

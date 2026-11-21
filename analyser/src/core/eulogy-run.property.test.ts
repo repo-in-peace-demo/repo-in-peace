@@ -2,8 +2,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { AnalyserError } from '../errors';
 import type { EulogyInput } from './eulogy-input';
-import { cacheKey } from './eulogy-key';
-import { buildPrompt, PROMPT_VERSION } from './eulogy-prompt';
+import { EULOGY_VERSIONS, cacheKey } from './eulogy-key';
+import { buildPrompt } from './eulogy-prompt';
 import { modelMessage, runEulogies, type EulogyClient, type EulogyJob, type RunDeps } from './eulogy-run';
 
 const people = { names: new Set<string>(), emails: new Set<string>() };
@@ -20,6 +20,8 @@ const inputOf = (path: string): EulogyInput => ({
   lines: 10,
   subject: 'tidy up',
   contents: { text: 'export const a = 1;\n', cut: false, kind: 'text' },
+  decayState: 'fresh',
+  unused: false,
 });
 const jobOf = (path: string): EulogyJob => ({ path, input: inputOf(path) });
 const goodAnswer = (path: string): string => `Here lies ${path.replace(/[^a-z]/g, ' ').trim() || 'a file'}. It rested well.`;
@@ -137,7 +139,7 @@ describe('P12: the model check', () => {
   it('does not count cache hits or failed requests as answers', async () => {
     const paths = Array.from({ length: 12 }, (_, i) => `f${String(i).padStart(2, '0')}.ts`);
     // 4 cache hits, 4 failed requests (not 5 in a row), then 7 rejections and nothing else: fewer than 8 answers, so no stop.
-    const cache = new Map(paths.slice(0, 4).map((p) => [cacheKey(MODEL, PROMPT_VERSION, inputOf(p)), 'Here lies a cached file. It slept.']));
+    const cache = new Map(paths.slice(0, 4).map((p) => [cacheKey(MODEL, EULOGY_VERSIONS, inputOf(p)), 'Here lies a cached file. It slept.']));
     const plan = new Map(paths.map((p, i) => [p, { behaviour: (i < 4 ? 'pass' : i < 8 ? 'throw' : 'reject') as Behaviour, delay: 0 }]));
     const extra = ['g1.ts', 'g2.ts', 'g3.ts'];
     for (const p of extra) plan.set(p, { behaviour: 'reject', delay: 0 });
@@ -201,7 +203,7 @@ describe('the run: examples', () => {
   });
 
   it('summary counts add up to the number of jobs, and the summary line says so', async () => {
-    const cache = new Map([[cacheKey(MODEL, PROMPT_VERSION, inputOf('src/f0.ts')), 'Here lies f0. It slept.']]);
+    const cache = new Map([[cacheKey(MODEL, EULOGY_VERSIONS, inputOf('src/f0.ts')), 'Here lies f0. It slept.']]);
     const lines: string[] = [];
     const result = await runEulogies(jobs, deps(fakeClient(mixed), { cache, log: (m) => lines.push(m) }));
     expect(result.written + result.cached + result.empty.length).toBe(jobs.length);
@@ -220,8 +222,22 @@ describe('the run: examples', () => {
     expect(progress[0]).toMatch(/^Eulogies: \d+\/10 \(0 from the cache\)$/);
   });
 
+  it('checks each answer against its own grave: a used file called unused is retried, with the reminder', async () => {
+    const prompts: string[] = [];
+    const client: EulogyClient = {
+      async generate({ prompt }) {
+        prompts.push(prompt);
+        return prompts.length === 1 ? 'Though unused, the keeper waits by the gate.' : 'The keeper still guards the gate each night.';
+      },
+    };
+    const result = await runEulogies([jobOf('src/keeper.ts')], deps(client));
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain('said something the facts above contradict');
+    expect(result.eulogies.get('src/keeper.ts')).toBe('The keeper still guards the gate each night.');
+  });
+
   it('reads a cache hit without calling the model', async () => {
-    const cache = new Map([[cacheKey(MODEL, PROMPT_VERSION, inputOf('a.ts')), 'Here lies a. It slept.']]);
+    const cache = new Map([[cacheKey(MODEL, EULOGY_VERSIONS, inputOf('a.ts')), 'Here lies a. It slept.']]);
     const client = fakeClient(new Map([['a.ts', { behaviour: 'throw' as Behaviour, delay: 0 }]]));
     const result = await runEulogies([jobOf('a.ts')], deps(client, { cache }));
     expect(client.calls).toBe(0);

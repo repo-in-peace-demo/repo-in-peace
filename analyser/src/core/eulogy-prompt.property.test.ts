@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { FileEntry, Thresholds } from '../../../shared/graveyard-schema';
 import type { Contents } from './eulogy-contents';
 import { fileInput, ghostInput } from './eulogy-input';
-import { EULOGY_MAX_CHARS, EXAMPLE_FILE, buildPrompt } from './eulogy-prompt';
+import { EULOGY_MAX_CHARS, EXAMPLES, EXAMPLE_FILE, OPENINGS, PROMPT_VERSION, TONE_TEXT, buildPrompt, openingFor, toneOf, type Tone } from './eulogy-prompt';
 import type { FileHistory, People, RawGhost } from './history';
 import { personPattern, personWords } from './redact';
 
@@ -68,15 +68,61 @@ describe('the prompt', () => {
     expect(buildPrompt(ghostInput(ghost(''), text('x'), nobody)).prompt).toContain('Deleted: 2026-10-12');
   });
 
-  it('shows the tone with an example about a made-up file, short enough for the rules', () => {
-    const { system } = buildPrompt(stone);
-    expect(system).toContain(EXAMPLE_FILE);
-    const example = system.split('\n').at(-1)!;
-    expect(example.length).toBeLessThan(EULOGY_MAX_CHARS);
-    expect(example.split(/[.!?](\s|$)/).filter((s) => s.trim().length > 1).length).toBeLessThanOrEqual(2);
+  const tones: Array<[Tone, Partial<FileEntry> | 'ghost']> = [
+    ['alive', { decayState: 'fresh', unused: false }],
+    ['serving', { decayState: 'stale', unused: false }],
+    ['serving', { decayState: 'ancient', unused: false }],
+    ['mourned', { decayState: 'fresh', unused: true }],
+    ['mourned', { decayState: 'ancient', unused: true }],
+    ['departed', 'ghost'],
+  ];
+
+  it.each(tones)('gives the %s tone, its example and an opening for %j', (tone, over) => {
+    const input = over === 'ghost' ? ghostInput(ghost('x'), text('x'), nobody) : fileInput(file(over), history('x'), T, text('x'), nobody);
+    expect(toneOf(input)).toBe(tone);
+    const { prompt } = buildPrompt(input);
+    expect(prompt).toContain(`Tone: ${TONE_TEXT[tone]}`);
+    expect(prompt).toContain(`Example in this tone, for a made-up file ${EXAMPLE_FILE}: ${EXAMPLES[tone]}`);
+    expect(prompt).toContain(`Opening: ${openingFor(input.path)}`);
   });
 
-  const nameArb = fc.stringMatching(/^[A-Z][a-z]{2,9}$/).filter((n) => !['Someone', 'File', 'Path', 'State', 'Flags', 'Lines', 'Last', 'Contents', 'Deleted', 'Deleting', 'Write', 'Rules', 'Never', 'Plain', 'Answer', 'Example', 'Here', 'Its', 'If', 'At', 'Accurate', 'Atmospheric', 'Your'].includes(n));
+  it('tells a living file it is alive, an old used one that it still serves, and lets only the unused and the deleted be mourned', () => {
+    expect(TONE_TEXT.alive).toMatch(/Never call it forgotten, silent, dormant/);
+    expect(TONE_TEXT.serving).toMatch(/still uses it/);
+    expect(TONE_TEXT.mourned).toMatch(/here lies/);
+    expect(TONE_TEXT.departed).toMatch(/deleted/);
+    expect(TONE_TEXT.alive).not.toMatch(/here lies/i);
+    expect(TONE_TEXT.serving).not.toMatch(/here lies/i);
+  });
+
+  it('has examples about the made-up file only, none opening with "Here lies", each at most two sentences and short enough', () => {
+    for (const example of Object.values(EXAMPLES)) {
+      expect(example).not.toMatch(/^Here lies/i);
+      expect(example).toMatch(/lantern keeper/);
+      expect(Array.from(example).length).toBeLessThan(EULOGY_MAX_CHARS - 40);
+      expect(example.split(/[.!?](\s|$)/).filter((s) => s.trim().length > 1).length).toBeLessThanOrEqual(2);
+    }
+    expect(buildPrompt(stone).system).not.toMatch(/^Here lies/m);
+  });
+
+  it('chooses the opening from the path alone, the same every time, and spreads paths across the openings', () => {
+    fc.assert(fc.property(fc.string({ minLength: 1, maxLength: 40 }), (path) => openingFor(path) === openingFor(path) && OPENINGS.includes(openingFor(path))));
+    const used = new Set(Array.from({ length: 200 }, (_, i) => openingFor(`src/file-${i}.ts`)));
+    expect(used.size).toBe(OPENINGS.length);
+    const counts = OPENINGS.map((o) => Array.from({ length: 700 }, (_, i) => openingFor(`app/f${i}.tsx`)).filter((x) => x === o).length);
+    expect(Math.min(...counts)).toBeGreaterThan(50); // about 100 each
+  });
+
+  it('is prompt version 2', () => {
+    expect(PROMPT_VERSION).toBe(2);
+  });
+
+  const FIXED_WORDS = new Set(
+    [buildPrompt(stone).system, buildPrompt(stone, true).prompt, ...Object.values(TONE_TEXT), ...Object.values(EXAMPLES), ...OPENINGS, 'File Path State Flags Lines Last Contents Deleted Deleting Write Someone Tone Opening Example']
+      .join(' ')
+      .split(/[^A-Za-z]+/),
+  );
+  const nameArb = fc.stringMatching(/^[A-Z][a-z]{2,9}$/).filter((n) => !FIXED_WORDS.has(n) && !FIXED_WORDS.has(n.toLowerCase()));
 
   it('P7: for any people and any subject and contents mentioning them, the prompt names none of them', () => {
     fc.assert(
