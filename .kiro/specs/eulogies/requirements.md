@@ -21,7 +21,7 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 1. THE analyser SHALL take three new optional flags: `--eulogies` turns eulogies on; `--eulogy-model <name>` names the Ollama model, with no default; `--ollama-url <url>` names the Ollama server, default `http://localhost:11434`.
 2. WITHOUT `--eulogies` THE analyser SHALL behave exactly as before: no request is made, every file's eulogy is `""`, and the output is byte-identical to what it wrote before this spec, with no exceptions (Req 5).
 3. `--eulogies` without `--eulogy-model` SHALL be a command-line error (exit 2) that says how to choose and pull a model. `--eulogy-model` or `--ollama-url` without `--eulogies` SHALL also be an error, so a typo does not silently skip the eulogies.
-4. THE Ollama URL SHALL be on this machine: its host SHALL be `localhost`, `127.0.0.1` or `::1`. Any other host SHALL be a command-line error, because file contents are sent to it (Req 7).
+4. THE Ollama URL SHALL be on this machine: its host SHALL be `localhost`, `127.0.0.1` or `::1`. Any other host SHALL be a command-line error, because file contents are sent to it (Req 7). A model Ollama runs on its own servers (a tag of `cloud` or ending in `-cloud`, such as `gemma4:cloud`) SHALL also be a command-line error, since it would send the contents off this machine through a local URL. (Added in task 13, when the Ollama download page showed that cloud models are reached through the local server.)
 5. THE analyser's rule that it reads only the local clone and calls no network service (repo-analyser Req 1.4) SHALL be amended: with `--eulogies`, and only then, it MAY call the given local Ollama server, and nothing else.
 
 ### 2. Before generating
@@ -71,7 +71,7 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 ### 8. The frontend
 
 1. THE detail panel SHALL show a non-empty eulogy as an epitaph: italic, set apart from the facts, with a small credit "written by <model>" from `meta.eulogyModel`. A ghost's eulogy SHALL be shown the same way.
-2. AN empty eulogy SHALL keep the placeholder of the interface spec.
+2. AN empty eulogy SHALL show a dimmed line instead, which replaces the interface spec's placeholder: "No eulogies were written for this graveyard." WHEN `meta.eulogyModel` is absent (the analyser ran without eulogies), and "Words failed us for this one." WHEN it is set (this grave was left empty in a run with eulogies). The panel SHALL NOT explain how to write eulogies; the analyser README does.
 3. THE eulogy SHALL be shown as text only, never as markup (it came from a model).
 
 ## Correctness properties

@@ -122,7 +122,7 @@ Status key: `[x]` done, `[ ]` not started.
 ## Part 4: The frontend and the docs
 
 - [x] 12. The epitaph in the detail panel (`ui/DetailPanel.tsx`, `index.css`)
-  - [x] 12.1 A non-empty eulogy shows as an epitaph, with "written by <model>" when `meta.eulogyModel` is set. Ghosts use `ghost.eulogy ?? ''`, and the placeholder stays for an empty eulogy. Text only.
+  - [x] 12.1 A non-empty eulogy shows as an epitaph, with "written by <model>" when `meta.eulogyModel` is set. Ghosts use `ghost.eulogy ?? ''`, and the placeholder stays for an empty eulogy. Text only. (Changed in task 13 to the two empty lines of Req 8.2.)
   - [x] 12.2 **Browser check** in `e2e/interface.spec.ts`. It loads a copy of a demo file with eulogies and a model set, written by the test to a temporary file and opened through Open a graveyard file. (Built in memory and given to the file input as a buffer, as `boot.spec.ts` does: the same path as a file from disk.) It checks:
     - the epitaph and the credit for a stone and for a ghost;
     - the placeholder for a grave with an empty eulogy;
@@ -131,8 +131,8 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "epitaph"`, then the screenshot. **Commit** with it.
   - _Requirements: 8_
 
-- [ ] 13. Documentation
-  - [ ] 13.1 `analyser/README.md`, a "Eulogies" section:
+- [x] 13. Documentation
+  - [x] 13.1 `analyser/README.md`, a "Eulogies" section:
     - installing Ollama;
     - choosing and pulling a model, with what to weigh: size, speed, and following instructions (a few named examples, no default);
     - the five flags;
@@ -140,9 +140,11 @@ Status key: `[x]` done, `[ ]` not started.
     - the cache and how to clear it;
     - what the summary means;
     - what to do when the run stops for the model.
-  - [ ] 13.2 The repository `README.md`: one line on eulogies and where they come from.
-  - [ ] 13.3 `.kiro/specs/repo-analyser/requirements.md`: Req 1.4 amended for the local Ollama call with `--eulogies` only.
-  - [ ] 13.4 `docs/kiro-notes.md`: this spec's decisions (local model only, the schema without a bump, the cache outside `public/`, the strict filters, reasoning blocks).
+  - [x] 13.2 The repository `README.md`: one line on eulogies and where they come from.
+  - [x] 13.3 `.kiro/specs/repo-analyser/requirements.md`: Req 1.4 amended for the local Ollama call with `--eulogies` only.
+  - [x] 13.4 `docs/kiro-notes.md`: this spec's decisions (local model only, the schema without a bump, the cache outside `public/`, the strict filters, reasoning blocks).
+  - [x] 13.5 The empty-eulogy lines (Req 8.2, changed at your request): "No eulogies were written for this graveyard." without `meta.eulogyModel`, "Words failed us for this one." with it; browser checks updated.
+  - [x] 13.6 Cloud models (`…:cloud`, `…-cloud`) refused as a usage error (Req 1.4, found while writing the README), with tests in `cli-args.test.ts`.
   - _Requirements: 7_
 
 - [ ] 14. **Final checkpoint** (yours to run)

@@ -210,6 +210,12 @@ export function parseCliArgs(argv: readonly string[], now: () => string): Parsed
   return { kind: 'run', options };
 }
 
+/**
+ * Ollama runs a model whose tag is `cloud` or ends in `-cloud` (`gemma4:cloud`, `gpt-oss:120b-cloud`) on its own servers, even through a
+ * local URL, so such a model would send contents off this machine (Req 1.4).
+ */
+export const isCloudModel = (model: string): boolean => /(?::|-)cloud$/i.test(model.trim());
+
 /** @returns undefined when Ollama may be used at this URL, or what is wrong with it. */
 export function ollamaUrlProblem(raw: string): string | undefined {
   let url: URL;
@@ -245,6 +251,11 @@ function parseEulogyFlags(values: EulogyFlagValues): EulogyOptions | { message: 
   const model = values['eulogy-model']?.trim() ?? '';
   if (model === '') {
     return { message: 'Choose a model with --eulogy-model, for example qwen2.5:7b (see the README); install it with ollama pull <name>.' };
+  }
+  if (isCloudModel(model)) {
+    return {
+      message: `--eulogy-model ${model} is an Ollama cloud model: it runs on Ollama's servers, so file contents would leave this machine. Choose a model that runs locally (see the README).`,
+    };
   }
   const ollamaUrl = values['ollama-url'] ?? DEFAULT_OLLAMA_URL;
   const urlProblem = ollamaUrlProblem(ollamaUrl);

@@ -84,7 +84,7 @@ test.describe('the detail panel', () => {
     await expect(panel(page)).toContainText(hotDetail(voice, oikos.meta));
     await expect(panel(page)).toContainText(usageDetail(voice, oikos.meta));
     await expect(panel(page)).toContainText(voice.decayScore.toFixed(2));
-    await expect(panel(page)).toContainText('[No eulogy yet.');
+    await expect(panel(page)).toContainText('No eulogies were written for this graveyard.');
     const bury = panel(page).getByRole('button', { name: 'Bury' });
     await expect(bury).toHaveAttribute('aria-disabled', 'true');
     await expect(panel(page)).toContainText('Arrives with the PR function.');
@@ -612,7 +612,7 @@ test('a click on a search result also clears the box and gives the keys back to 
 test.describe('the epitaph', () => {
   const panel = (page: Page) => page.getByRole('complementary', { name: 'Selected grave' });
 
-  test('a stone and a ghost show their epitaph and its credit; an empty eulogy keeps the placeholder; markup shows as text', async ({ page }) => {
+  test('a stone and a ghost show their epitaph and its credit; a grave left empty says words failed; markup shows as text', async ({ page }) => {
     const { graveyard, stone, ghost, empty, markup } = eulogyGraveyard();
     await page.setViewportSize({ width: 1280, height: 720 });
     await openEulogyFile(page, graveyard);
@@ -622,7 +622,7 @@ test.describe('the epitaph', () => {
     await select('file', stone);
     await expect(epitaph.locator('blockquote')).toHaveText(STONE_EPITAPH);
     await expect(epitaph.locator('figcaption')).toHaveText(`written by ${EULOGY_MODEL}`);
-    await expect(panel(page)).not.toContainText('[No eulogy yet.');
+    await expect(panel(page).locator('.detail-eulogy-empty')).toHaveCount(0);
 
     await select('ghost', ghost);
     await expect(epitaph.locator('blockquote')).toHaveText(GHOST_EPITAPH);
@@ -630,17 +630,21 @@ test.describe('the epitaph', () => {
 
     await select('file', empty);
     await expect(epitaph).toHaveCount(0);
-    await expect(panel(page)).toContainText('[No eulogy yet.');
+    await expect(panel(page).locator('.detail-eulogy-empty')).toHaveText('Words failed us for this one.');
 
     await select('file', markup);
     await expect(epitaph.locator('blockquote')).toHaveText(MARKUP_EULOGY);
     await expect(epitaph.locator('b')).toHaveCount(0);
   });
 
-  test('a demo file without eulogies still shows the placeholder and no credit', async ({ page }) => {
-    await openScene(page, 'demo.spatialql');
-    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'ghost', path: p }), spatialql.ghosts[0]!.path);
-    await expect(panel(page)).toContainText('[No eulogy yet.');
+  test('a file without eulogies says none were written, and shows no credit', async ({ page }) => {
+    const { graveyard } = eulogyGraveyard();
+    delete graveyard.meta.eulogyModel;
+    for (const f of graveyard.files) f.eulogy = '';
+    for (const g of graveyard.ghosts) delete g.eulogy;
+    await openEulogyFile(page, graveyard);
+    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'ghost', path: p }), graveyard.ghosts[0]!.path);
+    await expect(panel(page).locator('.detail-eulogy-empty')).toHaveText('No eulogies were written for this graveyard.');
     await expect(panel(page).locator('figure.detail-epitaph')).toHaveCount(0);
   });
 });

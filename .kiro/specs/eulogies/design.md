@@ -49,6 +49,7 @@ Usage errors (exit 2), each saying what to do:
 - `--eulogy-model`, `--ollama-url`, `--eulogy-concurrency` or `--eulogy-cache` without `--eulogies`.
 - A URL that isn't `http:` or `https:`, or whose host isn't `localhost`, `127.0.0.1` or `[::1]` (Req 1.4).
 - A concurrency that isn't a whole number from 1 to 4.
+- A cloud model (`isCloudModel`: a tag of `cloud` or ending in `-cloud`), which Ollama runs on its servers even through a local URL (Req 1.4, added in task 13).
 
 The default cache path resolves against the analyser package's folder, not the current folder, so it is the same place wherever the command runs. `--eulogy-cache` resolves against the current folder like `--out`. A cache path inside the clone is refused, as the output is.
 
@@ -206,7 +207,7 @@ Each eulogy left empty is logged with its reason (`left empty: src/f3.ts (reques
   - **Epitaph:** a non-empty eulogy shows in a `<figure className="detail-epitaph">` with the eulogy in a `<blockquote>`. It's italic, slightly larger, centred, between thin rules.
   - **Credit:** `<figcaption>written by {meta.eulogyModel}</figcaption>`, small and dim, shown only when `eulogyModel` is set.
   - **Ghosts:** they use `ghost.eulogy ?? ''`.
-  - **Placeholder:** empty eulogies keep it.
+  - **Empty:** a dimmed line, "No eulogies were written for this graveyard." when `meta.eulogyModel` is absent, "Words failed us for this one." when it is set (Req 8.2, changed after task 12; it replaces the interface spec's placeholder, which promised eulogies "in a later version").
   - **Text only:** everything is text nodes.
 - `index.css`: `.detail-epitaph`.
 - **No other frontend change:** the optional fields need none, and the validator accepts them (P9).

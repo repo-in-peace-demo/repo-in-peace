@@ -170,9 +170,17 @@ function GhostDetail({ ghost, meta }: { ghost: Ghost; meta: RepoMeta }) {
   );
 }
 
-/** The grave's epitaph (eulogies spec, Req 8), with the model that wrote it. It came from a model, so it goes on the page as text only. */
+/** No eulogies in the file at all (the analyser ran without them). */
+const NO_EULOGIES = 'No eulogies were written for this graveyard.';
+/** This grave was left empty in a run with eulogies (the model's answers were rejected, or its request failed). */
+const WORDS_FAILED = 'Words failed us for this one.';
+
+/**
+ * The grave's epitaph (eulogies spec, Req 8), with the model that wrote it. It came from a model, so it goes on the page as text only.
+ * An empty one says which kind of empty it is: `meta.eulogyModel` is set only when the analyser wrote eulogies.
+ */
 function Eulogy({ text, model }: { text: string; model: string | undefined }) {
-  if (text.trim() === '') return <p className="detail-eulogy-empty">[No eulogy yet. They will be written in a later version.]</p>;
+  if (text.trim() === '') return <p className="detail-eulogy-empty">{model === undefined ? NO_EULOGIES : WORDS_FAILED}</p>;
   return (
     <figure className="detail-epitaph">
       <blockquote>{text}</blockquote>

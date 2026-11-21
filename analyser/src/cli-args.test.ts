@@ -255,6 +255,14 @@ describe('P8: the eulogy flags', () => {
     expect(usage('--eulogies', '--eulogy-model', 'm', '--ollama-url', url)).toMatch(message);
   });
 
+  it.each(['gemma4:cloud', 'gpt-oss:120b-cloud', 'qwen3-coder:480b-CLOUD'])('refuses the cloud model %s, which would run off this machine', (model) => {
+    expect(usage('--eulogies', '--eulogy-model', model)).toMatch(/is an Ollama cloud model: .* would leave this machine/);
+  });
+
+  it.each(['qwen2.5:7b', 'llama3.2', 'cloudy:1b', 'mycloud'])('accepts the local model name %s', (model) => {
+    expect(run('--eulogies', '--eulogy-model', model).eulogies?.model).toBe(model);
+  });
+
   it('accepts any whole number of requests from 1 to 4, and nothing else', () => {
     fc.assert(
       fc.property(fc.oneof(fc.integer({ min: -10, max: 20 }).map(String), fc.string({ maxLength: 4 }), fc.constantFrom('1.5', '2.0', '02', ' ', '1e0')), (value) => {

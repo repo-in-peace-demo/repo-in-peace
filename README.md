@@ -34,6 +34,8 @@ npm install
 npm run analyse -- <path-to-a-full-clone> --out ../frontend/public/graveyards/<name>.graveyard.json
 ```
 
+Add `--eulogies --eulogy-model <model>` to have a language model on your own machine (through [Ollama](https://ollama.com)) write a short epitaph for every grave; nothing is sent anywhere else. See `analyser/README.md` for choosing a model.
+
 A file dropped into `frontend/public/graveyards/` appears on the boot screen on the next load (the demo list is made from the folder). Or keep it anywhere and use **Open a graveyard file…**. See `analyser/README.md` for the options and `frontend/README.md` for the frontend.
 
 ## Licence

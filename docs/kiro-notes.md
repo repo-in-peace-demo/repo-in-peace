@@ -17,6 +17,7 @@ Three always-on steering files (`.kiro/steering/`) set the rules every spec foll
 | `repo-analyser` | A local git clone in, one graveyard data file out: ages, sizes, decay, Knip's unused files, and ghosts for deleted files |
 | `graveyard-scene` | The 3D scene: nested plots, tombstones, moss, cracks, candles and ghosts, signs, the camera and its limits, the atmosphere, the opening move |
 | `interface` | Everything around the scene: boot screen → digging → scene, the hover line, the detail panel, the list and search |
+| `eulogies` | A two-sentence epitaph for every grave, written at analysis time by a local model through Ollama, stored in the data file and shown in the detail panel |
 
 ## The interface spec, step by step
 
@@ -48,6 +49,16 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 | P4 | Whatever selects a grave (scene, list, search), the store holds it and exactly one list row is highlighted (checked end to end in the browser) |
 | P5 | The state sentence names the file's decay state, its age and the data file's threshold |
 | P6 to P13 | The demo list, the version check for picked files, the digging screen's timing, the panel's side, path shortening, the hover line, UTC dates (tested in a +14 h time zone), and Bury exactly on unused stones |
+
+## The eulogies spec: decisions
+
+- **A local model only.** The Ollama URL must name this machine (`localhost`, `127.0.0.1`, `[::1]`), and cloud models (`…:cloud`) are refused. The cloud rule was added while writing the README, when Ollama's download page showed that such models are reached through the local server, so the URL check alone did not keep contents on the machine. Repo-analyser Req 1.4 (no network) was amended for this one call.
+- **No schema bump.** `ghost.eulogy` and `meta.eulogyModel` are optional and written only with `--eulogies`, so the schema stays at version 2 and, without the flag, the output is byte-identical (checked against the golden file and on generated repositories).
+- **The cache lives in `analyser/.cache/`**, ignored by git, not in `frontend/public/`. It holds model output for many repositories and is not something to serve.
+- **Strict filters, no repair.** An answer with code, an e-mail, a URL, a secret-like string or an author's name is rejected, asked for once more, then left empty. Names, e-mails and handles are also redacted from what the model sees, and only commit subjects are sent. The panel then says "Words failed us for this one." If the first 8 answers are all rejected, the run stops and suggests another model, rather than writing a graveyard of empty stones.
+- **Reasoning models.** Requests send `think: false`, and any `<think>` block (closed, unclosed or stray) is removed before the checks. A fake-server test covers a model that thinks anyway.
+- **Found by property tests while building:** a keyword rule that took "let it rest" for code; long file paths taken for secrets; markdown, emoji and quotes wrapping each other (`" > A`), which needed removing together until nothing changed. Also, the model check counts answers in path order, so whether a run stops never depends on which request finished first.
+- **Found by the code, not the design:** `git cat-file --batch` answers with a blob's SHA, not the `<commit>:<path>` it was asked for, so ghosts' contents need a `git rev-parse` step first.
 
 ## Where specs and steering caught things
 

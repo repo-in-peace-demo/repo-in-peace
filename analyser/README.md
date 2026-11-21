@@ -36,6 +36,8 @@ Progress and warnings go to stderr. Stdout stays empty.
 
 Exit codes: `0` success; `1` the analysis failed (the message says why and nothing is written); `2` the command line is wrong.
 
+The eulogy flags are in [Eulogies](#eulogies).
+
 ## Decay thresholds
 
 All times are measured from the **snapshot commit date** (the date of `HEAD`), never from today, so the same snapshot always gives the same output.
@@ -76,6 +78,85 @@ At very large thresholds (a decay cap above 2000 days, that is `--ancient-after`
 
 Files git tracks at the snapshot, with the extensions `.js .jsx .mjs .cjs .ts .tsx .mts .cts`, excluding `.d.ts`-style declaration files and anything under a directory named `node_modules`, `dist`, `build`, `coverage`, `.next` or `out`. Lines of code are non-blank lines. Ghosts follow the same rules, so the graveyard never shows a ghost for something it would not show alive.
 
+## Eulogies
+
+With `--eulogies`, a language model on your own machine writes a two-sentence epitaph for every grave, and the detail panel shows it with the model's name. Without the flag nothing changes: no request is made and the output is byte for byte what it was.
+
+### Install Ollama and a model
+
+The analyser talks to [Ollama](https://ollama.com), which runs models locally.
+
+```
+curl -fsSL https://ollama.com/install.sh | sh     # macOS or Linux; or download the app from ollama.com/download
+ollama serve                                      # not needed if the Ollama app is running
+ollama pull qwen2.5:7b                            # or another model, see below
+```
+
+**There is no default model**, so pick one. What to weigh:
+
+- **Following instructions** matters most. The eulogy must be two sentences, plain text, about the file, with no code, links or names. A model that ignores this has its answers rejected.
+- **Size and speed.** A grave is one short request. A 3–4B model is quick on most laptops. A 7–8B model writes better but is slower, and wants about 8 GB of free memory.
+- **Examples** to start from: `qwen2.5:7b` (4.7 GB), `qwen2.5:3b` (1.9 GB), `llama3.2:3b`, `gemma3:4b`. Sizes for others are on [ollama.com/library](https://ollama.com/library). Reasoning models (those that "think" first) work too: the analyser asks them to skip the reasoning, and removes any `<think>` block they write anyway.
+- **Not cloud models.** A model whose tag is `cloud` or ends in `-cloud` (`gemma4:cloud`) runs on Ollama's servers, so the analyser refuses it.
+
+Then:
+
+```
+npm run analyse -- <path-to-clone> --out /tmp/repo.graveyard.json --eulogies --eulogy-model qwen2.5:7b
+```
+
+### Flags
+
+| Flag | Meaning | Default |
+| --- | --- | --- |
+| `--eulogies` | Write a eulogy for every grave. | off |
+| `--eulogy-model <name>` | The Ollama model. Needed with `--eulogies`. | none |
+| `--ollama-url <url>` | The Ollama server. Its host must be `localhost`, `127.0.0.1` or `[::1]`. | `http://localhost:11434` |
+| `--eulogy-concurrency <n>` | Requests at a time, 1 to 4. | 2 |
+| `--eulogy-cache <file>` | The cache of eulogies. Must be outside the clone. | `analyser/.cache/eulogies.json` |
+
+The last four work only with `--eulogies`; given without it, they are an error, so a typo never quietly skips the eulogies.
+
+### What is sent, and where
+
+Everything goes to the Ollama server on this machine and nowhere else. For each grave the model sees:
+
+- the path and file name;
+- for a file: its state and flags in the legend's words, its size, and its last commit's subject;
+- for a ghost: the day it was deleted and the deleting commit's subject;
+- the contents (for a ghost, as it was in its last commit), cut to the first 4 KB at a line break. A binary or empty file is marked as such instead.
+
+Only commit subjects are sent, never commit bodies. Every author's name, e-mail and handle from the history is replaced by "someone" in the subjects and contents, and a eulogy that names one is rejected. Commit authors still appear in the data file, as before.
+
+### What gets rejected
+
+Each answer is checked before it is kept. It is rejected if it contains code, an e-mail address, a URL, something that looks like a secret or key, or a person's name from the history. A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, and the text is cut to two sentences and 240 characters.
+
+### The summary
+
+```
+Eulogies: 230 written, 15 from the cache, 6 left empty (4 rejected twice, 2 timed out).
+  left empty: src/legacy/parser.ts (rejected twice (code))
+```
+
+- **written:** new eulogies from the model.
+- **from the cache:** reused from an earlier run, with no request.
+- **left empty:** `rejected twice` (both answers failed the checks), `timed out` (no answer in 60 s), `failed` (Ollama answered with an error), or `not run` (the run stopped early, below). The first 20 are listed with their reason.
+
+A progress line (`Eulogies: 40/251 (12 from the cache)`) appears at most once a second.
+
+### When the run stops
+
+- **Ollama not running, or the model not installed:** the analyser stops before reading anything else, exits 1, and prints the command to run (`ollama serve`, or `ollama pull <model>` with the installed models listed).
+- **Ollama stops answering:** after 5 failed requests in a row, no more are sent. The rest are left empty and the file is still written.
+- **The model never follows the rules:** if the first 8 graves the model answered (in path order) were all rejected, the run stops with exit 1, writes no output and keeps nothing new in the cache. The message names the model. Try another one: usually a larger model, or one known for following instructions.
+
+### The cache
+
+New eulogies are saved in `analyser/.cache/eulogies.json` (ignored by git) every 25 eulogies and at the end. A second run on the same repository asks the model only about graves whose input changed, and writes the same file byte for byte. The key is a hash of the model, the prompt version and everything the model is shown, so changing the model, the file or its last commit subject writes that grave again. One cache serves every repository and model.
+
+Delete the file to start again (`rm analyser/.cache/eulogies.json`). A damaged cache is reported and replaced. The model's sampling is fixed (temperature 0.2, seed 7), but a different Ollama version or machine can still word things differently, so keep the cache if you want the same words.
+
 ## Known limitations
 
 - **Edits made only inside a merge commit** (conflict resolutions) are not seen, because `git log` shows no file changes for merges. The branch commits still carry the real changes.
@@ -101,5 +182,7 @@ Pure logic (scoring, layout of the data, history) is separate from git and Knip 
 5. Every ghost's last existing commit contains the file and restores it byte for byte.
 6. With the default thresholds, the output is what the analyser wrote before thresholds were configurable (`test/golden/default-thresholds.json`).
 7. Decay state agrees with the thresholds.
+
+The eulogies have their own properties (`.kiro/specs/eulogies/design.md`): the format of an accepted eulogy, the rejection of code, links, secrets and names, redaction, the cache key, isolation of one grave's failure, byte-identical output without the flag, and a re-run served from the cache. No test calls a real model: they use a fake client, or a fake Ollama server on 127.0.0.1.
 
 The end-to-end test builds real git repositories from random histories (renames, deletes, re-adds, out-of-order dates, merged side branches) and checks the whole pipeline against an independent model and against git itself.

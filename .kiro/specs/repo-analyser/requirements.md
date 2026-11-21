@@ -25,7 +25,7 @@ The schema lives once in `shared/` and is versioned. Scoring and data shaping ar
 1. WHEN invoked with a path to a git clone THE analyser SHALL analyse that clone and write the graveyard data file.
 2. WHEN an output path is given THE analyser SHALL write to it. OTHERWISE it SHALL write to `<repo-name>.graveyard.json` in the current working directory.
 3. IF the path does not exist, is not a git repository, or is a shallow clone THEN THE analyser SHALL exit non-zero with a message naming the problem, and SHALL NOT write an output file. (A shallow clone lacks the history that ghosts and last-commit dates need.)
-4. THE analyser SHALL read only from the local clone. It SHALL NOT call the GitHub API or any other network service.
+4. THE analyser SHALL read only from the local clone. It SHALL NOT call the GitHub API or any other network service. (Amended by the eulogies spec, Req 1.5: with `--eulogies`, and only then, it MAY call the Ollama server given by `--ollama-url`, which must be on this machine, with a model that runs locally. Nothing else.)
 5. THE analyser SHALL NOT modify the clone, including its working tree, index, and branches.
 6. WHERE an optional `--analysed-at <ISO timestamp>` is given THE analyser SHALL use it as the analysis timestamp. OTHERWISE it SHALL use the current clock, read once at the command-line edge and passed into the pure pipeline.
 7. WHERE an optional `--knip-config <path>` is given THE analyser SHALL use it as Knip's configuration file (see Requirement 6).

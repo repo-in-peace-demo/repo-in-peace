@@ -126,7 +126,7 @@ function shortenPath(path: string, maxChars: number): string;    // middle ellip
 - **Ghost:**
   - The heading is the file name, with the path below it.
   - The `<dl>` has: Deleted (`calendarDay`, "by" the author); In commit (the first 7 characters, with a copy button for the full SHA); Type (`fileType`).
-- **Eulogy:** a `<blockquote>` with the eulogy. When it is empty, a dimmed, non-italic line in brackets: "[No eulogy yet. They will be written in a later version.]"
+- **Eulogy:** a `<blockquote>` with the eulogy. When it is empty, a dimmed, non-italic line in brackets: "[No eulogy yet. They will be written in a later version.]" (Replaced by the eulogies spec, Req 8.2: "No eulogies were written for this graveyard." or "Words failed us for this one.")
 - **Actions:**
   - **Bury** is shown when `buryOffered`, and **Resurrect** for a ghost.
   - Both are `<button aria-disabled="true">` that stay in the focus order, with the note "Arrives with the PR function." linked by `aria-describedby`. They do nothing.
