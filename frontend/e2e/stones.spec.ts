@@ -455,3 +455,32 @@ test('the cracks of a fresh (blue-grey) unused stone glow red-orange, not pink',
     expect(pink, `pink pixels on ${s.file.path} (red ${red})`).toBeLessThanOrEqual(Math.max(3, red * 0.1));
   }
 });
+
+test('the selection on a short stone is a thin outline: the stone keeps its own colours (app/lib/db/queries/recommendations.ts)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(1200);
+  const path = 'app/lib/db/queries/recommendations.ts';
+  const stone = model.stones.find((st) => st.file.path === path)!;
+  await page.evaluate((p) => window.repoInPeace!.flyTo(p), path);
+  await page.waitForTimeout(1700);
+  await page.mouse.move(640, 700);
+  // The upper part of the stone on screen (the ring at its foot is magenta too, and is the main sign of the selection).
+  const { x, z, height } = stone.layout;
+  const corners = await page.evaluate(
+    ([x, z, h]) => [[x! - 0.7, h!, z! + 0.25], [x! + 0.7, h!, z! + 0.25], [x! - 0.7, h! * 0.35, z! + 0.25], [x! + 0.7, h! * 0.35, z! + 0.25]].map(([a, b, c]) => window.repoInPeace!.projectPoint(a!, b!, c!)),
+    [x, z, height],
+  );
+  const xs = corners.map((c) => c!.x);
+  const ys = corners.map((c) => c!.y);
+  const centre = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+  const half = Math.round(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2);
+  const area = (2 * half) ** 2;
+  const before = await countPixels(page, 'magenta', centre, half);
+  await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), path);
+  await page.waitForTimeout(600);
+  const selected = await countPixels(page, 'magenta', centre, half);
+  expect(before).toBe(0);
+  expect(selected / area, `magenta share of the stone's upper part when selected (${selected} of ${area} pixels)`).toBeLessThan(0.06);
+});

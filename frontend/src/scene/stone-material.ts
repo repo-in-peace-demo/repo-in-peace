@@ -19,7 +19,8 @@ import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
  * On the front face it carves "RIP" into the arch of an unused stone (aCrack), and the file's name below it, which fades in as
  * the camera comes near (NAME_FAR to NAME_NEAR): letters paler than the face with a thin dark shadow on the upper edge, read from the
  * engraving atlas. Moss runs on under the letters (only the letters differ from the stone) and the crack glow keeps off them.
- * The rim is an edge glow only: the surface of a hovered or selected stone is not tinted.
+ * The rim is a thin outline only (about 2 pixels on screen, whatever the stone's size): the surface of a hovered or selected stone is
+ * not tinted.
  */
 
 export interface StoneUniforms {
@@ -304,8 +305,15 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 
   // The rim, an edge glow and not a tint: pale for the stone under the pointer, the ring's colour and a slow pulse for the selected one.
   if (vHighlight > 0.01) {
-    float edge = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 2.2);
-    vec3 rim = vHighlight > 0.75 ? uSelectedColor * (1.5 + 0.35 * sin(uTime * 2.5)) : uHoverColor * 0.9;
+    // A thin outline of the same width on screen (about 2 pixels) whatever the stone's size: only where the surface turns away
+    // from the camera fast enough to reach its silhouette within that many pixels (fwidth of how much it faces away). A broad
+    // fresnel term tinted most of a short stone, whose arch is most of it; the stone's own colours and cracks now stay as they are,
+    // and the ring at its base is the main sign of the selection.
+    float away = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
+    float perPixel = max(fwidth(away), 1e-4);
+    float pixelsToEdge = (1.0 - away) / perPixel;
+    float edge = (1.0 - smoothstep(1.0, 2.5, pixelsToEdge)) * smoothstep(0.55, 0.85, away);
+    vec3 rim = vHighlight > 0.75 ? uSelectedColor * (1.8 + 0.35 * sin(uTime * 2.5)) : uHoverColor * 1.1;
     totalEmissiveRadiance += rim * edge;
   }
 }
@@ -340,6 +348,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v9';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v10';
   return { material, uniforms };
 }
