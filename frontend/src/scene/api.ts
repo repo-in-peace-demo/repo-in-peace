@@ -1,4 +1,5 @@
 import { flyToPose, type CameraPose, type FlyTarget } from '../model/camera-pose';
+import type { ScreenBox } from '../model/panel-placement';
 import { clearSelection } from '../store/selection-store';
 
 /**
@@ -17,6 +18,12 @@ export interface SceneRegistration {
   start: CameraPose;
   /** Starts a smooth flight of the camera to this pose. */
   fly: (to: CameraPose) => void;
+  /** The box on the page (pixels) that the stone or ghost with this path covers now, or null when it is unknown or behind the camera. */
+  screenBoxOf: (path: string) => ScreenBox | null;
+  /** True while a flight is moving the camera. */
+  isFlying: () => boolean;
+  /** Moves the picture sideways by this many pixels (positive to the right) with a short flight, measured at this item's depth. */
+  nudge: (pixels: number, path: string) => void;
 }
 
 let registered: SceneRegistration | null = null;
@@ -54,4 +61,15 @@ export function resetView(): boolean {
   clearSelection();
   registered.fly(registered.start);
   return true;
+}
+
+/** The page box of a stone or ghost now (see `SceneRegistration.screenBoxOf`), or null with no scene. */
+export const screenBoxOf = (path: string): ScreenBox | null => registered?.screenBoxOf(path) ?? null;
+
+/** Whether the camera is flying now. */
+export const isFlying = (): boolean => registered?.isFlying() ?? false;
+
+/** Moves the picture sideways so the detail panel does not cover the selected item (interface spec, Req 4.8). */
+export function nudge(pixels: number, path: string): void {
+  if (pixels !== 0) registered?.nudge(pixels, path);
 }

@@ -546,3 +546,127 @@ body,
     animation: none;
   }
 }
+
+/* ---- Interface spec: the detail panel of the selected grave. On the side away from it; over the legend when on the right. ---- */
+.detail {
+  position: fixed;
+  top: 4rem;
+  z-index: 15;
+  width: 340px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.detail-right {
+  right: 1rem;
+}
+
+.detail-left {
+  left: 1rem;
+}
+
+.detail-close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.detail-close:hover {
+  color: #fff;
+}
+
+.detail h2 {
+  margin: 0 2rem 0.2rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.detail-path {
+  margin: 0 0 0.8rem;
+  color: var(--ink-dim);
+  overflow-wrap: anywhere;
+}
+
+.detail-copy {
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--rim);
+  border-radius: 3px;
+  background: none;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 0.8rem;
+  margin: 0 0 0.9rem;
+}
+
+.detail-facts dt {
+  color: var(--ink-dim);
+}
+
+.detail-facts dd {
+  margin: 0;
+}
+
+.detail-eulogy {
+  margin: 0 0 0.9rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--rim);
+  font-style: italic;
+}
+
+.detail-eulogy-empty {
+  margin: 0 0 0.9rem;
+  color: var(--ink-dim);
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.detail-actions button {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--rim);
+  border-radius: 3px;
+  background: none;
+  color: var(--ink-dim);
+  font: inherit;
+  cursor: not-allowed;
+}
+
+.detail-note {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.74rem;
+}
+
+.detail button:focus-visible {
+  outline: 2px solid #cfe2ff;
+  outline-offset: 2px;
+}

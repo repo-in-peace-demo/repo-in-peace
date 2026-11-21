@@ -7,6 +7,7 @@ import { buildSceneModel, type SceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
 import { BootScreen } from './ui/BootScreen';
 import { ControlsPanel } from './ui/ControlsPanel';
+import { DetailPanel } from './ui/DetailPanel';
 import { DiggingScreen } from './ui/DiggingScreen';
 import { fetchGraveyard } from './ui/fetch-graveyard';
 import { HoverLabel } from './ui/HoverLabel';
@@ -174,6 +175,7 @@ function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
       <Legend legend={model.legend} />
       <ControlsPanel onBack={onBack} />
+      <DetailPanel model={model} />
       <HoverLabel model={model} />
       {DevExtras && (
         <Suspense fallback={null}>

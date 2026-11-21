@@ -140,19 +140,19 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - _Requirements: 4b_
 
 - [ ] 8. Detail panel (`ui/DetailPanel.tsx`, `scene/api.ts`, `scene/CameraRig.tsx`)
-  - [ ] 8.1 The panel for a stone and for a ghost, as in the design:
+  - [x] 8.1 The panel for a stone and for a ghost, as in the design:
     - the eulogy, or the placeholder;
     - Bury on unused stones only, and Resurrect on ghosts, both disabled with the note;
     - copy buttons;
     - the close button.
-  - [ ] 8.2 `screenPointOf` and `nudge` on the scene registration. The side comes from `panelSide` and the nudge from `nudgeNeeded`. They are worked out when the selection changes and when the window resizes.
-  - [ ] 8.3 Browser checks:
+  - [x] 8.2 `screenBoxOf`, `isFlying` and `nudge` on the scene registration (a box rather than a point, so the overlap is measured on the whole stone). The side comes from `panelSide` and the nudge from `nudgeNeeded`. They are worked out when the selection changes and when the window resizes.
+  - [x] 8.3 Browser checks:
     - opens on a scene click, a double-click, and later a list row and a search result;
     - the stone and ghost contents match `grave-facts`;
     - Bury on `voice/index.ts` and not on an ancient used stone;
     - Escape and × close it;
     - the panel box never contains the selected item's screen point, for an item on the left and one on the right.
-  - [ ] 8.4 Screenshot test `interface detail`: an unused stone, and a ghost.
+  - [x] 8.4 Screenshot test `interface detail`: an unused stone, and a ghost.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "detail"`, then the screenshot.
   - **Commit** with the screenshots.
   - _Requirements: 4_

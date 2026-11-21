@@ -288,4 +288,24 @@ test.describe('screenshots to judge by eye', () => {
       await page.screenshot({ path: `${OUT}${file}.png` });
     }
   });
+
+  // Interface spec, task 8: the detail panel on an unused stone (oikos) and on a ghost (spatialql).
+  test('interface detail', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    for (const [name, kind, path, file] of [
+      ['demo.oikosledger', 'file', 'app/components/voice/index.ts', 'interface-detail-stone'],
+      ['demo.spatialql', 'ghost', 'src/surface-placement.ts', 'interface-detail-ghost'],
+    ] as const) {
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      await page.evaluate((p) => window.repoInPeace!.flyTo(p), path);
+      await page.waitForTimeout(1800);
+      await page.evaluate(([k, p]) => window.repoInPeace!.select({ kind: k as 'file' | 'ghost', path: p! }), [kind, path]);
+      await page.mouse.move(640, 8);
+      await page.waitForTimeout(1200);
+      await page.screenshot({ path: `${OUT}${file}.png` });
+    }
+  });
 });

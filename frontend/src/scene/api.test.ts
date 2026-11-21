@@ -3,7 +3,7 @@ import { buildFlyTargets, flyToPose, type CameraPose } from '../model/camera-pos
 import { layout } from '../model/layout';
 import { graveyardFrom } from '../../test/make-graveyard';
 import { clearSelection, getSelection, select } from '../store/selection-store';
-import { flyTo, registerScene, resetView } from './api';
+import { flyTo, isFlying, nudge, registerScene, resetView, screenBoxOf } from './api';
 
 const g = graveyardFrom({ files: ['src/a.ts', 'src/b.ts', 'x.ts'], ghosts: ['src/gone.ts'] });
 const targets = buildFlyTargets(layout(g));
@@ -12,7 +12,7 @@ const start: CameraPose = { position: { x: 1, y: 50, z: 80 }, target: { x: 0, y:
 // The registration is one shared value, so every test removes what it registered.
 const unregister: Array<() => void> = [];
 const register = (fly: (to: CameraPose) => void = () => {}) => {
-  const remove = registerScene({ targets, start, fly });
+  const remove = registerScene({ targets, start, fly, screenBoxOf: () => null, isFlying: () => false, nudge: () => {} });
   unregister.push(remove);
   return remove;
 };
@@ -115,3 +115,18 @@ describe('resetView', () => {
     expect(fly).not.toHaveBeenCalled();
   });
 });
+
+describe('the panel helpers', () => {
+  it('say nothing, and do nothing, with no scene; pass through to the scene when there is one, and never nudge by 0', () => {
+    expect(screenBoxOf('src/a.ts')).toBeNull();
+    expect(isFlying()).toBe(false);
+    const moves: number[] = [];
+    unregister.push(registerScene({ targets, start, fly: () => {}, screenBoxOf: () => ({ x0: 1, x1: 2, y0: 3, y1: 4 }), isFlying: () => true, nudge: (px) => moves.push(px) }));
+    expect(screenBoxOf('src/a.ts')).toEqual({ x0: 1, x1: 2, y0: 3, y1: 4 });
+    expect(isFlying()).toBe(true);
+    nudge(0, 'src/a.ts');
+    nudge(-40, 'src/a.ts');
+    expect(moves).toEqual([-40]);
+  });
+});
+

@@ -192,8 +192,57 @@ export function CameraRig({ model }: { model: SceneModel }) {
           endOpening.current(); // a flight (flyTo, Reset view, a double-click) ends the opening move and goes straight where it was asked
           flight.current = startFlight(from, clampPose(to, limits), performance.now());
         },
+        screenBoxOf: (path: string) => {
+          const box = model.pickTargets.find((t) => t.path === path);
+          if (!box) return null;
+          camera.updateMatrixWorld();
+          const rect = element.getBoundingClientRect();
+          let x0 = Infinity;
+          let x1 = -Infinity;
+          let y0 = Infinity;
+          let y1 = -Infinity;
+          for (const x of [box.min.x, box.max.x]) {
+            for (const y of [box.min.y, box.max.y]) {
+              for (const z of [box.min.z, box.max.z]) {
+                const p = new THREE.Vector3(x, y, z).project(camera);
+                if (p.z > 1) return null; // a corner behind the camera
+                const sx = rect.left + ((p.x + 1) / 2) * rect.width;
+                const sy = rect.top + ((1 - p.y) / 2) * rect.height;
+                x0 = Math.min(x0, sx);
+                x1 = Math.max(x1, sx);
+                y0 = Math.min(y0, sy);
+                y1 = Math.max(y1, sy);
+              }
+            }
+          }
+          return { x0, x1, y0, y1 };
+        },
+        isFlying: () => flight.current.phase === 'flying',
+        nudge: (pixels: number, path: string) => {
+          const orbit = controls.current;
+          const box = model.pickTargets.find((t) => t.path === path);
+          if (!orbit || !box || pixels === 0) return;
+          // A pixel's size in the scene at the item's depth, and the camera's right on the ground: moving the camera and its look-at
+          // point left by `pixels` of that moves the picture right by `pixels`.
+          const centre = new THREE.Vector3((box.min.x + box.max.x) / 2, (box.min.y + box.max.y) / 2, (box.min.z + box.max.z) / 2);
+          const forward = new THREE.Vector3();
+          camera.getWorldDirection(forward);
+          const depth = Math.max(0.1, centre.clone().sub(camera.position).dot(forward));
+          const perPixel = (2 * depth * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(1, element.clientHeight);
+          const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+          const shift = right.multiplyScalar(-pixels * perPixel);
+          const from: CameraPose = {
+            position: vec3(camera.position.x, camera.position.y, camera.position.z),
+            target: vec3(orbit.target.x, orbit.target.y, orbit.target.z),
+          };
+          const to: CameraPose = {
+            position: vec3(from.position.x + shift.x, from.position.y + shift.y, from.position.z + shift.z),
+            target: vec3(from.target.x + shift.x, from.target.y + shift.y, from.target.z + shift.z),
+          };
+          flight.current = startFlight(from, clampPose(to, limits, 'slide'), performance.now());
+        },
       }),
-    [camera, model, limits, shot],
+    [camera, model, limits, shot, element],
   );
 
   useFrame((_state, delta) => {
