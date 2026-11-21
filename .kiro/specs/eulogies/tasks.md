@@ -47,12 +47,12 @@ Status key: `[x]` done, `[ ]` not started.
     - **Examples:** the retry line is added only on a retry; cut, binary and empty contents are described; the worked example is not about a real file.
   - _Requirements: 3, 4.2, 4.3_
 
-- [ ] 6. Cleaning (`core/eulogy-clean.ts`)
-  - [ ] 6.1 Reasoning blocks are removed first, then the checks, then the cleaning, as in the design.
-  - [ ] 6.2 **P1, the format:** for any text, including injected markdown, quotes, emoji, line breaks, many sentences and great length, an accepted result is at most 2 sentences and 240 code points, on one line, with no markdown or wrapping quotes.
-  - [ ] 6.3 **P2, rejection:** a generated code-like, URL, secret-like, e-mail or author string inserted anywhere is rejected with its reason, and the file's own name is not.
+- [x] 6. Cleaning (`core/eulogy-clean.ts`)
+  - [x] 6.1 Reasoning blocks are removed first, then the checks, then the cleaning, as in the design.
+  - [x] 6.2 **P1, the format:** for any text, including injected markdown, quotes, emoji, line breaks, many sentences and great length, an accepted result is at most 2 sentences and 240 code points, on one line, with no markdown or wrapping quotes.
+  - [x] 6.3 **P2, rejection:** a generated code-like, URL, secret-like, e-mail or author string inserted anywhere is rejected with its reason, and the file's own name is not.
     - **Examples:** `useEffect()`, `=>`, a `const x`, `https://`, `ghp_…`, `AKIA…`, a 40-character hex string and `a@b.io` are each rejected, while "index.ts kept the lanterns lit." is accepted.
-  - [ ] 6.4 **P11, reasoning blocks:** for any answer, a closed, unclosed or upper-case `<think>` or `<thinking>` block cleans to the answer alone, or to empty.
+  - [x] 6.4 **P11, reasoning blocks:** for any answer, a closed, unclosed or upper-case `<think>` or `<thinking>` block cleans to the answer alone, or to empty.
   - _Requirements: 4_
 
 - [ ] 7. Cache key (`core/eulogy-key.ts`)

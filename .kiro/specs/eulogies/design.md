@@ -114,19 +114,21 @@ function cleanEulogy(raw: string, context: { fileName: string; people: People })
   - a code fence or backtick;
   - `=>`, `;` followed by a space or the end, or `{` or `}`;
   - an identifier followed by `(` (except the file's own name);
-  - `import`, `export`, `const`, `let`, `function`, `class`, `return` or `require` followed by an identifier or `(`.
+  - a keyword in a code shape: `const`/`let`/`var` name `=`, `import`/`export` name `from` (or `{`), `function` name `(`, `class` Name `{`, `return` value `;`, `require(` (refined while building: a keyword followed by any word would reject "let it rest" or "return to dust").
 - **URL:** `://`, `www.`, or a domain-like `word.tld/…` or `word.(com|org|net|io|dev|app)`. The file's own name, and other file names with a known source extension (`.ts .tsx .js .jsx .mjs .cjs .json`), are allowed.
-- **Secret:**
-  - a run of 24 or more hexadecimal characters, or 32 or more base64 characters;
+- **Secret** (checked with file names and paths removed, so a path is never taken for a key):
+  - a run of 24 or more hexadecimal characters, or 32 or more base64 characters with a digit among them;
   - a JWT (`eyJ…`.`…`);
   - a known key prefix (`sk-`, `ghp_`, `gho_`, `xox[abp]-`, `AKIA`, `AIza`, `-----BEGIN`).
 - **E-mail:** anything `x@y.z`.
 - **Author:** any name or e-mail in `people` (case-insensitive, word boundaries).
 
+E-mails are checked before URLs, since an address's domain looks like one.
+
 **Then cleaning:**
-- Remove markdown: heading marks, list markers, emphasis `*` and `_` pairs, and blockquote `>`.
+- Remove emoji, then markdown: heading marks, list markers and blockquote `>` (again until none is left, as they can be stacked), and emphasis `*` and `_` pairs.
 - Remove emoji (Extended_Pictographic and variation selectors) and wrapping quotes (straight and curly, also with a leading "Epitaph:" or "Eulogy:" label).
-- Collapse all whitespace, including line breaks, to single spaces, and trim.
+- Collapse all whitespace, including line breaks, to single spaces, and trim. Then remove what is left around the one line (a leading marker, a label, wrapping quotes) together, until nothing changes, since they can wrap each other.
 - Cut to the first two sentences. A sentence ends at `.`, `!` or `?` followed by a space and a capital letter, or at the end. A dot inside a file name (`index.ts`) doesn't end one.
 - Cut to 240 characters (code points) at the last space before the limit, end with a full stop, and drop a trailing comma or dash first.
 - Empty after cleaning is `empty`.
