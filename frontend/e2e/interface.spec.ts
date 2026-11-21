@@ -288,3 +288,65 @@ test.describe('search', () => {
     expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toEqual({ kind: 'file', path: 'app/components/voice/index.ts' });
   });
 });
+
+test.describe('layout and access', () => {
+  type Box = { x: number; y: number; width: number; height: number };
+  const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+  test('at 1280 × 720, with the list and the detail panel open, no panel enters the middle third of the window', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.getByRole('button', { name: /List · / }).click();
+    await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    await expect(page.getByRole('complementary', { name: 'Selected grave' })).toBeVisible();
+    await page.waitForTimeout(900);
+    const middle: Box = { x: 1280 / 3, y: 720 / 3, width: 1280 / 3, height: 720 / 3 };
+    for (const selector of ['.stats', '.legend', '.search', '.list', '.detail', '.controls']) {
+      const box = await page.locator(selector).first().boundingBox();
+      expect(box, `${selector} is on the page`).not.toBeNull();
+      expect(overlaps(box!, middle), `${selector} ${JSON.stringify(box)} enters the middle third`).toBe(false);
+    }
+  });
+
+  test('Tab reaches every control, each with a name and a visible focus ring', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.getByRole('button', { name: /List · / }).click();
+    await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    await page.mouse.move(640, 8);
+    const seen: string[] = [];
+    const problems: string[] = [];
+    for (let i = 0; i < 60; i++) {
+      await page.keyboard.press('Tab');
+      const info = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return null;
+        const labelled = el.getAttribute('aria-labelledby');
+        const name = (el.getAttribute('aria-label') ?? (labelled ? document.getElementById(labelled)?.textContent : null) ?? el.textContent ?? el.getAttribute('title') ?? '').trim();
+        const style = getComputedStyle(el);
+        const ring = (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== 'none';
+        return { key: `${el.tagName}#${el.id}.${el.className}|${name}`, name, ring, tag: el.tagName };
+      });
+      if (info === null) continue;
+      if (seen.includes(info.key)) break; // round the page once
+      seen.push(info.key);
+      if (info.name === '') problems.push(`${info.key}: no name`);
+      if (!info.ring) problems.push(`${info.key}: no visible focus`);
+    }
+    expect(seen.length, seen.join('\n')).toBeGreaterThan(10);
+    for (const want of ['Search graves by file name or path', 'Files and ghosts', 'Close', 'Bury', 'Reset view']) {
+      expect(seen.some((k) => k.includes(want)), `Tab reaches "${want}"`).toBe(true);
+    }
+    expect(problems).toEqual([]);
+  });
+
+  test('opening and closing the panels never moves the camera', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    const before = await page.evaluate(() => window.repoInPeace!.getPose());
+    for (const name of [/List · /, /^Legend/, /oikos_ledger/]) {
+      const toggle = page.getByRole('button', { name }).first();
+      await toggle.click();
+      await toggle.click();
+    }
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.repoInPeace!.getPose())).toEqual(before);
+  });
+});

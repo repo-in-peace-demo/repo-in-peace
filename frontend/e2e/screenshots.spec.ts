@@ -336,4 +336,21 @@ test.describe('screenshots to judge by eye', () => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${OUT}interface-search.png` });
   });
+
+  // Interface spec, task 11: the default view with the list and the detail panel open, at 1280 × 720 and at 1920 × 1080.
+  test('interface layout', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    for (const [w, h] of [[1280, 720], [1920, 1080]] as const) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto('/?graveyard=demo.oikosledger');
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(1000);
+      const toggle = page.getByRole('button', { name: /List · / });
+      if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+      await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+      await page.mouse.move(w / 2, 8);
+      await page.waitForTimeout(1200);
+      await page.screenshot({ path: `${OUT}interface-layout-${w}x${h}.png` });
+    }
+  });
 });

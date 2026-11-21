@@ -198,11 +198,11 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - **Commit** with the screenshots.
   - _Requirements: 6_
 
-- [ ] 11. Layout and access
-  - [ ] 11.1 At 1280 × 720 with the list and the detail panel open, no panel's box enters the middle third of the window. Everything is reachable with Tab, with a visible `:focus-visible` ring.
+- [x] 11. Layout and access
+  - [x] 11.1 At 1280 × 720 with the list and the detail panel open, no panel's box enters the middle third of the window. Everything is reachable with Tab, with a visible `:focus-visible` ring.
     - **Check:** go through the whole page with Tab, and fail if any focused element has no accessible name.
-  - [ ] 11.2 Panels open and close without moving the camera. They don't end the opening move unless opened by a click or a key, which end it anyway.
-  - [ ] 11.3 Screenshot test `interface layout`: the default view at 1280 × 720 with the list and the detail panel open, and the same at 1920 × 1080.
+  - [x] 11.2 Panels open and close without moving the camera. They don't end the opening move unless opened by a click or a key, which end it anyway.
+  - [x] 11.3 Screenshot test `interface layout`: the default view at 1280 × 720 with the list and the detail panel open, and the same at 1920 × 1080.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "layout"`, then the screenshot.
   - **Commit** with the screenshots.
   - _Requirements: 7_
