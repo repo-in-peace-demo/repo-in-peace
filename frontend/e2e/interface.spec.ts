@@ -414,8 +414,9 @@ test.describe('layout and access', () => {
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
     await page.locator('.list .panel-toggle').click();
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'false');
-    const rows = (await page.getByRole('listbox', { name: 'Files and ghosts' }).boundingBox())!;
-    expect(rows.height / 30, 'rows the list has room for').toBeGreaterThanOrEqual(8);
+    // The list fits itself again once the stats panel has folded.
+    const listbox = page.getByRole('listbox', { name: 'Files and ghosts' });
+    await expect.poll(async () => (await listbox.boundingBox())!.height / 30, { message: 'rows the list has room for', timeout: 3000 }).toBeGreaterThanOrEqual(8);
 
     await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');

@@ -104,7 +104,14 @@ export function ListView({ model }: { model: SceneModel }) {
     const statsOpen = document.querySelector('.stats .panel-toggle')?.getAttribute('aria-expanded') === 'true';
     const tools = (scroller.current?.offsetTop ?? 0) - (scroller.current?.parentElement?.offsetTop ?? 0);
     // Only when the user opened it: coming back after the details closed restores both panels as they were.
-    if (askedFor && statsOpen && room - tools < LIST_MIN_ROWS * ROW_HEIGHT) requestStatsCollapse();
+    let refit = 0;
+    if (askedFor && statsOpen && room - tools < LIST_MIN_ROWS * ROW_HEIGHT) {
+      requestStatsCollapse();
+      // Fit again once the stats panel has folded (the next frame), not only when the resize watcher notices it.
+      refit = requestAnimationFrame(() => {
+        refit = requestAnimationFrame(() => fit());
+      });
+    }
     const observer = new ResizeObserver(() => {
       fit();
     });
@@ -112,6 +119,7 @@ export function ListView({ model }: { model: SceneModel }) {
     if (stats) observer.observe(stats);
     window.addEventListener('resize', fit);
     return () => {
+      cancelAnimationFrame(refit);
       observer.disconnect();
       window.removeEventListener('resize', fit);
     };
