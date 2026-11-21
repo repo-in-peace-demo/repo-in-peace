@@ -180,20 +180,20 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - **Commit** with the screenshots.
   - _Requirements: 5_
 
-- [ ] 10. Search (`ui/SearchBox.tsx`)
-  - [ ] 10.1 The combobox, as in the design:
+- [x] 10. Search (`ui/SearchBox.tsx`)
+  - [x] 10.1 The combobox, as in the design:
     - results as you type, at most 8 visible;
     - Up, Down and Enter, with select and fly;
     - Escape clears, then blurs, and never clears the selection;
     - `/` and Cmd+K or Ctrl+K focus the box;
     - `data-owns-keys` on the results.
-  - [ ] 10.2 Browser checks:
+  - [x] 10.2 Browser checks:
     - `/` and Cmd+K focus the box;
     - `index.ts` lists the exact matches first;
     - Enter flies to the top result and selects it;
     - typing `wasd` in the box leaves the camera pose unchanged;
     - Escape twice keeps the selection.
-  - [ ] 10.3 Screenshot test `interface search`: results for `voice` on oikos.
+  - [x] 10.3 Screenshot test `interface search`: results for `voice` on oikos.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "search"`, then the screenshot.
   - **Commit** with the screenshots.
   - _Requirements: 6_

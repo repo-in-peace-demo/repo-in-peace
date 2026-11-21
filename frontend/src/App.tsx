@@ -14,6 +14,7 @@ import { HoverLabel } from './ui/HoverLabel';
 import { Legend } from './ui/Legend';
 import { ListView } from './ui/ListView';
 import { readLocalFile } from './ui/read-local-file';
+import { SearchBox } from './ui/SearchBox';
 import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
 import { hasWebGL } from './ui/webgl';
@@ -176,6 +177,7 @@ function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
       <Legend legend={model.legend} />
       <ControlsPanel onBack={onBack} />
+      <SearchBox model={model} />
       <ListView model={model} />
       <DetailPanel model={model} />
       <HoverLabel model={model} />

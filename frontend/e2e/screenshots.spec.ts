@@ -322,4 +322,18 @@ test.describe('screenshots to judge by eye', () => {
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${OUT}interface-list.png` });
   });
+
+  // Interface spec, task 10: the search results for "voice" on oikos.
+  test('interface search', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(800);
+    await page.keyboard.press('/');
+    await page.keyboard.type('voice');
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}interface-search.png` });
+  });
 });

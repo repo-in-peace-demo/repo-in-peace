@@ -801,3 +801,86 @@ body,
 .list-mark-hot {
   color: #f0c24b;
 }
+
+/* ---- Interface spec: search, at the top centre between the stats and the legend. ---- */
+.search {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 14;
+  width: 360px;
+  max-width: calc(100vw - 46rem); /* clear of the legend (21rem) on the right, and as far from the left */
+  min-width: 10rem;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+}
+
+.search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+
+.search-input:focus-visible {
+  outline: 2px solid #cfe2ff;
+  outline-offset: 1px;
+}
+
+.search-results {
+  max-height: calc(8 * 3.1rem);
+  margin: 0.25rem 0 0;
+  padding: 0.2rem 0;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+}
+
+.search-result {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+
+.search-result-active,
+.search-result:hover {
+  background: rgba(207, 226, 255, 0.1);
+}
+
+.search-name {
+  color: #fff;
+  white-space: nowrap;
+}
+
+.search-folder {
+  overflow: hidden;
+  color: var(--ink-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-summary {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-none {
+  margin: 0.25rem 0 0;
+  padding: 0.4rem 0.7rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  color: var(--ink-dim);
+}

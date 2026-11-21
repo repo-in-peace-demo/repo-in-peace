@@ -233,3 +233,58 @@ test.describe('the list', () => {
     expect(after).toEqual(before);
   });
 });
+
+test.describe('search', () => {
+  const box = (page: Page) => page.getByRole('combobox', { name: 'Search graves by file name or path' });
+  const results = (page: Page) => page.getByRole('listbox', { name: 'Results' }).getByRole('option');
+
+  test('/ and Cmd+K (Ctrl+K) focus the box; / typed into a field stays a /', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.mouse.move(640, 8);
+    await page.keyboard.press('/');
+    await expect(box(page)).toBeFocused();
+    await page.keyboard.type('a/b');
+    await expect(box(page)).toHaveValue('a/b');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(box(page)).not.toBeFocused();
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+KeyK' : 'Control+KeyK');
+    await expect(box(page)).toBeFocused();
+  });
+
+  test('exact file-name matches come first, and Enter selects the top result and flies to it', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.keyboard.press('/');
+    await page.keyboard.type('index.ts');
+    const names = await results(page).locator('.search-name').allTextContents();
+    const exact = oikos.files.filter((f) => f.path.endsWith('/index.ts') || f.path === 'index.ts').length;
+    expect(exact).toBeGreaterThan(1);
+    expect(names.slice(0, exact).every((n) => n === 'index.ts')).toBe(true);
+    const before = await page.evaluate(() => window.repoInPeace!.getPose());
+    await page.keyboard.press('Enter');
+    const selected = await page.evaluate(() => window.repoInPeace!.getSelection());
+    expect(selected?.path.endsWith('index.ts')).toBe(true);
+    await page.waitForTimeout(1800);
+    const after = await page.evaluate(() => window.repoInPeace!.getPose());
+    expect(Math.hypot(after.target.x - before.target.x, after.target.z - before.target.z), 'it flew').toBeGreaterThan(1);
+    // The list (P4) shows the same one selected row.
+    await page.getByRole('button', { name: /List · / }).click();
+    await expect(page.getByRole('listbox', { name: 'Files and ghosts' }).locator('[role=option][aria-selected=true]')).toHaveCount(1);
+  });
+
+  test('typing w a s d in the box never moves the camera, and Escape twice keeps the selection', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    const before = await page.evaluate(() => window.repoInPeace!.getPose());
+    await box(page).click();
+    await page.keyboard.type('wasdqe');
+    await page.keyboard.down('KeyW');
+    await page.waitForTimeout(400);
+    await page.keyboard.up('KeyW');
+    expect(await page.evaluate(() => window.repoInPeace!.getPose())).toEqual(before);
+    await page.keyboard.press('Escape');
+    await expect(box(page)).toHaveValue('');
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toEqual({ kind: 'file', path: 'app/components/voice/index.ts' });
+  });
+});
