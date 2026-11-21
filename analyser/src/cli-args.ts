@@ -3,7 +3,9 @@
  *
  *   analyse <repo-path> [--out <file>] [--analysed-at <ISO timestamp>] [--knip-config <file>] [--knip-dir <folder>]...
  *           [--stale-after <days>] [--ancient-after <days>] [--hot-commits <n>] [--hot-window <days>]
+ *           [--eulogies --eulogy-model <name> [--ollama-url <url>] [--eulogy-concurrency <n>] [--eulogy-cache <file>]]
  */
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { Thresholds } from '../../shared/graveyard-schema';
 import { normaliseKnipDir } from './core/knip-dirs';
@@ -19,7 +21,25 @@ export interface CliOptions {
   knipDirs?: string[];
   /** Decay thresholds. Absent when no threshold flag was given: the defaults apply. */
   thresholds?: Thresholds;
+  /** Eulogies by a local model. Absent without --eulogies: the output is then exactly what it was without them. */
+  eulogies?: EulogyOptions;
 }
+
+export interface EulogyOptions {
+  model: string;
+  ollamaUrl: string;
+  /** Requests at a time, 1 to 4. */
+  concurrency: number;
+  /** Absolute for the default; as given (relative to the current folder) for --eulogy-cache. */
+  cachePath: string;
+}
+
+export const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
+export const DEFAULT_EULOGY_CONCURRENCY = 2;
+/** In the analyser's own folder, whatever folder the command runs in (this file is analyser/src/cli-args.ts). */
+export const DEFAULT_EULOGY_CACHE = fileURLToPath(new URL('../.cache/eulogies.json', import.meta.url));
+/** The only hosts an Ollama URL may name: eulogies never leave this machine (Req 1.4). */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 export type ParsedArgs =
   | { kind: 'run'; options: CliOptions }
@@ -54,6 +74,20 @@ Decay thresholds (the defaults are what the demo uses):
   --hot-commits <n>         A file is hot with this many commits in the hot window
                             or more. Default 5.
   --hot-window <days>       Length of the hot window before the snapshot. Default 30.
+
+Eulogies (a short epitaph for every grave, written by a model on this machine):
+  --eulogies                Write a eulogy for every grave with a local model
+                            (Ollama). Only commit subjects and file contents are
+                            sent, and only to this machine. See the README.
+  --eulogy-model <name>     The Ollama model, for example qwen2.5:7b. Needed with
+                            --eulogies.
+  --ollama-url <url>        The Ollama server on this machine (localhost,
+                            127.0.0.1 or [::1]). Default ${DEFAULT_OLLAMA_URL}.
+  --eulogy-concurrency <n>  Requests at a time, 1 to 4. Default ${DEFAULT_EULOGY_CONCURRENCY}.
+  --eulogy-cache <file>     The cache of eulogies, so a second run asks the model
+                            only about what changed. Default
+                            analyser/.cache/eulogies.json. Must be outside the clone.
+
   -h, --help                Show this help.
 `;
 
@@ -103,6 +137,11 @@ export function parseCliArgs(argv: readonly string[], now: () => string): Parsed
         'ancient-after': { type: 'string' },
         'hot-commits': { type: 'string' },
         'hot-window': { type: 'string' },
+        eulogies: { type: 'boolean' },
+        'eulogy-model': { type: 'string' },
+        'ollama-url': { type: 'string' },
+        'eulogy-concurrency': { type: 'string' },
+        'eulogy-cache': { type: 'string' },
         help: { type: 'boolean', short: 'h' },
       },
     });
@@ -159,10 +198,66 @@ export function parseCliArgs(argv: readonly string[], now: () => string): Parsed
     thresholds = result.thresholds;
   }
 
+  const eulogies = parseEulogyFlags(values);
+  if (eulogies !== undefined && 'message' in eulogies) return { kind: 'usage-error', message: eulogies.message };
+
   const options: CliOptions = { repoPath: positionals[0], analysedAt };
+  if (eulogies !== undefined) options.eulogies = eulogies;
   if (thresholds !== undefined) options.thresholds = thresholds;
   if (knipDirs !== undefined) options.knipDirs = knipDirs;
   if (values.out !== undefined) options.outPath = values.out;
   if (values['knip-config'] !== undefined) options.knipConfigPath = values['knip-config'];
   return { kind: 'run', options };
+}
+
+/** @returns undefined when Ollama may be used at this URL, or what is wrong with it. */
+export function ollamaUrlProblem(raw: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return `--ollama-url must be a URL like ${DEFAULT_OLLAMA_URL} (got "${raw}").`;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return `--ollama-url must start with http:// or https:// (got "${raw}").`;
+  if (!LOCAL_HOSTS.has(url.hostname)) {
+    return (
+      `--ollama-url must name this machine (localhost, 127.0.0.1 or [::1]), so file contents never leave it (got "${raw}"). ` +
+      'Run Ollama locally, or forward its port to this machine.'
+    );
+  }
+  return undefined;
+}
+
+type EulogyFlagValues = {
+  eulogies?: boolean;
+  'eulogy-model'?: string;
+  'ollama-url'?: string;
+  'eulogy-concurrency'?: string;
+  'eulogy-cache'?: string;
+};
+
+function parseEulogyFlags(values: EulogyFlagValues): EulogyOptions | { message: string } | undefined {
+  if (values.eulogies !== true) {
+    const stray = (['eulogy-model', 'ollama-url', 'eulogy-concurrency', 'eulogy-cache'] as const).filter((f) => values[f] !== undefined);
+    if (stray.length > 0) return { message: `${stray.map((f) => `--${f}`).join(', ')} only work${stray.length === 1 ? 's' : ''} with --eulogies. Add --eulogies, or leave ${stray.length === 1 ? 'it' : 'them'} out.` };
+    return undefined;
+  }
+  const model = values['eulogy-model']?.trim() ?? '';
+  if (model === '') {
+    return { message: 'Choose a model with --eulogy-model, for example qwen2.5:7b (see the README); install it with ollama pull <name>.' };
+  }
+  const ollamaUrl = values['ollama-url'] ?? DEFAULT_OLLAMA_URL;
+  const urlProblem = ollamaUrlProblem(ollamaUrl);
+  if (urlProblem !== undefined) return { message: urlProblem };
+
+  let concurrency = DEFAULT_EULOGY_CONCURRENCY;
+  const rawConcurrency = values['eulogy-concurrency'];
+  if (rawConcurrency !== undefined) {
+    if (!/^[1-4]$/.test(rawConcurrency.trim())) return { message: `--eulogy-concurrency must be a whole number from 1 to 4 (got "${rawConcurrency}").` };
+    concurrency = Number(rawConcurrency.trim());
+  }
+
+  const cachePath = values['eulogy-cache'] ?? DEFAULT_EULOGY_CACHE;
+  if (cachePath === '') return { message: '--eulogy-cache needs a file path.' };
+  return { model, ollamaUrl: ollamaUrl.replace(/\/+$/, ''), concurrency, cachePath };
 }

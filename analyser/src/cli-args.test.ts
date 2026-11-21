@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { USAGE, normaliseAnalysedAt, parseCliArgs } from './cli-args';
+import fc from 'fast-check';
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { DEFAULT_EULOGY_CACHE, USAGE, normaliseAnalysedAt, ollamaUrlProblem, parseCliArgs } from './cli-args';
 
 const NOW = '2030-01-01T00:00:00.000Z';
 const parse = (...argv: string[]) => parseCliArgs(argv, () => NOW);
@@ -176,5 +179,94 @@ describe('USAGE', () => {
     for (const option of ['--out', '--analysed-at', '--knip-config', '--help']) {
       expect(USAGE).toContain(option);
     }
+  });
+});
+
+describe('P8: the eulogy flags', () => {
+  const run = (...argv: string[]) => {
+    const result = parse('repo', ...argv);
+    if (result.kind !== 'run') throw new Error(`expected a run, got ${JSON.stringify(result)}`);
+    return result.options;
+  };
+  const usage = (...argv: string[]) => {
+    const result = parse('repo', ...argv);
+    if (result.kind !== 'usage-error') throw new Error(`expected a usage error, got ${JSON.stringify(result)}`);
+    return result.message;
+  };
+
+  it('leaves eulogies out without --eulogies', () => {
+    expect(run()).not.toHaveProperty('eulogies');
+  });
+
+  it('fills in the defaults: localhost, 2 at a time, the cache in the analyser folder', () => {
+    expect(run('--eulogies', '--eulogy-model', 'qwen2.5:7b').eulogies).toEqual({
+      model: 'qwen2.5:7b',
+      ollamaUrl: 'http://localhost:11434',
+      concurrency: 2,
+      cachePath: DEFAULT_EULOGY_CACHE,
+    });
+  });
+
+  it('puts the default cache in analyser/.cache, whatever the current folder', () => {
+    expect(isAbsolute(DEFAULT_EULOGY_CACHE)).toBe(true);
+    expect(DEFAULT_EULOGY_CACHE).toBe(resolve(dirname(fileURLToPath(import.meta.url)), '..', '.cache', 'eulogies.json'));
+  });
+
+  it('reads every eulogy flag, keeping --eulogy-cache as given', () => {
+    expect(
+      run('--eulogies', '--eulogy-model=llama3.2', '--ollama-url', 'http://127.0.0.1:9999/', '--eulogy-concurrency', '4', '--eulogy-cache', 'c.json').eulogies,
+    ).toEqual({ model: 'llama3.2', ollamaUrl: 'http://127.0.0.1:9999', concurrency: 4, cachePath: 'c.json' });
+  });
+
+  it('needs --eulogy-model with --eulogies, and says how to choose one', () => {
+    expect(usage('--eulogies')).toBe('Choose a model with --eulogy-model, for example qwen2.5:7b (see the README); install it with ollama pull <name>.');
+    expect(usage('--eulogies', '--eulogy-model', '  ')).toMatch(/^Choose a model/);
+  });
+
+  it.each([
+    [['--eulogy-model', 'm'], '--eulogy-model only works with --eulogies'],
+    [['--ollama-url', 'http://localhost:1'], '--ollama-url only works with --eulogies'],
+    [['--eulogy-concurrency', '2'], '--eulogy-concurrency only works with --eulogies'],
+    [['--eulogy-cache', 'c.json'], '--eulogy-cache only works with --eulogies'],
+    [['--eulogy-model', 'm', '--eulogy-cache', 'c.json'], '--eulogy-model, --eulogy-cache only work with --eulogies'],
+  ])('refuses %j without --eulogies', (argv, message) => {
+    expect(usage(...argv)).toContain(message);
+  });
+
+  it.each(['http://localhost:11434', 'http://127.0.0.1:11434', 'http://[::1]:11434', 'https://localhost', 'http://LOCALHOST:11434'])(
+    'accepts the local URL %s',
+    (url) => {
+      expect(ollamaUrlProblem(url)).toBeUndefined();
+      expect(run('--eulogies', '--eulogy-model', 'm', '--ollama-url', url).eulogies?.model).toBe('m');
+    },
+  );
+
+  it.each([
+    ['http://192.168.1.5:11434', /must name this machine/],
+    ['http://example.com', /must name this machine/],
+    ['http://localhost.example.com:11434', /must name this machine/],
+    ['http://127.0.0.2:11434', /must name this machine/],
+    ['http://0.0.0.0:11434', /must name this machine/],
+    ['http://user@example.com', /must name this machine/],
+    ['ftp://localhost', /http:\/\/ or https:\/\//],
+    ['localhost:11434', /http:\/\/ or https:\/\//],
+    ['not a url', /must be a URL/],
+  ])('refuses %s with the message', (url, message) => {
+    expect(usage('--eulogies', '--eulogy-model', 'm', '--ollama-url', url)).toMatch(message);
+  });
+
+  it('accepts any whole number of requests from 1 to 4, and nothing else', () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.integer({ min: -10, max: 20 }).map(String), fc.string({ maxLength: 4 }), fc.constantFrom('1.5', '2.0', '02', ' ', '1e0')), (value) => {
+        const result = parse('repo', '--eulogies', '--eulogy-model', 'm', `--eulogy-concurrency=${value}`);
+        const ok = /^\s*[1-4]\s*$/.test(value);
+        if (ok) return result.kind === 'run' && result.options.eulogies?.concurrency === Number(value.trim());
+        return result.kind === 'usage-error' && result.message.includes('from 1 to 4');
+      }),
+    );
+  });
+
+  it('lists the eulogy flags in the help', () => {
+    for (const flag of ['--eulogies', '--eulogy-model', '--ollama-url', '--eulogy-concurrency', '--eulogy-cache']) expect(USAGE).toContain(flag);
   });
 });

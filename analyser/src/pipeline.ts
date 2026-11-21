@@ -8,6 +8,7 @@ import { hasKnipConfig } from './core/knip-config';
 import { describeKnipDir, missingPackageJsonMessage, prefixKnipPaths, relativeToKnipDir } from './core/knip-dirs';
 import { defaultOutputName, isInside } from './core/paths';
 import { toJson } from './core/serialise';
+import type { EulogyOptions } from './cli-args';
 import { DEFAULT_THRESHOLDS } from './core/thresholds';
 import { AnalyserError } from './errors';
 import { assertUsableRepo, listTree, mapBlobs, readLog, resolveSnapshot } from './io/git';
@@ -36,7 +37,9 @@ export interface PipelineOptions {
   knipDirs?: readonly string[];
   /** Decay thresholds. Default: DEFAULT_THRESHOLDS. */
   thresholds?: Thresholds;
-  /** Base for relative `outPath` and `knipConfigPath`. */
+  /** Eulogies by a local model (eulogies spec). Absent: none are written, and the output is unchanged. */
+  eulogies?: EulogyOptions;
+  /** Base for relative `outPath`, `knipConfigPath` and the eulogy cache path. */
   cwd: string;
 }
 
@@ -74,6 +77,14 @@ export async function runPipeline(
     throw new AnalyserError(
       `The output file "${outPath}" would be written inside the clone, and the analyser never modifies the clone. ` +
         'Choose another location with --out.',
+    );
+  }
+
+  const eulogyCachePath = options.eulogies === undefined ? undefined : resolve(options.cwd, options.eulogies.cachePath);
+  if (eulogyCachePath !== undefined && isInside(repo.root, await realPathOfFuture(eulogyCachePath))) {
+    throw new AnalyserError(
+      `The eulogy cache "${eulogyCachePath}" would be written inside the clone, and the analyser never modifies the clone. ` +
+        'Choose another location with --eulogy-cache.',
     );
   }
 

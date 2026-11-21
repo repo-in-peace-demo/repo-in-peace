@@ -80,10 +80,10 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 3: The edges and the pipeline
 
-- [ ] 9. Command line (`cli-args.ts`, `cli.ts`)
-  - [ ] 9.1 The five flags, the `eulogies` option, the usage errors from the design, and the help text.
-  - [ ] 9.2 The default cache path resolves from the analyser's own folder, and a cache inside the clone is refused.
-  - [ ] 9.3 **P8:**
+- [x] 9. Command line (`cli-args.ts`, `cli.ts`)
+  - [x] 9.1 The five flags, the `eulogies` option, the usage errors from the design, and the help text.
+  - [x] 9.2 The default cache path resolves from the analyser's own folder, and a cache inside the clone is refused.
+  - [x] 9.3 **P8:**
     - `--eulogies` needs `--eulogy-model`;
     - the other eulogy flags need `--eulogies`;
     - only `localhost`, `127.0.0.1` and `[::1]` are accepted, and `http://192.168.1.5:11434` and `http://example.com` are refused with the message;

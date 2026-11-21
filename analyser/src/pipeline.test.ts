@@ -352,6 +352,17 @@ describe('a failed run leaves no output file', () => {
     ).rejects.toThrow(/inside the clone/);
     expect(existsSync(join(demo.dir, 'sub'))).toBe(false);
   });
+
+  it('when the eulogy cache is inside the clone, before Ollama or Knip is asked anything', async () => {
+    const h = harness(knipOk());
+    const out = tempDir();
+    const cachePath = join(demo.dir, '.cache', 'eulogies.json');
+    const eulogies = { model: 'm', ollamaUrl: 'http://localhost:11434', concurrency: 2, cachePath };
+    await expect(runPipeline({ ...optionsFor(demo, out), eulogies }, h.deps)).rejects.toThrow(/eulogy cache .* inside the clone.*--eulogy-cache/);
+    expect(existsSync(join(demo.dir, '.cache'))).toBe(false);
+    expect(h.knipCalls).toHaveLength(0);
+    expectNothingWritten(out);
+  });
 });
 
 describe('the default output file', () => {
