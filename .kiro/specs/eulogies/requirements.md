@@ -42,7 +42,7 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 1. At most two sentences and at most 240 characters, plain text, on one line: no markdown, no quotes around it, no emoji, no line breaks.
 2. Atmospheric and lightly witty, accurate about what the file does or did. Never mocking of authors, and never naming an author or a handle.
 3. It SHALL NOT invent facts, and SHALL NOT quote code, strings, URLs or anything that looks like a key or a token.
-4. A pure post-processing step SHALL enforce the format: trim; remove markdown (emphasis, headings, list markers, code marks); remove wrapping quotes; collapse whitespace to single spaces; cut to the first two sentences; cut to the length limit at a word boundary, ending with a full stop when it was cut.
+4. A pure post-processing step SHALL enforce the format: first remove any reasoning block a model writes before its answer (`<think>…</think>`, also `<thinking>`, and an unclosed opening tag with everything after it, which leaves nothing); trim; remove markdown (emphasis, headings, list markers, code marks); remove wrapping quotes; collapse whitespace to single spaces; cut to the first two sentences; cut to the length limit at a word boundary, ending with a full stop when it was cut.
 5. THE post-processing SHALL reject the output (leave the eulogy empty) WHEN it contains a code-like string (a code fence or backtick, an arrow `=>`, a call with brackets, a semicolon at a clause end, braces, `import`/`export`/`const`/`function` followed by an identifier), a URL or domain, a secret-like string (a long run of hexadecimal or base64 characters, a JWT, a known key prefix such as `sk-`, `ghp_`, `AKIA`), an e-mail address, any author name or handle of the repository, or nothing left after cleaning. Mentioning the file's own name (for example `index.ts`) SHALL be allowed.
 6. WHEN the output is rejected THE analyser SHALL ask once more with the same inputs and a reminder of the rules; IF that is rejected too THEN the eulogy SHALL stay empty.
 
@@ -55,8 +55,10 @@ The work splits like the rest of the project: the eulogy pipeline is pure (build
 ### 6. Requests, failures and the cache
 
 1. Requests SHALL use a low temperature (0.2) and a fixed seed, ask for a short answer (at most about 120 tokens), run at most `--eulogy-concurrency` at a time (1 to 4, default 2), and each SHALL time out after 60 seconds.
+1b. THE request SHALL ask Ollama not to show the model's reasoning (`think: false`), which servers that support it honour and others ignore; Req 4.4 removes a reasoning block either way.
 2. IF one grave's request fails (timeout, an error from the server, or output rejected twice) THEN its eulogy SHALL stay empty and the analyser SHALL go on; the other graves are never affected. At the end it SHALL report on stderr how many eulogies were written, taken from the cache, and left empty, and why.
 3. IF the server stops answering part-way THEN the analyser SHALL leave the rest empty after a few consecutive failures, rather than wait out every timeout, and say so. The output file is still written.
+3b. IF every one of the first 8 answers the model gives (requests that answered, not cache hits) is rejected, even after its retry, THEN the analyser SHALL stop (exit 1, no output file written; the cache keeps nothing new) with a message that this model does not follow the rules and suggesting another model from the README, rather than write a file of empty eulogies.
 4. Results SHALL be cached in a JSON file, keyed by a hash (SHA-256) of the model name, the prompt version and the exact inputs of Req 3. A re-run with the same inputs SHALL reuse the cached eulogy without a request, so re-runs are fast and give the same text; a change of model, prompt version or any input SHALL ask the model again. Empty results SHALL NOT be cached (they are tried again next time).
 5. THE cache file SHALL NOT be inside the frontend's public folder or any folder that is served or committed by default: by default it is `analyser/.cache/eulogies.json` (git-ignored), and `--eulogy-cache <file>` names another. A cache file that cannot be read SHALL be reported and treated as empty; it is written atomically at the end, and every 25 eulogies, so an interrupted run keeps what it had.
 6. Progress SHALL go to stderr (how many of how many), and stdout stays empty as now.
@@ -91,6 +93,8 @@ Supporting properties:
 - **P8** The command line: `--eulogies` needs `--eulogy-model`; the model and URL flags need `--eulogies`; a non-local URL is refused; concurrency is 1 to 4 (Req 1.3, 1.4, 6.1).
 - **P9** The frontend reads a file without the optional fields exactly as one with empty ghost eulogies and no model; the schema check accepts the fields when present and rejects them when they are not strings (Req 5.1, 5.2).
 - **P10** With a fake client, a re-run against a filled cache makes no request and gives the same data file (Req 6.4).
+- **P11** A reasoning block is never in a eulogy: for any text with a `<think>` or `<thinking>` block (closed or not) before or around the answer, the cleaned eulogy is what is outside it, or empty (Req 4.4).
+- **P12** When the model's first 8 answers are all rejected the run stops with the model message; when any of them passes it never does (Req 6.3b).
 
 ## Out of scope
 
@@ -110,4 +114,5 @@ Settled in review:
 6. **Author names:** the repository's author names and e-mails are removed from subjects before sending, and a eulogy containing one is rejected (Req 3.3, 4.5).
 7. **Concurrency:** `--eulogy-concurrency`, 1 to 4, default 2 (Req 6.1).
 8. **Filters:** strict; a rejected eulogy is retried once, then left empty (Req 4.5, 4.6).
+10. **Reasoning blocks** are removed before cleaning, and the request asks for no reasoning (`think: false`); a model whose first 8 answers are all rejected stops the run with a suggestion to try another (added at design review).
 9. Also agreed: `--eulogy-model` or `--ollama-url` without `--eulogies` is an error; the analyser spec's no-network rule is amended for the local Ollama call only (Req 1.3, 1.5).

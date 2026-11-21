@@ -107,7 +107,9 @@ type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author';
 function cleanEulogy(raw: string, context: { fileName: string; people: People }): Cleaned;
 ```
 
-**Checks first, on the raw text,** so markdown removal can't hide code:
+**Reasoning blocks go first** (P11). Everything from `<think>` or `<thinking>` (any case) to its closing tag is removed. An opening tag with no closing tag removes everything after it, which leaves nothing, so the answer is rejected as `empty`. A stray closing tag removes everything before it.
+
+**Checks next, on the text that's left,** so markdown removal can't hide code:
 - **Code:**
   - a code fence or backtick;
   - `=>`, `;` followed by a space or the end, or `{` or `}`;
@@ -156,7 +158,7 @@ async function checkOllama(url: string, model: string): Promise<void>; // throws
 - **`checkOllama`** calls `GET {url}/api/tags`.
   - A refused connection, a timeout (5 s) or a non-JSON answer: "Ollama is not running at {url}. Start it with `ollama serve` (or open the Ollama app), then run the analyser again."
   - The model not in `models[].name` (a name without a tag also matches `<name>:latest`): "The model {model} is not installed. Install it with `ollama pull {model}`. Installed: a, b, c."
-- **`generate`** calls `POST {url}/api/generate` with `{ model, system, prompt, stream: false, options: { temperature: 0.2, seed: 7, num_predict: 120 } }` and returns `response`. It has a 60 s timeout through `AbortSignal.timeout`. Any non-2xx answer, malformed JSON or abort throws.
+- **`generate`** calls `POST {url}/api/generate` with `{ model, system, prompt, stream: false, think: false, options: { temperature: 0.2, seed: 7, num_predict: 120 } }` and returns `response`. `think: false` asks a reasoning model to leave its reasoning out; servers that don't know the field ignore it, and any reasoning field in the answer (`thinking`) is never read. It has a 60 s timeout through `AbortSignal.timeout`. Any non-2xx answer, malformed JSON or abort throws.
 - It uses Node's own `fetch`, so no dependency is added.
 
 ## The run (`analyser/src/core/eulogy-run.ts`, P5, P10)
@@ -174,6 +176,7 @@ async function runEulogies(jobs: ReadonlyArray<{ path: string; input: EulogyInpu
   - Then `generate` runs, followed by `cleanEulogy`. A rejection retries once with `retry: true`. A second rejection leaves it empty with the reason.
   - A thrown request (timeout, server error) leaves it empty with the error, and isn't retried.
 - **Stopping early:** after 5 request errors in a row with no success in between, the run stops taking new jobs. The rest stay empty, it reports "Ollama stopped answering after N eulogies; the rest are left empty", and `stoppedEarly` is true.
+- **A model that never follows the rules** (P12): the run counts answered requests (not cache hits, not thrown requests). If each of the first 8 is rejected after its retry, the run throws `AnalyserError`: "The model {model} wrote no usable eulogy in its first 8 answers (they quoted code, named authors, or broke the format). Try another model, see the README." The pipeline writes no output and keeps nothing new in the cache. One answer that passes switches the check off for the rest of the run.
 - **Isolation:** a job's result depends only on its own input and the client's answers to it, so one failure never touches another (P5).
 - **Progress:** `Eulogies: 40/251 (12 from the cache)`, at most once a second, plus a summary at the end:
   ```
@@ -238,7 +241,10 @@ After the graveyard is assembled and validated, and only with `options.eulogies`
 | P9 schema | `shared/graveyard-schema.test.ts` and the frontend's `graveyard-load` tests: with and without the fields; wrong types rejected |
 | P10 cache re-run | `pipeline.test.ts` with a fake client counting calls: a second run makes no call and writes the same file |
 
-The Ollama client gets a test against a local HTTP server started in the test, on a random port of `127.0.0.1`, covering not running, model missing, a timeout and an answer. It's the analyser's own loopback, so no real model is involved.
+| P11 reasoning blocks | `eulogy-clean.property.test.ts`: any answer wrapped in, or preceded by, a `<think>` or `<thinking>` block (closed, unclosed, upper case) cleans to the answer alone or to empty |
+| P12 the model check | `eulogy-run.property.test.ts`: a fake client whose first 8 answers are all rejected stops the run with the model message; any passing answer among them, or cache hits, never do |
+
+The Ollama client gets a test against a local HTTP server started in the test, on a random port of `127.0.0.1`, covering not running, model missing, a timeout, an answer, and a reasoning model that answers with a `<think>…</think>` block before the epitaph. That last one checks that `think: false` is sent and that the eulogy written is the epitaph alone. It's the analyser's own loopback, so no real model is involved.
 
 ## Not in this design
 
