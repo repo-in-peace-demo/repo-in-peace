@@ -5,6 +5,10 @@ import type { Graveyard } from '@shared/graveyard-schema';
 import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary, usageDetail } from '../src/model/grave-facts';
 import { buildRows, filterRows, sortRows } from '../src/model/list-rows';
 import { makeSyntheticGraveyard } from '../src/model/synthetic';
+import { buildSceneModel } from '../src/model/scene-model';
+import type { CameraPose } from '../src/model/camera-pose';
+import { SIGN_FADE_SECONDS, plaqueBox } from '../src/model/sign-fade';
+import { flyView } from '../test/fly-view';
 
 /**
  * The interface around the scene, in the real app (interface spec, tasks 7 to 11): the hover line, the detail panel, the list,
@@ -438,5 +442,76 @@ test.describe('layout and access', () => {
     }
     await page.waitForTimeout(300);
     expect(await page.evaluate(() => window.repoInPeace!.getPose())).toEqual(before);
+  });
+});
+
+test.describe('signs in front of the grave in focus', () => {
+  test.setTimeout(600_000); // every stone and ghost of both files
+
+  for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+    test(`${name}: after flyTo for every stone and ghost, no sign board left showing is in front of it and over its face on screen`, async ({ page }) => {
+      const data = name === 'demo.oikosledger' ? oikos : spatialql;
+      const model = buildSceneModel(data);
+      await openScene(page, name);
+      await page.mouse.move(640, 5);
+      const problems: string[] = [];
+      let faded = 0;
+      for (const target of model.pickTargets) {
+        // flyTo sets the focus; the pose is then put in place at once (the same end pose), so the check does not wait for each flight.
+        const end = flyView(model, target.path).pose;
+        await page.evaluate(([p, pose]) => {
+          window.repoInPeace!.flyTo(p as string);
+          window.repoInPeace!.setPose(pose as CameraPose);
+        }, [target.path, end] as const);
+        await page.waitForTimeout(SIGN_FADE_SECONDS * 1000 + 200);
+        const result = await page.evaluate(
+          ({ box, plaques }) => {
+            const api = window.repoInPeace!;
+            const pose = api.getPose();
+            const forward = (() => {
+              const d = { x: pose.target.x - pose.position.x, y: pose.target.y - pose.position.y, z: pose.target.z - pose.position.z };
+              const n = Math.hypot(d.x, d.y, d.z);
+              return { x: d.x / n, y: d.y / n, z: d.z / n };
+            })();
+            const depthOf = (p: { x: number; y: number; z: number }) => (p.x - pose.position.x) * forward.x + (p.y - pose.position.y) * forward.y + (p.z - pose.position.z) * forward.z;
+            const rect = (min: { x: number; y: number; z: number }, max: { x: number; y: number; z: number }) => {
+              let [x0, x1, y0, y1] = [Infinity, -Infinity, Infinity, -Infinity];
+              for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) {
+                const s = api.projectPoint(x, y, z);
+                if (s === null) return null;
+                [x0, x1, y0, y1] = [Math.min(x0, s.x), Math.max(x1, s.x), Math.min(y0, s.y), Math.max(y1, s.y)];
+              }
+              return { x0, x1, y0, y1, depth: depthOf({ x: (min.x + max.x) / 2, y: (min.y + max.y) / 2, z: (min.z + max.z) / 2 }) };
+            };
+            const face = rect(box.min, box.max);
+            const fades = api.getSignFade();
+            const covering: string[] = [];
+            if (face !== null) {
+              for (const p of plaques) {
+                const r = rect(p.min, p.max);
+                if (r === null || r.depth >= face.depth) continue;
+                const over = r.x0 < face.x1 && face.x0 < r.x1 && r.y0 < face.y1 && face.y0 < r.y1;
+                if (over && (fades[p.path] ?? 1) > 0.05) covering.push(p.path);
+              }
+            }
+            return { covering, faded: Object.keys(fades).length, inView: face !== null };
+          },
+          { box: { min: target.min, max: target.max }, plaques: model.signSources.map((s) => ({ path: s.path, ...plaqueBox(s.x, s.z) })) },
+        );
+        faded += result.faded;
+        if (!result.inView) problems.push(`${target.path}: not in view after the flight`);
+        for (const p of result.covering) problems.push(`${target.path}: the sign of ${p} is in front of it and over its face`);
+      }
+      expect(problems).toEqual([]);
+      if (name === 'demo.oikosledger') expect(faded, 'some sign faded on the way').toBeGreaterThan(0);
+    });
+  }
+
+  test('the charts sign fades in front of charts/index.ts after a flight, and comes back when the focus moves on', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.evaluate(() => window.repoInPeace!.flyTo('app/components/charts/index.ts'));
+    await expect.poll(async () => (await page.evaluate(() => window.repoInPeace!.getSignFade()))['app/components/charts'] ?? 1, { timeout: 4000 }).toBeLessThan(0.05);
+    await page.evaluate(() => window.repoInPeace!.resetView());
+    await expect.poll(async () => Object.keys(await page.evaluate(() => window.repoInPeace!.getSignFade())).length, { timeout: 4000 }).toBe(0);
   });
 });

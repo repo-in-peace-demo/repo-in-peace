@@ -1,6 +1,7 @@
 import { flyToPose, type CameraPose, type FlyTarget } from '../model/camera-pose';
 import type { ScreenBox } from '../model/panel-placement';
 import { clearSelection } from '../store/selection-store';
+import { setFlownTo } from './focus';
 
 /**
  * `flyTo`, the way later specs (the list view, search) move the camera to a file or ghost, and `resetView`, which
@@ -48,6 +49,7 @@ export function flyTo(path: string): boolean {
   const pose = flyToPose(registered.targets, path);
   if (pose === undefined) return false;
   registered.fly(pose);
+  setFlownTo(path); // the signs in front of it fade (scene/focus.ts)
   return true;
 }
 
@@ -59,6 +61,7 @@ export function flyTo(path: string): boolean {
 export function resetView(): boolean {
   if (registered === null) return false;
   clearSelection();
+  setFlownTo(null);
   registered.fly(registered.start);
   return true;
 }

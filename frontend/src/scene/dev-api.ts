@@ -5,6 +5,7 @@ import { engravingDebug } from './engraving-atlas';
 import { atlasDebug } from './ghost-tag-atlas';
 import { horizonDebug } from './Horizon';
 import { flyTo, resetView } from './api';
+import { signFade } from './sign-fade-state';
 
 /**
  * `window.repoInPeace`: handles for trying the scene from the browser console and for the end-to-end test.
@@ -36,6 +37,8 @@ export interface RepoInPeaceDevApi {
   projectPoint: (x: number, y: number, z: number) => { x: number; y: number } | null;
   /** For each engraved text ("RIP" and each name), how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
   getEngravingAtlas: () => Record<string, number>;
+  /** Each sign's opacity now, by its folder's path, for the signs fading out of the way of the grave in focus (listed only when under 1). */
+  getSignFade: () => Record<string, number>;
   /** Puts the camera at this pose at once (inside the camera limits, which still apply): for pictures from a chosen place. */
   setPose: (pose: CameraPose) => void;
   /** The camera's lens shift now: the share of the frame's height the picture is moved down by (`model/framing.ts`). */
@@ -78,6 +81,7 @@ export function installDevApi(
     getViewShift,
     setPose,
     getEngravingAtlas: () => ({ ...engravingDebug.litPixels }),
+    getSignFade: () => Object.fromEntries(signFade.alpha),
     setHorizonVisible: (visible) => {
       horizonDebug.visible = visible;
       if (horizonDebug.group) horizonDebug.group.visible = visible;

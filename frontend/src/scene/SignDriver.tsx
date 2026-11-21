@@ -7,6 +7,8 @@ import { placeSignsClear } from '../model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../model/signs';
 import { sameView, type ViewSignature } from '../model/view-signature';
 import { vec3 } from '../model/vec3';
+import { SIGN_FADED } from '../model/sign-fade';
+import { fadeOf, signFade } from './sign-fade-state';
 
 /**
  * Keeps the pool of sign elements (ui/SignLayer.tsx) up to date. Each frame it only compares the camera with the last
@@ -18,6 +20,7 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
   const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
   const size = useThree((state) => state.size);
   const last = useRef<ViewSignature | null>(null);
+  const lastFade = useRef(-1);
   const updates = useRef(0);
   const forward = useMemo(() => new THREE.Vector3(), []);
   const point = useMemo(() => new THREE.Vector3(), []);
@@ -54,8 +57,10 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
       width: size.width,
       height: size.height,
     };
-    if (sameView(last.current, view)) return;
+    // Nothing to do when the camera is still and no sign is fading in or out.
+    if (sameView(last.current, view) && lastFade.current === signFade.version) return;
     last.current = view;
+    lastFade.current = signFade.version;
 
     const visible = visibleSigns(
       model.signSources,
@@ -68,7 +73,10 @@ export function SignDriver({ model, container }: { model: SceneModel; container:
     const unblocked = visible.filter((sign) => {
       const source = sources.get(sign.path);
       return source !== undefined && !labelBlocked(labelView, vec3(source.x, source.y, source.z), sign.label, occluders);
-    });
+    })
+      // A sign fading out of the way of the grave in focus takes its label with it (scene/Plaques.tsx).
+      .filter((sign) => fadeOf(sign.path) > SIGN_FADED)
+      .map((sign) => ({ ...sign, opacity: sign.opacity * fadeOf(sign.path) }));
     const placements = placeSignsClear(unblocked, (path) => {
       const source = sources.get(path);
       if (!source) return null;

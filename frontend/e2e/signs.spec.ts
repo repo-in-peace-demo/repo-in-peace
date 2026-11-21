@@ -5,6 +5,7 @@ import type { Graveyard } from '@shared/graveyard-schema';
 import { DEFAULT_FOV_Y, type CameraPose } from '../src/model/camera-pose';
 import { buildSceneModel, type SceneModel } from '../src/model/scene-model';
 import { labelBlocked, signBlocked, stoneOccluders } from '../src/model/sign-occlusion';
+import { SIGN_FADED } from '../src/model/sign-fade';
 import { placeSignsClear } from '../src/model/sign-placement';
 import { SIGN_MAX_VISIBLE, visibleSigns } from '../src/model/signs';
 import { sceneCameraLimits } from '../src/model/camera-bounds';
@@ -71,7 +72,11 @@ async function expectedFor(page: Page, p: CameraPose, m: SceneModel = model): Pr
   const boxes = stoneOccluders(m.pickTargets);
   const labelView = { position: p.position, forward: sub(p.target, p.position), fovY: DEFAULT_FOV_Y, viewportHeight: VIEWPORT.height };
   const seen = visible.filter((v) => !labelBlocked(labelView, sources.get(v.path)!, v.label, boxes));
-  return placeSignsClear(seen, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
+  // A sign fading out of the way of the grave in focus (after a flight) takes its label with it; the page reports the fades.
+  const fades = await page.evaluate(() => window.repoInPeace!.getSignFade());
+  const fadeOf = (path: string): number => fades[path] ?? 1;
+  const kept = seen.filter((v) => fadeOf(v.path) > SIGN_FADED).map((v) => ({ ...v, opacity: v.opacity * fadeOf(v.path) }));
+  return placeSignsClear(kept, (path) => where[path] ?? null).map((s) => ({ text: s.label, opacity: s.opacity }));
 }
 
 /** Waits until the camera is still, then checks the page against the pose. */
