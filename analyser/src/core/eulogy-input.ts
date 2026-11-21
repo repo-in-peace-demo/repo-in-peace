@@ -1,5 +1,6 @@
 import type { DecayState, FileEntry, Thresholds } from '../../../shared/graveyard-schema';
 import { FACT_NAMES, factRule } from '../../../shared/vocabulary';
+import { ageDays } from './decay';
 import type { Contents } from './eulogy-contents';
 import type { FileHistory, People, RawGhost } from './history';
 import { redact } from './redact';
@@ -23,13 +24,22 @@ export type EulogyInput =
       /** The facts behind `state` and `flags`, for the tone of the prompt and for checking the answer against them. */
       decayState: DecayState;
       unused: boolean;
+      /** Whole days from its last commit to the snapshot, so the eulogy can say how old it really is. */
+      ageDays: number;
     }
   | { kind: 'ghost'; path: string; name: string; deletedDay: string; subject: string; contents: Contents };
 
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 const redacted = (contents: Contents, people: People): Contents => (contents.kind === 'text' ? { ...contents, text: redact(contents.text, people) } : contents);
 
-export function fileInput(file: FileEntry, history: FileHistory, thresholds: Thresholds, contents: Contents, people: People): EulogyInput {
+export function fileInput(
+  file: FileEntry,
+  history: FileHistory,
+  thresholds: Thresholds,
+  contents: Contents,
+  people: People,
+  snapshotDate: string,
+): EulogyInput {
   const flags: string[] = [];
   if (file.unused) flags.push(`${FACT_NAMES.unused} (${factRule('unused', thresholds)})`);
   if (file.hot) flags.push(`${FACT_NAMES.hot} (${factRule('hot', thresholds)})`);
@@ -44,6 +54,7 @@ export function fileInput(file: FileEntry, history: FileHistory, thresholds: Thr
     contents: redacted(contents, people),
     decayState: file.decayState,
     unused: file.unused,
+    ageDays: ageDays(Date.parse(file.lastCommitDate), Date.parse(snapshotDate)),
   };
 }
 

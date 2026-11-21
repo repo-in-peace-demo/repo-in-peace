@@ -22,6 +22,7 @@ const inputArb: fc.Arbitrary<EulogyInput> = fc.oneof(
     contents: contentsArb,
     decayState: fc.constantFrom('fresh' as const, 'stale' as const, 'ancient' as const),
     unused: fc.boolean(),
+    ageDays: fc.nat(2000),
   }),
   fc.record({
     kind: fc.constant('ghost' as const),
@@ -62,8 +63,8 @@ const versionsArb: fc.Arbitrary<EulogyVersions> = fc.record({ prompt: fc.nat(9),
 describe('P3: the cache key', () => {
   it('uses the current prompt and cleaning versions, so a change to either writes every eulogy again', () => {
     expect(EULOGY_VERSIONS).toEqual({ prompt: PROMPT_VERSION, cleaning: CLEANING_VERSION });
-    expect(PROMPT_VERSION).toBe(2);
-    expect(CLEANING_VERSION).toBe(2);
+    expect(PROMPT_VERSION).toBe(3);
+    expect(CLEANING_VERSION).toBe(3);
   });
 
   it('is the same for the same model, prompt version and input, whatever order the fields were set in', () => {

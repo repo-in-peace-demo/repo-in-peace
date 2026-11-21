@@ -22,6 +22,7 @@ const inputOf = (path: string): EulogyInput => ({
   contents: { text: 'export const a = 1;\n', cut: false, kind: 'text' },
   decayState: 'fresh',
   unused: false,
+  ageDays: 3,
 });
 const jobOf = (path: string): EulogyJob => ({ path, input: inputOf(path) });
 const goodAnswer = (path: string): string => `Here lies ${path.replace(/[^a-z]/g, ' ').trim() || 'a file'}. It rested well.`;

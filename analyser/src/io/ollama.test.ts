@@ -129,6 +129,7 @@ describe('ollamaClient', () => {
       contents: { text: 'export function route() {}\n', cut: false, kind: 'text' },
       decayState: 'fresh',
       unused: false,
+      ageDays: 3,
     };
     const result = await runEulogies([{ path: input.path, input }], {
       client: ollamaClient(fake.url, 'thinker:8b'),

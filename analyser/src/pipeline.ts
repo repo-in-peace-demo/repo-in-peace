@@ -243,7 +243,7 @@ async function addEulogies(
   const jobs: EulogyJob[] = [
     ...graveyard.files.map((file) => ({
       path: file.path,
-      input: fileInput(file, history.perFile.get(file.path)!, thresholds, contentsOf(blobByPath.get(file.path)), people),
+      input: fileInput(file, history.perFile.get(file.path)!, thresholds, contentsOf(blobByPath.get(file.path)), people, graveyard.meta.snapshotDate),
     })),
     ...graveyard.ghosts.map((ghost) => ({
       path: ghost.path,

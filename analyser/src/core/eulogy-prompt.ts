@@ -5,14 +5,14 @@ import type { EulogyInput } from './eulogy-input';
 /**
  * The prompt for one grave's eulogy (eulogies spec, Req 3.5, 4). Pure. Raise PROMPT_VERSION whenever the words below, or what goes into
  * them, change: it is part of the cache key, so every eulogy is written again with the new prompt.
+ *
+ * Version 3 gives no example eulogy: with one, the model copied it word for word onto graves it said nothing about, and took its
+ * opening for every grave. The tone and the opening are described in words instead.
  */
-export const PROMPT_VERSION = 2;
+export const PROMPT_VERSION = 3;
 
 /** The most characters a eulogy may have (Req 4.1); the prompt asks for less, to leave room. */
 export const EULOGY_MAX_CHARS = 240;
-
-/** The examples are about a file that is made up (and named so it cannot be mistaken for a real one), one per tone. */
-export const EXAMPLE_FILE = 'lantern-keeper.example.ts';
 
 /**
  * How a grave should sound, from its facts (eulogies spec, Req 3.5): a fresh, used file is alive; an older used file is old but still
@@ -34,14 +34,6 @@ export const TONE_TEXT: Record<Tone, string> = {
   mourned:
     'Mourned. Nothing uses it any more. It may be mourned like a real grave ("here lies" fits).',
   departed: 'Departed. The file was deleted. Write of it as gone, remembered for what it did.',
-};
-
-/** One example per tone, none of them opening with "Here lies", so the model does not copy one opening onto every grave. */
-export const EXAMPLES: Record<Tone, string> = {
-  alive: 'Every dusk the lantern keeper still lights the paths, and travellers find their way because of it. No ghost has ever caught it napping.',
-  serving: 'The lantern keeper has lit these paths since before the moss came, and it lights them still. Its glass is cloudy, its flame steady.',
-  mourned: 'Rest now, lantern keeper: no traveller comes this way any more. You lit every path at dusk and never once asked why.',
-  departed: 'Once the lantern keeper lit every path at dusk. The paths are dark now, but the travellers remember the light.',
 };
 
 /** Ways to begin, one chosen per grave from its path, so a graveyard of eulogies does not all start the same way. */
@@ -69,6 +61,8 @@ const SYSTEM = [
   "- Accurate about what the file does or did, judged only from its name, path and contents. If you cannot tell, say so gently; never invent a fact.",
   '- Match the tone given for the grave. Call a file unused only if its flags say Unused, and ancient only if its state says Ancient.',
   '- Do not start with "Here lies" unless the tone allows it; follow the opening given.',
+  "- Say how old it is only as the Age line says: never \"for years\", \"for decades\", \"for ages\" or \"since time immemorial\" for a file under a year old.",
+  '- Do not begin with the file name on a line of its own.',
   '- Never mock or name its authors, or anyone.',
   '- Never quote code, strings, function calls, URLs, keys or tokens.',
   '- Plain text only: no quotes around it, no markdown, no emoji, no line breaks. Prose, not verse.',
@@ -95,6 +89,7 @@ export function buildPrompt(input: EulogyInput, retry = false): { system: string
           `Path: ${input.path}`,
           `State: ${input.state}`,
           `Flags: ${input.flags.length === 0 ? 'none' : input.flags.join('; ')}`,
+          `Age: last changed ${input.ageDays} ${input.ageDays === 1 ? 'day' : 'days'} before the snapshot`,
           `Lines of code: ${input.lines}`,
           `Last change: ${input.subject.trim() === '' ? '(no message)' : input.subject}`,
         ]
@@ -110,7 +105,6 @@ export function buildPrompt(input: EulogyInput, retry = false): { system: string
     ...facts,
     `Tone: ${TONE_TEXT[tone]}`,
     `Opening: ${openingFor(input.path)}`,
-    `Example in this tone, for a made-up file ${EXAMPLE_FILE}: ${EXAMPLES[tone]}`,
     contentsBlock(input),
   ];
   if (retry) parts.push(RETRY);

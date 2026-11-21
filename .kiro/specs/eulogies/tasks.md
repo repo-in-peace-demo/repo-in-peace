@@ -156,6 +156,13 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 15.6 Tests for each, in `eulogy-clean`, `eulogy-prompt`, `eulogy-key` and `eulogy-run` tests.
   - _Requirements: 3.5, 4.1, 4.4, 4.5_
 
+- [x] 16. Second revision, after the second run
+  - [x] 16.1 (a) No example in the prompt; `copiesExample` rejects "lantern keeper" or five words in a row from a former example (`example`).
+  - [x] 16.2 (b) A file name written as a heading is removed; the word after a file name keeps its capital.
+  - [x] 16.3 (c) The real age in days in the prompt (`fileInput` takes the snapshot date); age claims ("for years", "since time immemorial", "since ancient times", "for ages" and the like) rejected for files under a year old.
+  - [x] 16.4 `PROMPT_VERSION` 3 and `CLEANING_VERSION` 3. Tests for each. Replayed on the second run's 251 eulogies: 37 facts, 28 example copies, 1 heading removed, no false hit found.
+  - _Requirements: 3.5, 4.4, 4.5_
+
 - [ ] 14. **Final checkpoint** (yours to run)
   - [ ] 14.1 **Run:**
     ```

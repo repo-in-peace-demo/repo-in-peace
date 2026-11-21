@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { FileEntry, Thresholds } from '../../../shared/graveyard-schema';
 import type { Contents } from './eulogy-contents';
 import { fileInput, ghostInput } from './eulogy-input';
-import { EULOGY_MAX_CHARS, EXAMPLES, EXAMPLE_FILE, OPENINGS, PROMPT_VERSION, TONE_TEXT, buildPrompt, openingFor, toneOf, type Tone } from './eulogy-prompt';
+import { FORMER_EXAMPLES } from './eulogy-clean';
+import { OPENINGS, PROMPT_VERSION, TONE_TEXT, buildPrompt, openingFor, toneOf, type Tone } from './eulogy-prompt';
 import type { FileHistory, People, RawGhost } from './history';
 import { personPattern, personWords } from './redact';
 
@@ -27,12 +28,13 @@ const history = (subject: string): FileHistory => ({ lastCommitDate: '2026-07-29
 const ghost = (subject: string): RawGhost => ({ path: 'src/surface-placement.ts', deletedInSha: SHA, deletedDate: '2026-10-12T08:30:00.000Z', deletedBy: 'Bob', lastExistingSha: SHA, deletedSubject: subject });
 const text = (t: string, cut = false): Contents => ({ text: t, cut, kind: 'text' });
 const nobody: People = { names: new Set(), emails: new Set() };
+const SNAPSHOT = '2026-08-18T10:00:00.000Z'; // 20 days after the files' last commit
 
 describe('the inputs', () => {
   it('describe a stone in the one vocabulary', () => {
-    const input = fileInput(file(), history('drop the old voice hook'), T, text('export {};\n'), nobody);
+    const input = fileInput(file(), history('drop the old voice hook'), T, text('export {};\n'), nobody, SNAPSHOT);
     expect(input).toMatchObject({ kind: 'file', name: 'index.ts', state: 'Stale (21–45 days)', flags: ['Unused (nothing imports it (Knip))'], lines: 2, subject: 'drop the old voice hook' });
-    expect(fileInput(file({ unused: false, hot: true, decayState: 'fresh' }), history(''), T, text(''), nobody)).toMatchObject({ state: 'Fresh (under 21 days)', flags: ['Hot (5+ commits in the 30 days before the snapshot)'] });
+    expect(fileInput(file({ unused: false, hot: true, decayState: 'fresh' }), history(''), T, text(''), nobody, SNAPSHOT)).toMatchObject({ state: 'Fresh (under 21 days)', flags: ['Hot (5+ commits in the 30 days before the snapshot)'] });
   });
 
   it('describe a ghost with its UTC day of deletion', () => {
@@ -41,7 +43,7 @@ describe('the inputs', () => {
 });
 
 describe('the prompt', () => {
-  const stone = fileInput(file(), history('drop the old voice hook'), T, text('export const voice = 1;\n'), nobody);
+  const stone = fileInput(file(), history('drop the old voice hook'), T, text('export const voice = 1;\n'), nobody, SNAPSHOT);
 
   it('gives the facts, the contents between markers, and the rules', () => {
     const { system, prompt } = buildPrompt(stone);
@@ -77,12 +79,13 @@ describe('the prompt', () => {
     ['departed', 'ghost'],
   ];
 
-  it.each(tones)('gives the %s tone, its example and an opening for %j', (tone, over) => {
-    const input = over === 'ghost' ? ghostInput(ghost('x'), text('x'), nobody) : fileInput(file(over), history('x'), T, text('x'), nobody);
+  it.each(tones)('gives the %s tone and an opening for %j, and no example', (tone, over) => {
+    const input = over === 'ghost' ? ghostInput(ghost('x'), text('x'), nobody) : fileInput(file(over), history('x'), T, text('x'), nobody, SNAPSHOT);
     expect(toneOf(input)).toBe(tone);
     const { prompt } = buildPrompt(input);
     expect(prompt).toContain(`Tone: ${TONE_TEXT[tone]}`);
-    expect(prompt).toContain(`Example in this tone, for a made-up file ${EXAMPLE_FILE}: ${EXAMPLES[tone]}`);
+    expect(prompt).not.toMatch(/Example/i);
+    expect(prompt).not.toMatch(/lantern/i);
     expect(prompt).toContain(`Opening: ${openingFor(input.path)}`);
   });
 
@@ -95,14 +98,18 @@ describe('the prompt', () => {
     expect(TONE_TEXT.serving).not.toMatch(/here lies/i);
   });
 
-  it('has examples about the made-up file only, none opening with "Here lies", each at most two sentences and short enough', () => {
-    for (const example of Object.values(EXAMPLES)) {
-      expect(example).not.toMatch(/^Here lies/i);
-      expect(example).toMatch(/lantern keeper/);
-      expect(Array.from(example).length).toBeLessThan(EULOGY_MAX_CHARS - 40);
-      expect(example.split(/[.!?](\s|$)/).filter((s) => s.trim().length > 1).length).toBeLessThanOrEqual(2);
-    }
-    expect(buildPrompt(stone).system).not.toMatch(/^Here lies/m);
+  it('gives no example eulogy, which the model copied, and none of the earlier ones', () => {
+    const { system, prompt } = buildPrompt(stone);
+    for (const example of FORMER_EXAMPLES) expect(`${system}\n${prompt}`).not.toContain(example.slice(0, 30));
+    expect(system).not.toMatch(/lantern|example/i);
+  });
+
+  it('gives the real age in days, and forbids claiming years for a younger file', () => {
+    expect(stone.kind === 'file' && stone.ageDays).toBe(20);
+    expect(buildPrompt(stone).prompt).toContain('Age: last changed 20 days before the snapshot');
+    expect(buildPrompt({ ...stone, ageDays: 1 } as typeof stone).prompt).toContain('Age: last changed 1 day before the snapshot');
+    expect(buildPrompt(stone).system).toMatch(/since time immemorial/);
+    expect(buildPrompt(stone).system).toMatch(/file name on a line of its own/);
   });
 
   it('chooses the opening from the path alone, the same every time, and spreads paths across the openings', () => {
@@ -113,12 +120,12 @@ describe('the prompt', () => {
     expect(Math.min(...counts)).toBeGreaterThan(50); // about 100 each
   });
 
-  it('is prompt version 2', () => {
-    expect(PROMPT_VERSION).toBe(2);
+  it('is prompt version 3', () => {
+    expect(PROMPT_VERSION).toBe(3);
   });
 
   const FIXED_WORDS = new Set(
-    [buildPrompt(stone).system, buildPrompt(stone, true).prompt, ...Object.values(TONE_TEXT), ...Object.values(EXAMPLES), ...OPENINGS, 'File Path State Flags Lines Last Contents Deleted Deleting Write Someone Tone Opening Example']
+    [buildPrompt(stone).system, buildPrompt(stone, true).prompt, ...Object.values(TONE_TEXT), ...OPENINGS, 'File Path State Flags Lines Last Contents Deleted Deleting Write Someone Tone Opening Age']
       .join(' ')
       .split(/[^A-Za-z]+/),
   );
@@ -130,11 +137,11 @@ describe('the prompt', () => {
         const emails = names.map((n) => `${n.toLowerCase()}q@example.com`);
         const people: People = { names: new Set(names), emails: new Set(emails) };
         const mention = [...words, ...names, ...emails, `by ${names[0]!.toUpperCase()}`].join(' ');
-        const input = isGhost ? ghostInput(ghost(mention), text(`// Author: ${mention}\n`), people) : fileInput(file(), history(mention), T, text(`// Author: ${mention}\n`), people);
+        const input = isGhost ? ghostInput(ghost(mention), text(`// Author: ${mention}\n`), people) : fileInput(file(), history(mention), T, text(`// Author: ${mention}\n`), people, SNAPSHOT);
         const pattern = personPattern(personWords(people))!;
         // The path and the fixed words are given as they are (the eulogy must be accurate about them): a name that is one of them is
         // not a mention to remove.
-        const base = isGhost ? ghostInput(ghost(''), text(''), people) : fileInput(file(), history(''), T, text(''), people);
+        const base = isGhost ? ghostInput(ghost(''), text(''), people) : fileInput(file(), history(''), T, text(''), people, SNAPSHOT);
         const fixed = buildPrompt(base, true);
         fc.pre(!personPattern(personWords(people))!.test(`${fixed.system}\n${fixed.prompt}`));
         const { system, prompt } = buildPrompt(input, true);

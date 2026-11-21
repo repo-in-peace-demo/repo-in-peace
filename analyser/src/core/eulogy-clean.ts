@@ -11,14 +11,15 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *   3. it is cleaned: markdown and emoji go, broken lines are joined, a label and wrapping quotes go, whitespace becomes single spaces,
  *      and it keeps the whole sentences that fit (two at most);
  *   4. the cleaned text is checked again: unbalanced quotes, no whole sentence that fits, or a claim the grave's facts contradict
- *      (a used file called unused, a file that is not ancient called ancient, a living file called forgotten) reject it.
+ *      (a used file called unused, a file that is not ancient called ancient, a living file called forgotten, a file under a year old
+ *      said to be years old), and a copy of an example from an earlier prompt, reject it.
  * Strict on purpose: a harmless eulogy that looks like code is rejected (and retried once) rather than risk a leak.
  *
  * Raise CLEANING_VERSION whenever these rules change: it is part of the cache key, so cached eulogies are cleaned by the new rules.
  */
-export const CLEANING_VERSION = 2;
+export const CLEANING_VERSION = 3;
 
-export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts';
+export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example';
 export type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
 
 // ---- 1. Reasoning blocks ----
@@ -134,9 +135,23 @@ function stripWrappingQuotes(text: string): string {
  */
 function joinBrokenLines(text: string, input: EulogyInput | undefined): string {
   const known = input === undefined ? '' : `${input.path}\n${input.contents.text}`;
-  return text.replace(/([\p{Ll},;:—–-])[ \t]*\r?\n\s*(\p{Lu}\p{Ll}+)(?![\p{L}\p{N}])/gu, (_all, before: string, word: string) =>
-    known.includes(word) ? `${before} ${word}` : `${before} ${word.toLowerCase()}`,
-  );
+  return text.replace(/([\p{Ll},;:—–-])[ \t]*\r?\n\s*(\p{Lu}\p{Ll}+)(?![\p{L}\p{N}])/gu, (all, before: string, word: string, at: number) => {
+    // A line ending in a file name ("ComparePanel.tsx") is a heading or a sentence of its own: the next word keeps its capital.
+    if (SOURCE_FILE_AT_END.test(text.slice(0, at + 1))) return `${before} ${word}`;
+    return known.includes(word) ? `${before} ${word}` : `${before} ${word.toLowerCase()}`;
+  });
+}
+
+const SOURCE_FILE = String.raw`[\w@()[\]./-]*\.(?:ts|tsx|js|jsx|mjs|cjs|mts|cts)`;
+const SOURCE_FILE_AT_END = new RegExp(`${SOURCE_FILE}$`, 'i');
+/** A file name (or path) the answer opens with as a heading: alone on its line, or before a colon or dash, or before a capital. */
+const LEADING_FILE_NAME = new RegExp(String.raw`^\s*["“'‘]?${SOURCE_FILE}["”'’]?(?:\s*[:—–-]\s*|[ \t]*\r?\n\s*|[ \t]+(?=["“]?\p{Lu}))`, 'u');
+
+/** The answer without a file name it wrote as a heading ("daily-flow.test.ts\nEvery dawn…" becomes "Every dawn…"). A name that is
+ * the subject of the first sentence ("route.ts has marked paths") stays. */
+function withoutLeadingFileName(text: string): string {
+  const rest = text.replace(LEADING_FILE_NAME, '');
+  return /[\p{L}\p{N}]/u.test(rest) ? rest : text;
 }
 
 /** The whole sentences that fit: the first two, or the first alone when two are too long; none when the first alone is. */
@@ -175,13 +190,42 @@ const NOT_USED = /\b(no longer (used|imported|called|needed)|never (used|importe
 /** Words that call a file dead or gone: wrong for one that is fresh and in use. */
 const DEAD_WORDS = /\b(forgotten|dormant|silent|silenced|abandoned|lifeless|dead|deceased|departed|buried)\b/gi;
 
+/** Words that say a file has been around for years. Wrong for one under a year old (its age is in the prompt). */
+const AGE_CLAIMS =
+  /\b((for|over|across|through|in|after)\s+(many\s+|countless\s+|long\s+)?(years|decades|centuries|aeons|eons|ages|generations|millennia)|(years|decades|centuries|aeons|eons)\s+(old|ago)|since\s+(time\s+immemorial|ancient\s+times|the\s+dawn\s+of\s+time|days\s+of\s+old|time\s+began|the\s+beginning\s+of\s+time)|time\s+out\s+of\s+mind|from\s+time\s+immemorial|ages\s+past|of\s+yore)\b/i;
+/** Days in a year, for the age claims. */
+const YEAR_DAYS = 365;
+
 /** Whether the eulogy says something the grave's facts contradict (Req 4.5). Ghosts have no state or flags to contradict. */
 export function contradictsFacts(text: string, input: EulogyInput): boolean {
   if (input.kind !== 'file') return false;
   if (!input.unused && (claims(text, /\bunused\b/gi, NOT_ABOUT_THE_FILE_UNUSED) || NOT_USED.test(text))) return true;
   if (input.decayState !== 'ancient' && claims(text, /\bancient\b/gi, NOT_ABOUT_THE_FILE_ANCIENT)) return true;
   if (input.decayState === 'fresh' && !input.unused && claims(text, DEAD_WORDS, /^(?!)/)) return true; // "never forgotten" is allowed
+  if (input.ageDays < YEAR_DAYS && AGE_CLAIMS.test(text)) return true;
   return false;
+}
+
+/**
+ * The example eulogies of earlier prompts (versions 1 and 2), about the made-up lantern keeper. The model copied them, whole or in
+ * part, onto graves they said nothing about; an answer sharing a run of five words with one is rejected.
+ */
+export const FORMER_EXAMPLES: readonly string[] = [
+  'Here lies the lantern keeper, who lit every path at dusk and never once asked why. Its flame went out quietly, still waiting for travellers.',
+  'Every dusk the lantern keeper still lights the paths, and travellers find their way because of it. No ghost has ever caught it napping.',
+  'The lantern keeper has lit these paths since before the moss came, and it lights them still. Its glass is cloudy, its flame steady.',
+  'Rest now, lantern keeper: no traveller comes this way any more. You lit every path at dusk and never once asked why.',
+  'Once the lantern keeper lit every path at dusk. The paths are dark now, but the travellers remember the light.',
+];
+const COPY_RUN = 5;
+const wordsOf = (text: string): string[] => text.toLowerCase().replace(/travelers/g, 'travellers').split(/[^\p{L}\p{N}']+/u).filter((w) => w !== '');
+const runsOf = (words: readonly string[]): Set<string> => new Set(words.slice(0, Math.max(0, words.length - COPY_RUN + 1)).map((_, i) => words.slice(i, i + COPY_RUN).join(' ')));
+const EXAMPLE_RUNS = new Set(FORMER_EXAMPLES.flatMap((e) => [...runsOf(wordsOf(e))]));
+
+/** Whether the text copies an earlier example: "lantern keeper", or five words in a row from one. */
+export function copiesExample(text: string): boolean {
+  if (/\blantern[- ]keeper\b/i.test(text)) return true;
+  return [...runsOf(wordsOf(text))].some((run) => EXAMPLE_RUNS.has(run));
 }
 
 export function cleanEulogy(raw: string, context: { people: People; input?: EulogyInput }): Cleaned {
@@ -198,12 +242,11 @@ export function cleanEulogy(raw: string, context: { people: People; input?: Eulo
       .replace(/^\s*>\s?/gm, '') // blockquotes
       .replace(/^\s*(?:[-*+•]|\d+[.)])(\s+|$)/gm, ''); // list markers
   }
-  text = joinBrokenLines(text, context.input)
+  text = text
     .replace(/(\*\*|__)(.+?)\1/g, '$2')
-    .replace(/(^|[\s(])[*_](\S(?:.*?\S)?)[*_](?=[\s).,!?;:]|$)/g, '$1$2')
-    .replace(/[*_]{2,}/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/(^|[\s(])[*_](\S(?:.*?\S)?)[*_](?=[\s).,!?;:]|$)/gm, '$1$2')
+    .replace(/[*_]{2,}/g, '');
+  text = joinBrokenLines(withoutLeadingFileName(text), context.input).replace(/\s+/g, ' ').trim();
   // What is left around the one line: markers, a label and wrapping quotes can wrap each other ("” > A"), so they are removed
   // together, again and again, until nothing changes.
   for (let previous = ''; previous !== text; ) {
@@ -221,6 +264,7 @@ export function cleanEulogy(raw: string, context: { people: People; input?: Eulo
   if (text === '' || !/[\p{L}\p{N}]/u.test(text)) return { ok: false, reason: 'empty' };
   // A quote left open, or one that opens the eulogy (a quotation it starts with reads as quotes around it): rejected.
   if (!quotesBalanced(text) || QUOTES.includes(text[0]!)) return { ok: false, reason: 'quotes' };
+  if (copiesExample(text)) return { ok: false, reason: 'example' };
   if (context.input !== undefined && contradictsFacts(text, context.input)) return { ok: false, reason: 'facts' };
   return { ok: true, text };
 }

@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { cleanEulogy, contradictsFacts, quotesBalanced, rejectReason, sentencesOf, stripReasoning } from './eulogy-clean';
+import { FORMER_EXAMPLES, cleanEulogy, contradictsFacts, copiesExample, quotesBalanced, rejectReason, sentencesOf, stripReasoning } from './eulogy-clean';
 import type { EulogyInput } from './eulogy-input';
 import { EULOGY_MAX_CHARS } from './eulogy-prompt';
 import type { People } from './history';
@@ -56,7 +56,7 @@ describe('P1: the format', () => {
   });
 
   it('keeps whole sentences: both when they fit, the first alone when two are too long, and rejects one sentence that is too long', () => {
-    const first = `The lantern keeper ${'walks the paths '.repeat(6).trim()} at dusk.`;
+    const first = `The night porter ${'walks the paths '.repeat(6).trim()} at dusk.`;
     const second = `It ${'keeps every flame '.repeat(8).trim()} burning.`;
     expect(clean(`${first} It rests.`)).toEqual({ ok: true, text: `${first} It rests.` });
     expect(Array.from(`${first} ${second}`).length).toBeGreaterThan(EULOGY_MAX_CHARS);
@@ -173,7 +173,7 @@ describe('quotes', () => {
 describe('line breaks', () => {
   const input = (contents: string): EulogyInput => ({
     kind: 'file', path: 'src/recenter-trigger.ts', name: 'recenter-trigger.ts', state: 'Fresh', flags: [], lines: 9, subject: 'x',
-    contents: { text: contents, cut: false, kind: 'text' }, decayState: 'fresh', unused: false,
+    contents: { text: contents, cut: false, kind: 'text' }, decayState: 'fresh', unused: false, ageDays: 3,
   });
 
   it('joins a line broken inside a sentence, with no capital in the middle', () => {
@@ -208,9 +208,9 @@ describe('line breaks', () => {
 });
 
 describe('the facts of the grave', () => {
-  const fileOf = (decayState: 'fresh' | 'stale' | 'ancient', unused: boolean): EulogyInput => ({
+  const fileOf = (decayState: 'fresh' | 'stale' | 'ancient', unused: boolean, ageDays = 30): EulogyInput => ({
     kind: 'file', path: 'app/lib/logger.ts', name: 'logger.ts', state: decayState, flags: [], lines: 40, subject: 'x',
-    contents: { text: 'export const log = 1;\n', cut: false, kind: 'text' }, decayState, unused,
+    contents: { text: 'export const log = 1;\n', cut: false, kind: 'text' }, decayState, unused, ageDays,
   });
   const ghost: EulogyInput = { kind: 'ghost', path: 'src/old.ts', name: 'old.ts', deletedDay: '2026-01-01', subject: 'x', contents: { text: '', cut: false, kind: 'empty' } };
   const check = (text: string, input: EulogyInput) => cleanEulogy(text, { people: nobody, input });
@@ -266,7 +266,87 @@ describe('the facts of the grave', () => {
     );
   });
 
+  it('rejects a claim of years, ages or time immemorial for a file under a year old, and allows it for an older one', () => {
+    for (const claim of [
+      'It has stood watch for decades.',
+      'The guardian has watched these paths for years.',
+      'It has served since time immemorial.',
+      'It has kept the gate since ancient times.',
+      'It has waited for ages by the gate.',
+      'It has stood here since the dawn of time.',
+      'It was written years ago and still serves.',
+      'Its words have not changed in aeons.',
+      'It has kept watch over many years.',
+    ]) {
+      for (const [state, unused] of [['stale', false], ['ancient', false], ['ancient', true], ['fresh', false]] as const) {
+        expect(check(claim, fileOf(state, unused, 364)), `${claim} at 364 days`).toEqual({ ok: false, reason: 'facts' });
+      }
+      expect(check(claim, fileOf('ancient', false, 365)).ok, `${claim} at 365 days`).toBe(true);
+    }
+  });
+
+  it('allows words about time that claim no age', () => {
+    for (const ok of ['It counts the years of every account.', 'It keeps the ages of the users.', 'It waits through the night for the next query.', 'It was weathered by many seasons of change.']) {
+      expect(check(ok, fileOf('stale', false, 40)), ok).toEqual({ ok: true, text: ok });
+    }
+  });
+
   it('has nothing to contradict for a ghost', () => {
     expect(contradictsFacts('An ancient, unused, forgotten thing.', ghost)).toBe(false);
+  });
+});
+
+describe('copies of the examples', () => {
+  it('rejects any former example, whole or in part', () => {
+    for (const example of FORMER_EXAMPLES) expect(clean(example)).toEqual({ ok: false, reason: 'example' });
+    expect(clean('Every dawn the query route still guides the comparison. No ghost has ever caught it napping.')).toEqual({ ok: false, reason: 'example' });
+    expect(clean('Every dusk the lantern keeper still lights the paths, and travelers find their way because of it.')).toEqual({ ok: false, reason: 'example' });
+    expect(clean('The router, a lantern keeper of requests, guides each call.')).toEqual({ ok: false, reason: 'example' });
+  });
+
+  it('allows four words in a row from one, and common words', () => {
+    expect(copiesExample('No ghost has ever doubted it. The router guides every call.')).toBe(false);
+    expect(copiesExample('It lit every path through the accounts at dusk.')).toBe(false);
+  });
+
+  it('any five words in a row from an example, put into a good eulogy, reject it', () => {
+    const runs = FORMER_EXAMPLES.flatMap((e) => {
+      const words = e.replace(/[.,:]/g, '').split(' ');
+      return words.slice(0, words.length - 4).map((_, i) => words.slice(i, i + 5).join(' '));
+    });
+    fc.assert(
+      fc.property(fc.constantFrom(...runs), (run) => {
+        const r = clean(`The router guides each call, and ${run.toLowerCase()} all night.`);
+        return !r.ok && r.reason === 'example';
+      }),
+    );
+  });
+});
+
+describe('a file name written as a heading', () => {
+  it('is removed, on its own line, before a colon or dash, or before a capital', () => {
+    expect(clean('daily-flow.test.ts\nEvery dawn it checks the puzzles.')).toEqual({ ok: true, text: 'Every dawn it checks the puzzles.' });
+    expect(clean('ComparePanel.tsx\nEvery dawn it still watches over accounts.')).toEqual({ ok: true, text: 'Every dawn it still watches over accounts.' });
+    expect(clean('surface-placement.ts Once the placement rule kept slabs in order.')).toEqual({ ok: true, text: 'Once the placement rule kept slabs in order.' });
+    expect(clean('**src/data/daily.ts**: The day keeper counts the puzzles.')).toEqual({ ok: true, text: 'The day keeper counts the puzzles.' });
+    expect(clean('"index.ts" — It gathers every export.')).toEqual({ ok: true, text: 'It gathers every export.' });
+  });
+
+  it('stays when it is the subject of the first sentence', () => {
+    expect(clean('route.ts has marked these paths, and it still guides travellers.')).toEqual({ ok: true, text: 'route.ts has marked these paths, and it still guides travellers.' });
+    expect(clean('Challenge-system.ts, puzzle master, guides the quest.')).toEqual({ ok: true, text: 'Challenge-system.ts, puzzle master, guides the quest.' });
+  });
+
+  it('does not lowercase the word after a file name that ends a line', () => {
+    expect(clean('It guides the requests of route.ts\nEvery call finds its way.')).toEqual({ ok: true, text: 'It guides the requests of route.ts Every call finds its way.' });
+  });
+
+  it('for any source file name as a heading, the eulogy is the text after it', () => {
+    const name = fc.stringMatching(/^[a-zA-Z][a-zA-Z-]{0,12}(\.test)?\.(ts|tsx|js|mjs)$/);
+    const sep = fc.constantFrom('\n', '\n\n', ': ', ' — ', ' ');
+    fc.assert(fc.property(name, sep, (n, s) => {
+      const r = clean(`${n}${s}Every night it keeps the gate.`);
+      return r.ok && r.text === 'Every night it keeps the gate.';
+    }));
   });
 });
