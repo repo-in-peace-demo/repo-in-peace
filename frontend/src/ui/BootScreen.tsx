@@ -13,6 +13,16 @@ interface BootScreenProps {
   onChooseFile: (file: File) => void;
 }
 
+/** Our own small title: a tombstone in text, shown above the boot lines (decoration, hidden from screen readers). */
+const TOMBSTONE = [
+  '      .-----------.',
+  '     /             \\',
+  '    |   REPO  IN    |',
+  '    |     PEACE     |',
+  '    |    ~ RIP ~    |',
+  '  __|_______________|__',
+].join('\n');
+
 const plural = (n: number, one: string, many: string): string => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
 /**
@@ -25,6 +35,8 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
   const [skipped, setSkipped] = useState(false);
   const [dragging, setDragging] = useState(false);
   const choices = useRef<HTMLDivElement>(null);
+  // The active choice: the one with the marker, and always the one with the focus (keyboard and mouse both move it).
+  const [active, setActive] = useState(0);
   const noticeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,9 +68,21 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
     };
   }, [ready]);
 
-  // The first choice takes the focus when the choices appear.
+  const choiceElements = (): HTMLElement[] => Array.from(choices.current?.querySelectorAll<HTMLElement>('[data-choice]') ?? []);
+
+  /** Makes choice `index` the active one: the marker moves to it and so does the focus. */
+  const activate = (index: number): void => {
+    const all = choiceElements();
+    if (all.length === 0) return;
+    const next = ((index % all.length) + all.length) % all.length;
+    setActive(next);
+    if (document.activeElement !== all[next]) all[next]!.focus();
+  };
+
+  // The first choice is active, with the focus, when the choices appear.
   useEffect(() => {
-    if (ready) choices.current?.querySelector<HTMLElement>('[data-choice]')?.focus();
+    if (ready) activate(0);
+    // Once, when the choices appear (activate reads the page, not state).
   }, [ready]);
 
   // A rejected file: its message takes the focus, so it is read out.
@@ -68,12 +92,18 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
 
   const onChoicesKey = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-    const all = Array.from(choices.current?.querySelectorAll<HTMLElement>('[data-choice]') ?? []);
-    const at = all.indexOf(document.activeElement as HTMLElement);
-    const next = all[(at + (event.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length];
-    next?.focus();
+    activate(active + (event.key === 'ArrowDown' ? 1 : -1));
     event.preventDefault();
   };
+
+  /** What every choice shares: the marker, and keeping the marker and the focus together (Tab, a click or the pointer). */
+  const choiceProps = (index: number) => ({
+    'data-choice': true,
+    className: `terminal-choice${index === active ? ' terminal-choice-active' : ''}`,
+    'aria-current': index === active ? ('true' as const) : undefined,
+    onFocus: () => setActive(index),
+    onMouseEnter: () => activate(index),
+  });
 
   const onDrop = (event: DragEvent<HTMLElement>): void => {
     event.preventDefault();
@@ -93,6 +123,7 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
+      <pre className="terminal-art" aria-hidden="true">{TOMBSTONE}</pre>
       <pre className="terminal-text" role="status" aria-live={ready ? 'polite' : 'off'}>
         {typing.lines.join('\n')}
         {!ready && <span className="terminal-cursor" aria-hidden="true" />}
@@ -104,9 +135,9 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
             <p className="terminal-dim">No demo list found. You can still open a graveyard file.</p>
           ) : (
             <ul aria-label="Demo graveyards">
-              {manifest.graveyards.map((g) => (
+              {manifest.graveyards.map((g, index) => (
                 <li key={g.name}>
-                  <button type="button" className="terminal-choice" data-choice onClick={() => onChooseDemo(g.name, { repo: g.repo, files: g.files, ghosts: g.ghosts })}>
+                  <button type="button" {...choiceProps(index)} onClick={() => onChooseDemo(g.name, { repo: g.repo, files: g.files, ghosts: g.ghosts })}>
                     <span className="terminal-choice-name">{g.repo}</span>
                     <span className="terminal-dim">
                       {' '}
@@ -118,7 +149,7 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
               ))}
             </ul>
           )}
-          <label className="terminal-choice terminal-file" data-choice tabIndex={0} onKeyDown={(event) => {
+          <label {...choiceProps(manifest?.graveyards.length ?? 0)} className={`${choiceProps(manifest?.graveyards.length ?? 0).className} terminal-file`} tabIndex={0} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.click();

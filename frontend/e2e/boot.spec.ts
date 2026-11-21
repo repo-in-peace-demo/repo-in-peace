@@ -127,3 +127,31 @@ test('switching between the two demos five times frees each scene: the same GPU 
   const lost = await page.evaluate(() => (window as unknown as { __lost: string[] }).__lost);
   expect(lost.filter((phase) => phase === 'live'), 'a lost WebGL context while a scene was showing').toEqual([]);
 });
+
+test('the marker is on the first demo at first, moves with Up and Down and with the pointer, and is always where the focus is', async ({ page }) => {
+  await page.goto('/');
+  await skipTyping(page);
+  const choices = page.locator('[data-choice]');
+  await expect(choices).toHaveCount(3); // two demos and the file choice
+  const marked = page.locator('.terminal-choice-active');
+  const agree = async (index: number): Promise<void> => {
+    await expect(marked).toHaveCount(1);
+    await expect(choices.nth(index)).toHaveClass(/terminal-choice-active/);
+    await expect(choices.nth(index)).toBeFocused();
+  };
+  await agree(0);
+  await page.keyboard.press('ArrowDown');
+  await agree(1);
+  await page.keyboard.press('ArrowDown');
+  await agree(2);
+  await page.keyboard.press('ArrowDown'); // round to the top
+  await agree(0);
+  await page.keyboard.press('ArrowUp');
+  await agree(2);
+  await choices.nth(1).hover();
+  await agree(1);
+  await page.keyboard.press('Shift+Tab');
+  await agree(0);
+  await page.keyboard.press('Enter'); // the marked one opens
+  await expect(page).toHaveURL(/\?graveyard=demo\.oikosledger$/);
+});

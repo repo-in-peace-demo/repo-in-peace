@@ -419,6 +419,13 @@ body,
   outline-offset: -1rem;
 }
 
+.terminal-art {
+  margin: 0 0 1rem;
+  font: inherit;
+  line-height: 1.15;
+  color: var(--phosphor-dim);
+}
+
 .terminal-text {
   margin: 0;
   font: inherit;
@@ -472,15 +479,25 @@ body,
   white-space: pre;
 }
 
-.terminal-choice:hover,
-.terminal-choice:focus-visible {
-  border-color: var(--phosphor-dim);
-  background: rgba(125, 255, 154, 0.08);
-  outline: none;
+.terminal-choice:focus {
+  outline: none; /* the marker below shows where the focus is: the active choice always has it */
 }
 
-.terminal-choice:focus-visible::before {
+/* The active choice: reverse video, with a blinking > in front. Keyboard and pointer move it, and the focus goes with it. */
+.terminal-choice-active {
+  border-color: var(--phosphor);
+  background: var(--phosphor);
+  color: var(--phosphor-bg);
+  text-shadow: none;
+}
+
+.terminal-choice-active .terminal-dim {
+  color: #0b3a19;
+}
+
+.terminal-choice-active::before {
   content: '> ';
+  animation: terminal-blink 1s steps(1) infinite;
 }
 
 .terminal-choice-name {
@@ -542,7 +559,8 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terminal-cursor {
+  .terminal-cursor,
+  .terminal-choice-active::before {
     animation: none;
   }
 }
