@@ -114,7 +114,7 @@ describe('ollamaClient', () => {
   });
 
   it('a reasoning model: think false is sent, the thinking field is never read, and the eulogy is the epitaph alone', async () => {
-    const epitaph = 'Here lies the router, which kept every path in order. It never once got lost.';
+    const epitaph = 'The router keeps every path in order. It never once gets lost.';
     const fake = await fakeOllama((_req, _body, res) =>
       json(res, { response: `<think>I should mention the lanterns…</think>${epitaph}`, thinking: 'Lanterns. Paths. Do not name the author.', done: true }),
     );

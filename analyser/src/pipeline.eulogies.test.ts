@@ -76,7 +76,7 @@ function fakeModel(answer: (path: string, retry: boolean) => string) {
   };
   return { client, prompts, calls: () => prompts.length };
 }
-const epitaphFor = (path: string): string => `Here lies ${path.replace(/^src\//, '').replace(/\.ts$/, '')}, a lantern for the lost. It burned to the end.`;
+const epitaphFor = (path: string): string => `The keeper of ${path.replace(/^src\//, '').replace(/\.ts$/, '')} holds a lamp for the lost. It burns to the end.`;
 
 async function run(argv: string[], deps: Record<string, unknown>) {
   const cwd = tempDir();
@@ -111,7 +111,7 @@ describe('with --eulogies', () => {
   });
 
   it('a reasoning model: the written eulogy is the epitaph alone', async () => {
-    const epitaph = 'Here lies the router, which kept every path in order. It never once got lost.';
+    const epitaph = 'The router keeps every path in order. It never once gets lost.';
     const model = fakeModel(() => `<think>I should mention the lanterns…</think>${epitaph}`);
     const { code, out } = await run(eulogyFlags(join(tempDir(), 'c.json')), { ...knip(), checkOllama: okCheck(), eulogyClient: () => model.client });
     expect(code).toBe(0);

@@ -112,9 +112,9 @@ function buildPrompt(input: EulogyInput, retry: boolean): { system: string; prom
 
 ```ts
 type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
-type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example';
+type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 function cleanEulogy(raw: string, context: { people: People; input?: EulogyInput }): Cleaned;
-const CLEANING_VERSION = 3; // part of the cache key: raise it whenever these rules change
+const CLEANING_VERSION = 4; // part of the cache key: raise it whenever these rules change
 ```
 
 **Reasoning blocks go first** (P11). Everything from `<think>` or `<thinking>` (any case) to its closing tag is removed. An opening tag with no closing tag removes everything after it, which leaves nothing, so the answer is rejected as `empty`. A stray closing tag removes everything before it.
@@ -139,7 +139,8 @@ E-mails are checked before URLs, since an address's domain looks like one.
 - Remove emoji, then markdown: heading marks, list markers and blockquote `>` (again until none is left, as they can be stacked), and emphasis `*` and `_` pairs.
 - Remove emoji (Extended_Pictographic and variation selectors) and wrapping quotes (straight and curly, also with a leading "Epitaph:" or "Eulogy:" label).
 - Remove a file name the answer wrote as a heading (second revision, task 16): a source file name or path at the very start, alone on its line, before a colon or dash, or before a capitalised word ("daily-flow.test.ts Every dawn…"). A name that is the subject of the first sentence ("route.ts has marked…") stays.
-- Join lines broken inside a sentence (revision after the first real run, task 15): a break after a lowercase letter or `, ; : —` followed by a capitalised word becomes a space, and the word loses its capital, unless it is "I", has more capitals or digits, or is spelled that way in the file's path or contents (a name such as "Meta"). A line ending in a file name keeps the capital of the next word ({R}).
+- Also drop a single word alone on the first line, a name used as a heading ("PanelSystem\nA lively guardian…") (third revision, task 17).
+- Join lines broken inside a sentence (revision after the first real run, task 15): a break after a lowercase letter or `, ; : —` followed by a capitalised word becomes a space, and the word loses its capital, unless it is "I", has more capitals or digits, or is spelled that way in the file's path or contents (a name such as "Meta"; (third revision, task 17): only if the contents use it after a lowercase word, comma or digit, since "Last" or "Re-exports" starting a comment is an ordinary word). A line ending in a file name keeps the capital of the next word ({R}).
 - Collapse all whitespace, including line breaks, to single spaces, and trim. Then remove what is left around the one line (a leading marker, a label, wrapping quotes) together, until nothing changes, since they can wrap each other.
 - Keep whole sentences (revision after the first real run, task 15): the first two if they fit in 240 characters (code points), else the first alone; if the first alone doesn't fit, `long` (and the retry). A sentence ends at `.`, `!` or `?`, perhaps with a closing quote, followed by a space and a capital letter, or at the end. A dot inside a file name (`index.ts`) doesn't end one. (The first version cut at a word and added a full stop, which left "…true to the daily and the.")
 - An answer with no closing stop gets a full stop.
@@ -152,6 +153,11 @@ E-mails are checked before URLs, since an address's domain looks like one.
   - a file that is not ancient called "ancient";
   - a fresh, used file called forgotten, dormant, silent, dead, abandoned or buried;
   - a file under 365 days old said to be years old (second revision, task 16): "for/over/in years, decades, ages, aeons, centuries", "years old/ago", "since time immemorial", "since ancient times", "since the dawn of time", "since time began", "time out of mind", "of yore". Words about time that claim no age ("the years of every account", "many seasons") are allowed.
+  - (third revision, task 17) the age patterns also take a number word or "the" before the unit ("for two decades", "despite the years", "through the years");
+  - (third revision, task 17) a stated number of days, weeks, fortnights or months ("17 days ago", "forty days and nights", "over a month", "twenty-three days") that is not the file's age: days within 1, weeks and months within a third (at least 3 days); "over"/"more than" and "under"/"less than" as bounds; not a count inside a window ("in the last 30 days"); "a"/"an" only with a bound or "ago", "past", "old" (so "not for a day" passes);
+  - (third revision, task 17) "here lies", "rest in peace", "laid to rest" or "R.I.P." on a used file (the unused and the deleted may be mourned).
+- **Echo of the prompt** (third revision, task 17) (`echoesPrompt`, `prompt`): a label (`Age:`, `Last change:`, `State:`, `Flags:`, `Tone`, `Opening`, `Path:`, `Contents:`) or instruction wording ("begin by/with", "like a real grave", "the tone", "snapshot", "epitaph", "write it again").
+- **Copy of the contents** (third revision, task 17) (`copiesContents`, `contents`): eight words in a row from the file's contents (a doc comment presented as the eulogy). Seven are allowed.
 - **Copies of an example** (second revision, task 16) (`copiesExample`): "lantern keeper", or any run of five words in a row from one of the former examples (`FORMER_EXAMPLES`, from prompt versions 1 and 2), is `example`. Four words in a row are allowed.
   - Care for false hits: a word right after "not", "never", "far from", "hardly" and the like doesn't count ("never forgotten", "far from ancient"), nor "unused" before a thing other than the file ("unused imports", "unused slots"), nor "ancient" before "history", "art", "lore", "wisdom" and the like. "Silently" is allowed. Replayed on the first run's 251 eulogies, the checks rejected 14 (`logger.ts`'s "old and unused", `useUploads.ts`'s "no longer called", and "silent guardian" on living files) and one open quote, and no false hit was left.
 

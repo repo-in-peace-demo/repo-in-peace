@@ -350,3 +350,120 @@ describe('a file name written as a heading', () => {
     }));
   });
 });
+
+describe('cleaning version 4', () => {
+  const fileOf = (ageDays: number, unused = false, contents = 'export const log = 1;\n'): EulogyInput => ({
+    kind: 'file', path: 'src/data/join.ts', name: 'join.ts', state: 'x', flags: [], lines: 40, subject: 'x',
+    contents: { text: contents, cut: false, kind: 'text' }, decayState: ageDays > 45 ? 'ancient' : ageDays > 21 ? 'stale' : 'fresh', unused, ageDays,
+  });
+  const ghost: EulogyInput = { kind: 'ghost', path: 'src/old.ts', name: 'old.ts', deletedDay: '2026-01-01', subject: 'x', contents: { text: '', cut: false, kind: 'empty' } };
+  const check = (text: string, input: EulogyInput) => cleanEulogy(text, { people: nobody, input });
+
+  describe('(1) ages', () => {
+    it('rejects years with a number word or "the" before them, for a file under a year old', () => {
+      for (const claim of ['Its purpose unaltered for two decades.', 'It stands steadfast despite the years.', 'It has guided us through the years.', 'It has kept watch for 3 centuries.']) {
+        expect(check(claim, fileOf(20)), claim).toEqual({ ok: false, reason: 'facts' });
+        expect(check(claim, fileOf(400)).ok, claim).toBe(true);
+      }
+    });
+
+    it('rejects a number of days, weeks or months that is not the file\'s age', () => {
+      const cases: Array<[string, number, boolean]> = [
+        ['Last updated 17 days ago, it keeps watch.', 17, true],
+        ['Last updated 17 days ago, it keeps watch.', 18, true],
+        ['Last updated 17 days ago, it keeps watch.', 20, false],
+        ['Forty days and nights have passed since it changed.', 16, false],
+        ['Forty days and nights have passed since it changed.', 40, true],
+        ['It has watched for over a month.', 20, false],
+        ['It has watched for over a month.', 31, true],
+        ['It has watched for over two months.', 65, true],
+        ['It changed a fortnight ago.', 14, true],
+        ['It changed a fortnight ago.', 30, false],
+        ['Six days young, it keeps the clock.', 6, true],
+        ['Six days young, it keeps the clock.', 60, false],
+        ['It counts the commits in the last 30 days.', 3, true],
+        ['It was never unused, not for a day.', 30, true],
+        ['It keeps a month of balances.', 3, true],
+        ['Twenty-three days have passed since it last changed.', 23, true],
+        ['Twenty-three days have passed since it last changed.', 40, false],
+      ];
+      for (const [text, age, ok] of cases) expect(check(text, fileOf(age)).ok, `${text} at ${age} days`).toBe(ok);
+    });
+
+    it('for any age, the true number of days is accepted and one off by more than a day is not', () => {
+      fc.assert(
+        fc.property(fc.integer({ min: 2, max: 360 }), fc.integer({ min: 2, max: 50 }), (age, off) => {
+          const right = check(`Last changed ${age} days ago, it still keeps the gate.`, fileOf(age));
+          const wrong = check(`Last changed ${age + off} days ago, it still keeps the gate.`, fileOf(age));
+          return right.ok && !wrong.ok && wrong.reason === 'facts';
+        }),
+      );
+    });
+  });
+
+  describe('(2) echoes of the prompt', () => {
+    it('rejects the prompt\'s labels and instructions in the answer', () => {
+      for (const echo of [
+        'Begin by speaking to the file directly and keep the tone alive.',
+        'It stands firm. Age: 16 days before snapshot.',
+        'Mourned like a real grave, it rests undisturbed.',
+        'It keeps watch. Last change: fixing cached query issues.',
+        'Opening: it guards the gate.',
+      ]) {
+        expect(clean(echo), echo).toEqual({ ok: false, reason: 'prompt' });
+      }
+    });
+
+    it('allows the same words used plainly', () => {
+      for (const ok of ['It keeps the age of every account.', 'It sets the opening hours of the gate.', 'Its state is kept with care.']) expect(clean(ok), ok).toEqual({ ok: true, text: ok });
+    });
+  });
+
+  describe('(3) "here lies" only for the unused and the deleted', () => {
+    it('rejects mourning words for a used file, and allows them for an unused file and a ghost', () => {
+      for (const mourning of ['Here lies utils.ts, weathered but still in use.', 'It rests in peace among the living.', 'Laid to rest, it still serves.', 'R.I.P. old button.']) {
+        expect(check(mourning, fileOf(65)), mourning).toEqual({ ok: false, reason: 'facts' });
+        expect(check(mourning, fileOf(65, true)).ok, mourning).toBe(true);
+        expect(check(mourning, ghost).ok, mourning).toBe(true);
+      }
+      expect(check('It rests a moment, then works again.', fileOf(5)).ok).toBe(true);
+    });
+  });
+
+  describe('(4) copies of the contents', () => {
+    const doc = '/**\n * Shared CockroachDB Managed MCP Server client: server-side only, never import into a client file.\n */\nexport const client = 1;\n';
+    it('rejects eight words in a row from the file\'s contents, and allows seven', () => {
+      expect(check('Shared CockroachDB Managed MCP Server client: server-side only, it connects.', fileOf(30, false, doc))).toEqual({ ok: false, reason: 'contents' });
+      expect(check('A shared CockroachDB Managed MCP Server client keeps the queries.', fileOf(30, false, doc)).ok).toBe(true);
+    });
+
+    it('any eight words in a row of the contents, put into a eulogy, reject it', () => {
+      const words = doc.replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter((w) => w !== '');
+      fc.assert(
+        fc.property(fc.integer({ min: 0, max: words.length - 8 }), (i) => {
+          const r = check(`The keeper said ${words.slice(i, i + 8).join(' ')} and went on.`, fileOf(30, false, doc));
+          return !r.ok && r.reason === 'contents';
+        }),
+      );
+    });
+  });
+
+  describe('(5) headings and capitals', () => {
+    it('drops a single word written as a heading line', () => {
+      expect(clean('PanelSystem\nA lively guardian of the welcome page.')).toEqual({ ok: true, text: 'A lively guardian of the welcome page.' });
+      expect(clean('WelcomePage\n\nIt greets every visitor.')).toEqual({ ok: true, text: 'It greets every visitor.' });
+    });
+
+    it('keeps a capital after a joined line only if the contents use the word mid-sentence', () => {
+      const withComments = fileOf(30, false, '// Last updated by the build.\n// Re-exports the primitives.\nconst a = 1;\n');
+      expect(check('A weathered component still standing tall,\nLast updated 30 days past its call.', withComments)).toEqual({ ok: true, text: 'A weathered component still standing tall, last updated 30 days past its call.' });
+      expect(check('Here lies index.ts,\nRe-exporting the primitives.', { ...withComments, unused: true } as EulogyInput)).toEqual({ ok: true, text: 'Here lies index.ts, re-exporting the primitives.' });
+      const withName = fileOf(30, false, '// press the Meta button to recenter\n');
+      expect(check('It waits for the\nMeta button and the headset.', withName)).toEqual({ ok: true, text: 'It waits for the Meta button and the headset.' });
+    });
+  });
+
+  it('is cleaning version 4', async () => {
+    expect((await import('./eulogy-clean')).CLEANING_VERSION).toBe(4);
+  });
+});

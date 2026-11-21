@@ -163,6 +163,15 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 16.4 `PROMPT_VERSION` 3 and `CLEANING_VERSION` 3. Tests for each. Replayed on the second run's 251 eulogies: 37 facts, 28 example copies, 1 heading removed, no false hit found.
   - _Requirements: 3.5, 4.4, 4.5_
 
+- [x] 17. Third revision, after the third run (the last eulogy round)
+  - [x] 17.1 (1) Age patterns with number words and "the"; stated days, weeks and months checked against the real age.
+  - [x] 17.2 (2) Echoes of the prompt rejected (`prompt`).
+  - [x] 17.3 (3) "Here lies" and its like rejected on used files (`facts`).
+  - [x] 17.4 (4) Eight words in a row from the contents rejected (`contents`).
+  - [x] 17.5 (5) A single-word heading line dropped; a capital after a joined line kept only for words the contents use mid-sentence.
+  - [x] 17.6 `CLEANING_VERSION` 4 (`PROMPT_VERSION` stays 3). Tests for each. Replayed on the third run's 248 eulogies: 17 rejected, all real problems.
+  - _Requirements: 4.5_
+
 - [ ] 14. **Final checkpoint** (yours to run)
   - [ ] 14.1 **Run:**
     ```

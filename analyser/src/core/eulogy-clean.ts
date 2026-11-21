@@ -12,14 +12,15 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *      and it keeps the whole sentences that fit (two at most);
  *   4. the cleaned text is checked again: unbalanced quotes, no whole sentence that fits, or a claim the grave's facts contradict
  *      (a used file called unused, a file that is not ancient called ancient, a living file called forgotten, a file under a year old
- *      said to be years old), and a copy of an example from an earlier prompt, reject it.
+ *      said to be years old, a wrong number of days, "here lies" on a used file), a copy of an earlier prompt's example, an echo of
+ *      the prompt itself, or eight words in a row from the file's contents, reject it.
  * Strict on purpose: a harmless eulogy that looks like code is rejected (and retried once) rather than risk a leak.
  *
  * Raise CLEANING_VERSION whenever these rules change: it is part of the cache key, so cached eulogies are cleaned by the new rules.
  */
-export const CLEANING_VERSION = 3;
+export const CLEANING_VERSION = 4;
 
-export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example';
+export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 export type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
 
 // ---- 1. Reasoning blocks ----
@@ -134,11 +135,14 @@ function stripWrappingQuotes(text: string): string {
  * word that the file's path or contents spell the same way (Meta, Vite).
  */
 function joinBrokenLines(text: string, input: EulogyInput | undefined): string {
-  const known = input === undefined ? '' : `${input.path}\n${input.contents.text}`;
+  // A name keeps its capital only if the file spells it so in its path, or in the middle of a sentence of its contents ("the Meta
+  // button"): a word that only starts comments there ("Last", "Re-exports") is an ordinary word.
+  const known = (word: string): boolean =>
+    input !== undefined && (input.path.includes(word) || new RegExp(`[\\p{Ll}\\p{N},;] ${word}(?![\\p{L}\\p{N}])`, 'u').test(input.contents.text));
   return text.replace(/([\p{Ll},;:—–-])[ \t]*\r?\n\s*(\p{Lu}\p{Ll}+)(?![\p{L}\p{N}])/gu, (all, before: string, word: string, at: number) => {
     // A line ending in a file name ("ComparePanel.tsx") is a heading or a sentence of its own: the next word keeps its capital.
     if (SOURCE_FILE_AT_END.test(text.slice(0, at + 1))) return `${before} ${word}`;
-    return known.includes(word) ? `${before} ${word}` : `${before} ${word.toLowerCase()}`;
+    return known(word) ? `${before} ${word}` : `${before} ${word.toLowerCase()}`;
   });
 }
 
@@ -150,7 +154,8 @@ const LEADING_FILE_NAME = new RegExp(String.raw`^\s*["“'‘]?${SOURCE_FILE}["�
 /** The answer without a file name it wrote as a heading ("daily-flow.test.ts\nEvery dawn…" becomes "Every dawn…"). A name that is
  * the subject of the first sentence ("route.ts has marked paths") stays. */
 function withoutLeadingFileName(text: string): string {
-  const rest = text.replace(LEADING_FILE_NAME, '');
+  // Also a single word alone on the first line: a name used as a heading ("PanelSystem\nA lively guardian…").
+  const rest = text.replace(LEADING_FILE_NAME, '').replace(/^\s*["“'‘]?[\p{L}\p{N}_$@.\/-]+["”'’]?[ \t]*\r?\n\s*/u, '');
   return /[\p{L}\p{N}]/u.test(rest) ? rest : text;
 }
 
@@ -192,9 +197,44 @@ const DEAD_WORDS = /\b(forgotten|dormant|silent|silenced|abandoned|lifeless|dead
 
 /** Words that say a file has been around for years. Wrong for one under a year old (its age is in the prompt). */
 const AGE_CLAIMS =
-  /\b((for|over|across|through|in|after)\s+(many\s+|countless\s+|long\s+)?(years|decades|centuries|aeons|eons|ages|generations|millennia)|(years|decades|centuries|aeons|eons)\s+(old|ago)|since\s+(time\s+immemorial|ancient\s+times|the\s+dawn\s+of\s+time|days\s+of\s+old|time\s+began|the\s+beginning\s+of\s+time)|time\s+out\s+of\s+mind|from\s+time\s+immemorial|ages\s+past|of\s+yore)\b/i;
+  /\b((for|over|across|through|in|after|despite)\s+(the\s+|many\s+|countless\s+|long\s+|several\s+|a\s+few\s+|(?:one|two|three|four|five|six|seven|eight|nine|ten|a\s+hundred|\d+)\s+)?(years|decades|centuries|aeons|eons|ages|generations|millennia)|(years|decades|centuries|aeons|eons)\s+(old|ago)|since\s+(time\s+immemorial|ancient\s+times|the\s+dawn\s+of\s+time|days\s+of\s+old|time\s+began|the\s+beginning\s+of\s+time)|time\s+out\s+of\s+mind|from\s+time\s+immemorial|ages\s+past|of\s+yore)\b/i;
 /** Days in a year, for the age claims. */
 const YEAR_DAYS = 365;
+
+const NUMBER_WORDS: Record<string, number> = {
+  a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40,
+  fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+const UNIT_DAYS: Record<string, number> = { day: 1, week: 7, fortnight: 14, month: 30 };
+/** "17 days ago", "over two months", "a fortnight past": a stated age. Not one counted inside a window ("in the last 30 days"). */
+const STATED_AGE = new RegExp(
+  String.raw`(?<!\b(?:in the (?:last|past)|within|every|each|per|the last|the past)\s)\b(?:(over|more than|nearly|almost|just shy of|under|less than)\s+)?(\d+|${Object.keys(NUMBER_WORDS).join('|')})(?:[\s-]+(?:and\s+)?(one|two|three|four|five|six|seven|eight|nine))?[\s-]+(days?|weeks?|fortnights?|months?)\b`,
+  'gi',
+);
+
+/** Whether a number of days, weeks or months the eulogy gives is not the file's age: days within one, weeks and months within a third. */
+export function wrongStatedAge(text: string, ageDays: number): boolean {
+  for (const m of text.matchAll(STATED_AGE)) {
+    const [, bound, rawNumber, rawOnes, rawUnit] = m as unknown as [string, string | undefined, string, string | undefined, string];
+    const after = text.slice(m.index! + m[0].length);
+    // "a"/"an" is an age only with a bound ("over a month") or a word that makes it one ("a week ago"): not "not for a day".
+    if (/^an?$/i.test(rawNumber) && bound === undefined && !/^\s+(ago|past|back|old|young|since|before)\b/i.test(after)) continue;
+    const number = (/^\d+$/.test(rawNumber) ? Number(rawNumber) : NUMBER_WORDS[rawNumber.toLowerCase()]!) + (rawOnes === undefined ? 0 : NUMBER_WORDS[rawOnes.toLowerCase()]!);
+    const days = number * UNIT_DAYS[rawUnit.toLowerCase().replace(/s$/, '')]!;
+    const slack = rawUnit.toLowerCase().startsWith('day') ? 1 : Math.max(3, days / 3);
+    const b = bound?.toLowerCase();
+    if (b === 'over' || b === 'more than') {
+      if (ageDays < days - 1) return true;
+    } else if (b === 'under' || b === 'less than') {
+      if (ageDays > days + 1) return true;
+    } else if (Math.abs(ageDays - days) > slack) return true;
+  }
+  return false;
+}
+
+/** "Here lies" and its like: for a grave whose file nothing uses, not one still in use. */
+const MOURNING = /\b(here lies|rests? in peace|laid to rest|R\.?I\.?P\.?)(?![\p{L}])/iu;
 
 /** Whether the eulogy says something the grave's facts contradict (Req 4.5). Ghosts have no state or flags to contradict. */
 export function contradictsFacts(text: string, input: EulogyInput): boolean {
@@ -203,6 +243,8 @@ export function contradictsFacts(text: string, input: EulogyInput): boolean {
   if (input.decayState !== 'ancient' && claims(text, /\bancient\b/gi, NOT_ABOUT_THE_FILE_ANCIENT)) return true;
   if (input.decayState === 'fresh' && !input.unused && claims(text, DEAD_WORDS, /^(?!)/)) return true; // "never forgotten" is allowed
   if (input.ageDays < YEAR_DAYS && AGE_CLAIMS.test(text)) return true;
+  if (wrongStatedAge(text, input.ageDays)) return true;
+  if (!input.unused && MOURNING.test(text)) return true;
   return false;
 }
 
@@ -221,6 +263,21 @@ const COPY_RUN = 5;
 const wordsOf = (text: string): string[] => text.toLowerCase().replace(/travelers/g, 'travellers').split(/[^\p{L}\p{N}']+/u).filter((w) => w !== '');
 const runsOf = (words: readonly string[]): Set<string> => new Set(words.slice(0, Math.max(0, words.length - COPY_RUN + 1)).map((_, i) => words.slice(i, i + COPY_RUN).join(' ')));
 const EXAMPLE_RUNS = new Set(FORMER_EXAMPLES.flatMap((e) => [...runsOf(wordsOf(e))]));
+
+/** The prompt's own words in the answer: a label, or the wording of an instruction (the model echoing what it was told). */
+const PROMPT_ECHO =
+  /(\b(Age|Last change|State|Flags|Lines of code|Tone|Opening|Path|Deleting change|Contents)\s*:|\bbegin (by|with)\b|like a real grave|\bthe tone\b|\btone (given|of)\b|\bsnapshot\b|\bepitaph\b|\bwrite it again\b)/i;
+export const echoesPrompt = (text: string): boolean => PROMPT_ECHO.test(text);
+
+/** Words in a row from the file's contents that make the answer a copy of them (a doc comment, not an epitaph). */
+const CONTENTS_RUN = 8;
+export function copiesContents(text: string, contents: string): boolean {
+  const words = wordsOf(text);
+  if (words.length < CONTENTS_RUN) return false;
+  const source = ` ${wordsOf(contents).join(' ')} `;
+  for (let i = 0; i + CONTENTS_RUN <= words.length; i++) if (source.includes(` ${words.slice(i, i + CONTENTS_RUN).join(' ')} `)) return true;
+  return false;
+}
 
 /** Whether the text copies an earlier example: "lantern keeper", or five words in a row from one. */
 export function copiesExample(text: string): boolean {
@@ -265,6 +322,8 @@ export function cleanEulogy(raw: string, context: { people: People; input?: Eulo
   // A quote left open, or one that opens the eulogy (a quotation it starts with reads as quotes around it): rejected.
   if (!quotesBalanced(text) || QUOTES.includes(text[0]!)) return { ok: false, reason: 'quotes' };
   if (copiesExample(text)) return { ok: false, reason: 'example' };
+  if (echoesPrompt(text)) return { ok: false, reason: 'prompt' };
+  if (context.input !== undefined && copiesContents(text, context.input.contents.text)) return { ok: false, reason: 'contents' };
   if (context.input !== undefined && contradictsFacts(text, context.input)) return { ok: false, reason: 'facts' };
   return { ok: true, text };
 }

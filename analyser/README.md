@@ -146,7 +146,9 @@ Each answer is checked before it is kept. It is rejected if it contains code, an
 - a quote is left open, or the eulogy opens with a quote;
 - its first sentence alone is longer than 240 characters;
 - it contradicts the grave's facts: a used file called "unused" (or "no longer used", "nothing imports it"), a file that isn't ancient called "ancient", a fresh, used file called forgotten, silent or dormant, or a file under a year old said to be years old ("for years", "for ages", "since time immemorial", "since ancient times");
-- it copies an example from an earlier prompt (the "lantern keeper"), whole or five words in a row. Negated words ("never forgotten") and words about something else ("unused imports", "ancient lore") are allowed.
+- it copies an example from an earlier prompt (the "lantern keeper"), whole or five words in a row;
+- it gives a number of days, weeks or months that isn't the file's age ("last updated 17 days ago" must be right within a day), or says "here lies" or "rest in peace" of a file that is still used;
+- it echoes the prompt (`Age:`, `Last change:`, "Begin by…", "like a real grave") or copies eight words in a row from the file's contents. Negated words ("never forgotten") and words about something else ("unused imports", "ancient lore") are allowed.
 
 A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, a file name written as a heading is dropped, lines the model broke inside a sentence are joined, and the eulogy keeps the whole sentences that fit (two at most, 240 characters). It is never cut mid-sentence.
 
@@ -159,7 +161,7 @@ Eulogies: 230 written, 15 from the cache, 6 left empty (4 rejected twice, 2 time
 
 - **written:** new eulogies from the model.
 - **from the cache:** reused from an earlier run, with no request.
-- **left empty:** `rejected twice` (both answers failed the checks; the reason in brackets is one of `code`, `url`, `secret`, `email`, `author`, `quotes`, `long`, `facts`, `example`, `empty`), `timed out` (no answer in 60 s), `failed` (Ollama answered with an error), or `not run` (the run stopped early, below). The first 20 are listed with their reason.
+- **left empty:** `rejected twice` (both answers failed the checks; the reason in brackets is one of `code`, `url`, `secret`, `email`, `author`, `quotes`, `long`, `facts`, `example`, `prompt`, `contents`, `empty`), `timed out` (no answer in 60 s), `failed` (Ollama answered with an error), or `not run` (the run stopped early, below). The first 20 are listed with their reason.
 
 A progress line (`Eulogies: 40/251 (12 from the cache)`) appears at most once a second.
 

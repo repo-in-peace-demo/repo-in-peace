@@ -25,7 +25,7 @@ const inputOf = (path: string): EulogyInput => ({
   ageDays: 3,
 });
 const jobOf = (path: string): EulogyJob => ({ path, input: inputOf(path) });
-const goodAnswer = (path: string): string => `Here lies ${path.replace(/[^a-z]/g, ' ').trim() || 'a file'}. It rested well.`;
+const goodAnswer = (path: string): string => `The keeper of ${path.replace(/[^a-z]/g, ' ').trim() || 'a file'} watches the gate. It works well.`;
 const ticks = async (n: number): Promise<void> => {
   for (let i = 0; i < n; i++) await Promise.resolve();
 };
