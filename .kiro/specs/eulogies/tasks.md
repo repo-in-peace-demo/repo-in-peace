@@ -10,9 +10,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 1: Shared ground
 
-- [ ] 1. Shared vocabulary (`shared/vocabulary.ts`)
-  - [ ] 1.1 Move `FactId`, `FACT_NAMES`, `factNameOne`, `GroupId`, `FactGroup`, `FACT_GROUPS`, `INDEPENDENCE_NOTE` and `factRule` from `frontend/src/model/grave-facts.ts`. `grave-facts.ts` re-exports them, so no frontend import or test changes.
-  - [ ] 1.2 Check that the analyser can import it by a relative path, as it does the schema. The analyser's `tsconfig` already includes `../shared`.
+- [x] 1. Shared vocabulary (`shared/vocabulary.ts`)
+  - [x] 1.1 Move `FactId`, `FACT_NAMES`, `factNameOne`, `GroupId`, `FactGroup`, `FACT_GROUPS`, `INDEPENDENCE_NOTE` and `factRule` (and `factRuleSentence` and `factsOf`, which are vocabulary too; `FACT_LOOKS`, how each looks in the scene, stays in the frontend) from `frontend/src/model/grave-facts.ts`. `grave-facts.ts` re-exports them, so no frontend import or test changes.
+  - [x] 1.2 Check that the analyser can import it by a relative path, as it does the schema. The analyser's `tsconfig` already includes `../shared`.
   - **Run:** `cd frontend && npm run typecheck && npm test` (nothing should change).
   - _Requirements: 3.1_
 
