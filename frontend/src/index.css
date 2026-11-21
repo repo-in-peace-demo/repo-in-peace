@@ -677,11 +677,25 @@ body,
   margin: 0;
 }
 
-.detail-eulogy {
+.detail-epitaph {
   margin: 0 0 0.9rem;
-  padding-left: 0.7rem;
-  border-left: 2px solid var(--rim);
+  padding: 0.6rem 0.4rem;
+  border-top: 1px solid var(--rim);
+  border-bottom: 1px solid var(--rim);
+  text-align: center;
+}
+
+.detail-epitaph blockquote {
+  margin: 0;
   font-style: italic;
+  font-size: 1.06em;
+  line-height: 1.45;
+}
+
+.detail-epitaph figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.78em;
+  color: var(--ink-dim);
 }
 
 .detail-eulogy-empty {

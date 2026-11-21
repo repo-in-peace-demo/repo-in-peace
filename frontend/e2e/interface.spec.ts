@@ -10,6 +10,7 @@ import type { CameraPose } from '../src/model/camera-pose';
 import { SIGN_FADE_SECONDS, plaqueBox } from '../src/model/sign-fade';
 import { flyView } from '../test/fly-view';
 import { blockersOf, faceOf, sceneOccluders } from '../src/model/clear-view';
+import { EULOGY_MODEL, GHOST_EPITAPH, MARKUP_EULOGY, STONE_EPITAPH, eulogyGraveyard, openEulogyFile } from './eulogy-file';
 
 /**
  * The interface around the scene, in the real app (interface spec, tasks 7 to 11): the hover line, the detail panel, the list,
@@ -606,4 +607,40 @@ test('a click on a search result also clears the box and gives the keys back to 
   await page.keyboard.up('KeyW');
   const flown = await page.evaluate(() => window.repoInPeace!.getPose());
   expect(Math.hypot(flown.position.x - after.position.x, flown.position.z - after.position.z), 'W moves the camera').toBeGreaterThan(0.2);
+});
+
+test.describe('the epitaph', () => {
+  const panel = (page: Page) => page.getByRole('complementary', { name: 'Selected grave' });
+
+  test('a stone and a ghost show their epitaph and its credit; an empty eulogy keeps the placeholder; markup shows as text', async ({ page }) => {
+    const { graveyard, stone, ghost, empty, markup } = eulogyGraveyard();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await openEulogyFile(page, graveyard);
+    const select = (kind: 'file' | 'ghost', path: string) => page.evaluate(([k, p]) => window.repoInPeace!.select({ kind: k as 'file' | 'ghost', path: p! }), [kind, path]);
+    const epitaph = panel(page).locator('figure.detail-epitaph');
+
+    await select('file', stone);
+    await expect(epitaph.locator('blockquote')).toHaveText(STONE_EPITAPH);
+    await expect(epitaph.locator('figcaption')).toHaveText(`written by ${EULOGY_MODEL}`);
+    await expect(panel(page)).not.toContainText('[No eulogy yet.');
+
+    await select('ghost', ghost);
+    await expect(epitaph.locator('blockquote')).toHaveText(GHOST_EPITAPH);
+    await expect(epitaph.locator('figcaption')).toHaveText(`written by ${EULOGY_MODEL}`);
+
+    await select('file', empty);
+    await expect(epitaph).toHaveCount(0);
+    await expect(panel(page)).toContainText('[No eulogy yet.');
+
+    await select('file', markup);
+    await expect(epitaph.locator('blockquote')).toHaveText(MARKUP_EULOGY);
+    await expect(epitaph.locator('b')).toHaveCount(0);
+  });
+
+  test('a demo file without eulogies still shows the placeholder and no credit', async ({ page }) => {
+    await openScene(page, 'demo.spatialql');
+    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'ghost', path: p }), spatialql.ghosts[0]!.path);
+    await expect(panel(page)).toContainText('[No eulogy yet.');
+    await expect(panel(page).locator('figure.detail-epitaph')).toHaveCount(0);
+  });
 });

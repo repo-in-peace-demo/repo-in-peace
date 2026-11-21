@@ -1,4 +1,5 @@
 import { test } from './fixtures';
+import { eulogyGraveyard, openEulogyFile } from './eulogy-file';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
@@ -306,6 +307,20 @@ test.describe('screenshots to judge by eye', () => {
       await page.waitForTimeout(1200);
       await page.screenshot({ path: `${OUT}${file}.png` });
     }
+  });
+
+  // Eulogies spec, task 12: a stone with its epitaph, from a copy of spatialql with eulogies, opened from disk.
+  test('interface epitaph', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const { graveyard, stone } = eulogyGraveyard();
+    await openEulogyFile(page, graveyard);
+    await page.evaluate((p) => window.repoInPeace!.flyTo(p), stone);
+    await page.waitForTimeout(1800);
+    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), stone);
+    await page.mouse.move(640, 8);
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${OUT}interface-epitaph.png` });
   });
 
   // Interface spec, task 9: the open list on oikos, with the unused filter on.

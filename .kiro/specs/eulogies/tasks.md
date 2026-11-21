@@ -121,13 +121,13 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 4: The frontend and the docs
 
-- [ ] 12. The epitaph in the detail panel (`ui/DetailPanel.tsx`, `index.css`)
-  - [ ] 12.1 A non-empty eulogy shows as an epitaph, with "written by <model>" when `meta.eulogyModel` is set. Ghosts use `ghost.eulogy ?? ''`, and the placeholder stays for an empty eulogy. Text only.
-  - [ ] 12.2 **Browser check** in `e2e/interface.spec.ts`. It loads a copy of a demo file with eulogies and a model set, written by the test to a temporary file and opened through Open a graveyard file. It checks:
+- [x] 12. The epitaph in the detail panel (`ui/DetailPanel.tsx`, `index.css`)
+  - [x] 12.1 A non-empty eulogy shows as an epitaph, with "written by <model>" when `meta.eulogyModel` is set. Ghosts use `ghost.eulogy ?? ''`, and the placeholder stays for an empty eulogy. Text only.
+  - [x] 12.2 **Browser check** in `e2e/interface.spec.ts`. It loads a copy of a demo file with eulogies and a model set, written by the test to a temporary file and opened through Open a graveyard file. (Built in memory and given to the file input as a buffer, as `boot.spec.ts` does: the same path as a file from disk.) It checks:
     - the epitaph and the credit for a stone and for a ghost;
     - the placeholder for a grave with an empty eulogy;
     - a eulogy containing `<b>x</b>` shown as text.
-  - [ ] 12.3 Screenshot test `interface epitaph`: the same file, a stone with its epitaph.
+  - [x] 12.3 Screenshot test `interface epitaph`: the same file, a stone with its epitaph.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "epitaph"`, then the screenshot. **Commit** with it.
   - _Requirements: 8_
 

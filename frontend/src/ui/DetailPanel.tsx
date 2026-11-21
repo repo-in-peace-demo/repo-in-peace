@@ -125,7 +125,7 @@ function StoneDetail({ file, meta }: { file: FileEntry; meta: RepoMeta }) {
         <dt>Decay score</dt>
         <dd>{file.decayScore.toFixed(2)}</dd>
       </dl>
-      <Eulogy text={file.eulogy} />
+      <Eulogy text={file.eulogy} model={meta.eulogyModel} />
       {buryOffered(file) && (
         <div className="detail-actions">
           <button type="button" aria-disabled="true" aria-describedby={noteId} onClick={(e) => e.preventDefault()}>
@@ -157,7 +157,7 @@ function GhostDetail({ ghost, meta }: { ghost: Ghost; meta: RepoMeta }) {
         <dt>Type</dt>
         <dd>{fileType(ghost.path)}</dd>
       </dl>
-      <Eulogy text="" />
+      <Eulogy text={ghost.eulogy ?? ''} model={meta.eulogyModel} />
       <div className="detail-actions">
         <button type="button" aria-disabled="true" aria-describedby={noteId} onClick={(e) => e.preventDefault()}>
           Resurrect
@@ -170,9 +170,15 @@ function GhostDetail({ ghost, meta }: { ghost: Ghost; meta: RepoMeta }) {
   );
 }
 
-function Eulogy({ text }: { text: string }) {
+/** The grave's epitaph (eulogies spec, Req 8), with the model that wrote it. It came from a model, so it goes on the page as text only. */
+function Eulogy({ text, model }: { text: string; model: string | undefined }) {
   if (text.trim() === '') return <p className="detail-eulogy-empty">[No eulogy yet. They will be written in a later version.]</p>;
-  return <blockquote className="detail-eulogy">{text}</blockquote>;
+  return (
+    <figure className="detail-epitaph">
+      <blockquote>{text}</blockquote>
+      {model !== undefined && <figcaption>written by {model}</figcaption>}
+    </figure>
+  );
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
