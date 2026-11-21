@@ -90,21 +90,21 @@ Status key: `[x]` done, `[ ]` not started.
     - concurrency is 1 to 4.
   - _Requirements: 1, 6.1, 6.5_
 
-- [ ] 10. The Ollama client and the cache file (`io/ollama.ts`, `io/eulogy-cache.ts`)
-  - [ ] 10.1 `checkOllama`, and `ollamaClient` with `think: false`, the options and a 60 s timeout.
-  - [ ] 10.2 **Fake-server tests:** a `node:http` server on `127.0.0.1` and a random port, started by each test, covering:
+- [x] 10. The Ollama client and the cache file (`io/ollama.ts`, `io/eulogy-cache.ts`)
+  - [x] 10.1 `checkOllama`, and `ollamaClient` with `think: false`, the options and a 60 s timeout.
+  - [x] 10.2 **Fake-server tests:** a `node:http` server on `127.0.0.1` and a random port, started by each test, covering:
     - not running (a closed port): the "start Ollama" message;
     - `/api/tags` without the model: the `ollama pull` message, listing what is installed;
     - a `name` that matches `name:latest`;
     - an answer returned as is;
     - a slow answer timing out (with a short timeout passed in);
     - a non-JSON answer throwing;
-    - **a reasoning model:** it answers `<think>I should mention the lanterns…</think>Here lies the router, which kept every path in order. It never once got lost.` The request body is checked to carry `think: false`, and through the pipeline's fake-client path the written eulogy is the epitaph alone.
-  - [ ] 10.3 The cache file:
+    - **a reasoning model:** it answers `<think>I should mention the lanterns…</think>Here lies the router, which kept every path in order. It never once got lost.` The request body is checked to carry `think: false`, and through the pipeline's fake-client path the written eulogy is the epitaph alone. (Done here through `runEulogies` with the real client and the fake server; the same answer through the pipeline is checked in task 11.)
+  - [x] 10.3 The cache file:
     - read missing, read malformed (reported and treated as empty), and write atomically;
     - entries for another model are kept;
     - empty eulogies are never stored.
-  - [ ] 10.4 `analyser/.gitignore`: `.cache/`.
+  - [x] 10.4 `analyser/.gitignore`: `.cache/`.
   - _Requirements: 2, 6.1, 6.4, 6.5_
 
 - [ ] 11. The pipeline (`pipeline.ts`)
