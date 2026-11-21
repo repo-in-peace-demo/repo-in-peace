@@ -670,3 +670,134 @@ body,
   outline: 2px solid #cfe2ff;
   outline-offset: 2px;
 }
+
+/* ---- Interface spec: the list of graves, docked at the bottom left above the buttons; open, it overlays the left edge. ---- */
+.list {
+  position: fixed;
+  left: 1rem;
+  bottom: 3.6rem;
+  z-index: 12;
+  width: 12rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+.list-open {
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+}
+
+.list-body {
+  display: flex;
+  flex-direction: column;
+  height: max(14rem, calc(100vh - 20rem));
+  padding: 0 0.6rem 0.6rem;
+}
+
+.list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.list-tools button {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rim);
+  border-radius: 3px;
+  background: none;
+  color: var(--ink-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.list-tools button[aria-pressed='true'] {
+  border-color: #cfe2ff;
+  color: #fff;
+  background: rgba(207, 226, 255, 0.1);
+}
+
+.list-count {
+  margin: 0.1rem 0 0.35rem;
+  color: var(--ink-dim);
+}
+
+.list-hidden {
+  color: var(--ink);
+}
+
+.list-rows {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  border-top: 1px solid var(--rim);
+}
+
+.list-rows:focus-visible,
+.list button:focus-visible {
+  outline: 2px solid #cfe2ff;
+  outline-offset: 1px;
+}
+
+.list-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.list-row .swatch {
+  flex: 0 0 0.6rem;
+  height: 0.8rem;
+  margin: 0;
+}
+
+.list-row:hover {
+  background: rgba(207, 226, 255, 0.06);
+}
+
+.list-row-active {
+  box-shadow: inset 2px 0 0 #cfe2ff;
+}
+
+.list-row-selected {
+  background: rgba(255, 79, 216, 0.16); /* the selection ring's magenta, faint */
+}
+
+.list-name {
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  min-width: 3rem;
+}
+
+.list-folder {
+  color: var(--ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.list-marks {
+  display: flex;
+  gap: 0.3rem;
+  color: var(--ink-dim);
+  font-size: 0.72rem;
+}
+
+.list-mark-unused {
+  color: #e8582a;
+}
+
+.list-mark-hot {
+  color: #f0c24b;
+}

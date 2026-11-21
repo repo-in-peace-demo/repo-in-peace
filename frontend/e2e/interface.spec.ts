@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary } from '../src/model/grave-facts';
+import { buildRows, filterRows, sortRows } from '../src/model/list-rows';
 
 /**
  * The interface around the scene, in the real app (interface spec, tasks 7 to 11): the hover line, the detail panel, the list,
@@ -132,5 +133,100 @@ test.describe('the detail panel', () => {
         await page.evaluate(() => window.repoInPeace!.clearSelection());
       }
     }
+  });
+});
+
+test.describe('the list', () => {
+  const list = (page: Page) => page.getByRole('complementary', { name: 'Graves' });
+  const rowsBox = (page: Page) => page.getByRole('listbox', { name: 'Files and ghosts' });
+  async function openList(page: Page): Promise<void> {
+    const toggle = list(page).getByRole('button', { name: /List · / });
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+    await expect(rowsBox(page)).toBeVisible();
+  }
+
+  test('lists every grave, most dead first, and counts what the filters let through', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await openList(page);
+    await expect(list(page)).toContainText('129 of 129');
+    const expected = sortRows(buildRows(oikos), 'decay').slice(0, 8).map((r) => r.name);
+    const names = await rowsBox(page).locator('.list-name').allTextContents();
+    expect(names.slice(0, 8)).toEqual(expected);
+    await list(page).getByRole('button', { name: 'unused', exact: true }).click();
+    await expect(list(page)).toContainText('12 of 129');
+    await list(page).getByRole('button', { name: 'ancient', exact: true }).click();
+    const both = filterRows(buildRows(oikos), new Set(['ancient']), new Set(['unused'])).length;
+    await expect(list(page)).toContainText(`${both} of 129`);
+    await list(page).getByRole('button', { name: 'unused', exact: true }).click();
+    await list(page).getByRole('button', { name: 'ancient', exact: true }).click();
+    await list(page).getByRole('button', { name: 'hot', exact: true }).click();
+    await expect(list(page)).toContainText('7 of 129');
+  });
+
+  test('on spatialql the two ghosts come after every stone; a second press on a sort reverses it', async ({ page }) => {
+    await openScene(page, 'demo.spatialql');
+    await openList(page);
+    await rowsBox(page).focus();
+    await page.keyboard.press('End');
+    await expect(rowsBox(page)).toHaveAttribute('aria-activedescendant', /^row-ghost-/);
+    const decay = list(page).getByRole('button', { name: /^decay/ });
+    await decay.click(); // reversed: ghosts first
+    await rowsBox(page).focus();
+    await page.keyboard.press('Home');
+    await expect(rowsBox(page)).toHaveAttribute('aria-activedescendant', /^row-ghost-/);
+  });
+
+  test('P4: a scene click, a row click and a selection from code each leave the store and exactly one selected row in step', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await openList(page);
+    const selectedRows = () => rowsBox(page).locator('[role=option][aria-selected=true]');
+    // From the scene.
+    const at = await pointAt(page, 'app/components/voice/index.ts');
+    await page.mouse.click(at.x, at.y);
+    const fromScene = await page.evaluate(() => window.repoInPeace!.getSelection());
+    expect(fromScene?.path).toBe('app/components/voice/index.ts');
+    await expect(selectedRows()).toHaveCount(1);
+    await expect(selectedRows().locator('.list-name')).toHaveText('index.ts');
+    // From a row: it selects and flies.
+    const third = rowsBox(page).locator('[role=option]').nth(2);
+    const name = await third.locator('.list-name').textContent();
+    await third.click();
+    await expect(selectedRows()).toHaveCount(1);
+    await expect(selectedRows().locator('.list-name')).toHaveText(name!);
+    const fromRow = await page.evaluate(() => window.repoInPeace!.getSelection());
+    expect(fromRow?.path.endsWith(name!)).toBe(true);
+    // From code, for a grave far down the list: it is scrolled into view.
+    const last = sortRows(buildRows(oikos), 'decay').at(-1)!;
+    await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), last.path);
+    await expect(selectedRows()).toHaveCount(1);
+    await expect(selectedRows()).toBeInViewport();
+    // Filtered out: no row, and the list says so.
+    await list(page).getByRole('button', { name: 'ghosts', exact: true }).click();
+    await expect(selectedRows()).toHaveCount(0);
+    await expect(list(page)).toContainText('hidden by the filters');
+  });
+
+  test('2,000 rows: fewer than 60 row elements in the page from top to bottom, and the arrow keys never move the camera', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?synthetic=2000');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await openList(page);
+    await expect(list(page)).toContainText('of 2,000');
+    const counts: number[] = [];
+    for (let step = 0; step <= 10; step++) {
+      await rowsBox(page).evaluate((el, f) => (el.scrollTop = f * el.scrollHeight), step / 10);
+      await page.waitForTimeout(60);
+      counts.push(await rowsBox(page).locator('[role=option]').count());
+    }
+    expect(Math.max(...counts), counts.join(',')).toBeLessThan(60);
+    expect(Math.min(...counts)).toBeGreaterThan(0);
+    const before = await page.evaluate(() => window.repoInPeace!.getPose());
+    await rowsBox(page).focus();
+    for (const key of ['ArrowDown', 'ArrowDown', 'ArrowUp', 'PageDown']) await page.keyboard.press(key);
+    await page.keyboard.down('KeyW');
+    await page.waitForTimeout(400);
+    await page.keyboard.up('KeyW');
+    const after = await page.evaluate(() => window.repoInPeace!.getPose());
+    expect(after).toEqual(before);
   });
 });

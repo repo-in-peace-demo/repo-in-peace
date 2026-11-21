@@ -139,7 +139,7 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - **Commit** with the screenshots.
   - _Requirements: 4b_
 
-- [ ] 8. Detail panel (`ui/DetailPanel.tsx`, `scene/api.ts`, `scene/CameraRig.tsx`)
+- [x] 8. Detail panel (`ui/DetailPanel.tsx`, `scene/api.ts`, `scene/CameraRig.tsx`)
   - [x] 8.1 The panel for a stone and for a ghost, as in the design:
     - the eulogy, or the placeholder;
     - Bury on unused stones only, and Resurrect on ghosts, both disabled with the note;
@@ -157,8 +157,8 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
   - **Commit** with the screenshots.
   - _Requirements: 4_
 
-- [ ] 9. List view (`ui/ListView.tsx`)
-  - [ ] 9.1 The docked list:
+- [x] 9. List view (`ui/ListView.tsx`)
+  - [x] 9.1 The docked list:
     - collapsed and open states, following `panelsStartOpen`;
     - sort buttons, where a second press reverses;
     - kind and flag toggles, with `aria-pressed`;
@@ -169,13 +169,13 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
     - select and fly on click or Enter;
     - highlight and scroll into view on a selection from elsewhere;
     - the "hidden by the filters" line.
-  - [ ] 9.2 Browser checks:
+  - [x] 9.2 Browser checks:
     - **Rows and order:** oikos shows 129 rows in decay order, and spatialql's 2 ghosts come after its 120 stones.
     - **Counts:** the filter counts match `filterRows`.
     - **P4 end to end:** a scene click, a row click and a search result each leave the store and exactly one `aria-selected` row in step.
     - **Large list:** `?synthetic=2000` keeps fewer than 60 row elements in the page while scrolling from top to bottom.
     - **Keys:** arrow keys in the list don't move the camera.
-  - [ ] 9.3 Screenshot test `interface list`: the open list on oikos, with a filter on.
+  - [x] 9.3 Screenshot test `interface list`: the open list on oikos, with a filter on.
   - **Run:** `npx playwright test e2e/interface.spec.ts -g "list"`, then the screenshot.
   - **Commit** with the screenshots.
   - _Requirements: 5_

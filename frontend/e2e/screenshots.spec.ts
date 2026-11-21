@@ -308,4 +308,18 @@ test.describe('screenshots to judge by eye', () => {
       await page.screenshot({ path: `${OUT}${file}.png` });
     }
   });
+
+  // Interface spec, task 9: the open list on oikos, with the unused filter on.
+  test('interface list', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(800);
+    await page.getByRole('button', { name: /List · / }).click();
+    await page.getByRole('button', { name: 'unused', exact: true }).click();
+    await page.mouse.move(640, 8);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${OUT}interface-list.png` });
+  });
 });

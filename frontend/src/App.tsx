@@ -12,6 +12,7 @@ import { DiggingScreen } from './ui/DiggingScreen';
 import { fetchGraveyard } from './ui/fetch-graveyard';
 import { HoverLabel } from './ui/HoverLabel';
 import { Legend } from './ui/Legend';
+import { ListView } from './ui/ListView';
 import { readLocalFile } from './ui/read-local-file';
 import { StatsPanel } from './ui/StatsPanel';
 import { StatusMessage } from './ui/StatusMessage';
@@ -175,6 +176,7 @@ function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
       <Legend legend={model.legend} />
       <ControlsPanel onBack={onBack} />
+      <ListView model={model} />
       <DetailPanel model={model} />
       <HoverLabel model={model} />
       {DevExtras && (
