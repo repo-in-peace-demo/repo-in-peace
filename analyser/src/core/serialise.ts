@@ -21,6 +21,8 @@ export function toJson(graveyard: Graveyard): string {
         hotCommits: meta.thresholds.hotCommits,
         hotWindowDays: meta.thresholds.hotWindowDays,
       },
+      // Written only when the analyser ran with --eulogies, so the output without it is byte-identical to before.
+      ...(meta.eulogyModel === undefined ? {} : { eulogyModel: meta.eulogyModel }),
     },
     folders: folders.map((f) => ({ path: f.path, parent: f.parent })),
     files: files.map((f) => ({
@@ -42,6 +44,7 @@ export function toJson(graveyard: Graveyard): string {
       deletedDate: g.deletedDate,
       deletedBy: g.deletedBy,
       lastExistingSha: g.lastExistingSha,
+      ...(g.eulogy === undefined ? {} : { eulogy: g.eulogy }),
     })),
   };
   return `${JSON.stringify(ordered, null, 2)}\n`;

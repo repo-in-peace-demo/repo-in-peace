@@ -355,3 +355,25 @@ describe('the real test files', () => {
     ]);
   });
 });
+
+describe('P9 (eulogies spec): the optional eulogy fields', () => {
+  it('loads a file with them, and one without them, the same way otherwise', () => {
+    const plain = validGraveyard();
+    const withFields = { ...validGraveyard(), meta: { ...validGraveyard().meta, eulogyModel: 'qwen2.5:7b' }, ghosts: validGraveyard().ghosts.map((g) => ({ ...g, eulogy: 'Here lay a file.' })) };
+    const a = checkGraveyardData(plain);
+    const b = checkGraveyardData(withFields);
+    expect(a.ok && b.ok).toBe(true);
+    if (a.ok && b.ok) {
+      expect(b.graveyard.meta.eulogyModel).toBe('qwen2.5:7b');
+      expect(a.graveyard.meta.eulogyModel).toBeUndefined();
+      expect(b.graveyard.files).toEqual(a.graveyard.files);
+    }
+  });
+
+  it('refuses a model that is not a non-empty string', () => {
+    const bad = { ...validGraveyard(), meta: { ...validGraveyard().meta, eulogyModel: '' } };
+    const result = checkGraveyardData(bad);
+    expect(result.ok).toBe(false);
+  });
+});
+

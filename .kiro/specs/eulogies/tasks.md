@@ -16,10 +16,10 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npm run typecheck && npm test` (nothing should change).
   - _Requirements: 3.1_
 
-- [ ] 2. Schema: optional fields (`shared/graveyard-schema.ts`)
-  - [ ] 2.1 Add `RepoMeta.eulogyModel?: string` and `Ghost.eulogy?: string`, with their checks: a non-empty string or absent, and a string or absent.
-  - [ ] 2.2 **P9:** a file is valid with and without the fields, and a wrong type is rejected. The frontend's `graveyard-load` tests load a file with the fields. The demo files, which have no fields, still load.
-  - [ ] 2.3 `analyser/src/core/serialise.ts`: write `eulogyModel` last in `meta` and `eulogy` last in a ghost, only when defined. The golden test stays unchanged.
+- [x] 2. Schema: optional fields (`shared/graveyard-schema.ts`)
+  - [x] 2.1 Add `RepoMeta.eulogyModel?: string` and `Ghost.eulogy?: string`, with their checks: a non-empty string or absent, and a string or absent.
+  - [x] 2.2 **P9:** a file is valid with and without the fields, and a wrong type is rejected. The frontend's `graveyard-load` tests load a file with the fields. The demo files, which have no fields, still load.
+  - [x] 2.3 `analyser/src/core/serialise.ts`: write `eulogyModel` last in `meta` and `eulogy` last in a ghost, only when defined. The golden test stays unchanged.
   - **Run:** `cd analyser && npm run typecheck && npm test`, and `cd ../frontend && npm test`.
   - _Requirements: 5_
 

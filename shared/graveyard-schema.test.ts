@@ -256,6 +256,22 @@ describe('validateGraveyard', () => {
     });
   });
 
+  describe('the optional eulogy fields (eulogies spec)', () => {
+    it('accepts a file with neither, and with both', () => {
+      expect(validateGraveyard(validGraveyard()).ok).toBe(true);
+      const g = validGraveyard();
+      g.meta.eulogyModel = 'qwen2.5:7b';
+      g.ghosts.forEach((ghost) => (ghost.eulogy = ''));
+      expect(validateGraveyard(g)).toEqual({ ok: true });
+    });
+
+    it('rejects a model that is empty or not a string, and a ghost eulogy that is not a string', () => {
+      expect(errorsAfter((g) => Reflect.set(g.meta, 'eulogyModel', ''))).toEqual(['meta.eulogyModel must be a non-empty string when present']);
+      expect(errorsAfter((g) => Reflect.set(g.meta, 'eulogyModel', 7))).toEqual(['meta.eulogyModel must be a non-empty string when present']);
+      expect(errorsAfter((g) => Reflect.set(g.ghosts[0]!, 'eulogy', null))).toEqual(['ghosts[0].eulogy must be a string when present']);
+    });
+  });
+
   describe('ghosts', () => {
     it('rejects a path that is both a file and a ghost', () => {
       const errors = errorsAfter((g) => (g.ghosts[0]!.path = 'index.ts'));

@@ -41,6 +41,8 @@ export interface RepoMeta {
   schemaVersion: number;
   /** The decay thresholds the analyser ran with. */
   thresholds: Thresholds;
+  /** The local model that wrote the eulogies (Ollama), present only when the analyser ran with --eulogies. */
+  eulogyModel?: string;
 }
 
 export interface Folder {
@@ -83,6 +85,8 @@ export interface Ghost {
   deletedBy: string;
   /** First parent of the deleting commit: the last commit in which the file still existed. */
   lastExistingSha: string;
+  /** Its epitaph, present only when the analyser ran with --eulogies ("" when none was written). Absent reads as "". */
+  eulogy?: string;
 }
 
 export interface Graveyard {
@@ -132,6 +136,7 @@ function checkMeta(meta: unknown, fail: Fail): void {
     fail(`meta.schemaVersion must be ${SCHEMA_VERSION}`);
   }
   checkThresholds(meta['thresholds'], fail);
+  if ('eulogyModel' in meta && !isNonEmptyString(meta['eulogyModel'])) fail('meta.eulogyModel must be a non-empty string when present');
 }
 
 function checkThresholds(thresholds: unknown, fail: Fail): void {
@@ -277,6 +282,7 @@ function checkGhosts(ghosts: unknown, filePaths: Set<string>, fail: Fail): void 
     if (!isIsoUtc(ghost['deletedDate'])) fail(`${at}.deletedDate must be an ISO 8601 UTC date`);
     if (typeof ghost['deletedBy'] !== 'string') fail(`${at}.deletedBy must be a string`);
     if (!isSha(ghost['lastExistingSha'])) fail(`${at}.lastExistingSha must be a full commit SHA`);
+    if ('eulogy' in ghost && typeof ghost['eulogy'] !== 'string') fail(`${at}.eulogy must be a string when present`);
   });
 }
 

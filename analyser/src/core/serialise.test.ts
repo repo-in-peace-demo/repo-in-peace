@@ -124,4 +124,27 @@ describe('toJson', () => {
     expect(out).toContain('"ghosts": []');
     expect(JSON.parse(out)).toEqual(empty);
   });
+
+  describe('the optional eulogy fields (eulogies spec)', () => {
+    it('writes neither when they are absent: the text is exactly as before', () => {
+      const plain = toJson(sample());
+      expect(plain).not.toContain('eulogyModel');
+      const ghostBlock = plain.slice(plain.indexOf('"ghosts"'));
+      expect(ghostBlock).not.toContain('"eulogy"');
+    });
+
+    it('writes eulogyModel last in meta and eulogy last in each ghost when present', () => {
+      const g = sample();
+      g.meta.eulogyModel = 'qwen2.5:7b';
+      g.ghosts.forEach((ghost) => (ghost.eulogy = 'Here lay a file.'));
+      const out = toJson(g);
+      const metaBlock = out.slice(out.indexOf('"meta"'), out.indexOf('"folders"'));
+      expect([...metaBlock.matchAll(/^ {4}"(\w+)":/gm)].map((m) => m[1])).toEqual(['name', 'snapshotSha', 'snapshotDate', 'analysedAt', 'schemaVersion', 'thresholds', 'eulogyModel']);
+      const ghostBlock = out.slice(out.indexOf('"ghosts"'));
+      expect([...ghostBlock.matchAll(/^ {6}"(\w+)":/gm)].map((m) => m[1]).slice(0, 6)).toEqual(['path', 'deletedInSha', 'deletedDate', 'deletedBy', 'lastExistingSha', 'eulogy']);
+      // The same text whatever order the keys were added in.
+      expect(toJson(reverseKeys(g) as Graveyard)).toBe(out);
+    });
+  });
 });
+
