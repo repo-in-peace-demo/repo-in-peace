@@ -126,11 +126,14 @@ describe('end to end on random real repositories', () => {
               expect(poolFiles.map((f) => f.path)).toEqual(modelCurrent);
               const finalContent = model.contentAfter[script.length - 1]!;
               for (const file of poolFiles) {
+                // The data carries the date, author and count; the expected history also has the last subject, which is a eulogy's
+                // input and never in the data.
+                const { lastCommitSubject: _subject, ...expected } = model.expectedHistory.get(file.path)!;
                 expect({
                   lastCommitDate: file.lastCommitDate,
                   lastCommitAuthor: file.lastCommitAuthor,
                   recentCommits: file.recentCommits,
-                }).toEqual(model.expectedHistory.get(file.path));
+                }).toEqual(expected);
                 expect(file.unused).toBe(unusedPaths.includes(file.path));
                 expect(file.linesOfCode).toBe(
                   countNonBlankLines(new TextEncoder().encode(finalContent.get(file.path))),
