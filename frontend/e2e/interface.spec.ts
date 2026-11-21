@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary } from '../src/model/grave-facts';
 import { buildRows, filterRows, sortRows } from '../src/model/list-rows';
+import { makeSyntheticGraveyard } from '../src/model/synthetic';
 
 /**
  * The interface around the scene, in the real app (interface spec, tasks 7 to 11): the hover line, the detail panel, the list,
@@ -206,12 +207,14 @@ test.describe('the list', () => {
     await expect(list(page)).toContainText('hidden by the filters');
   });
 
-  test('2,000 rows: fewer than 60 row elements in the page from top to bottom, and the arrow keys never move the camera', async ({ page }) => {
+  test('2,000 files (and their ghosts): fewer than 60 row elements in the page from top to bottom, and the arrow keys never move the camera', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/?synthetic=2000');
     await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
     await openList(page);
-    await expect(list(page)).toContainText('of 2,000');
+    // 2,000 files and, by default, 2% as many ghosts: the same made-up graveyard the app builds (seed 1, the mixed shape).
+    const total = buildRows(makeSyntheticGraveyard({ files: 2000, seed: 1, shape: 'mixed' })).length;
+    await expect(list(page)).toContainText(`${total.toLocaleString('en-US')} of ${total.toLocaleString('en-US')}`);
     const counts: number[] = [];
     for (let step = 0; step <= 10; step++) {
       await rowsBox(page).evaluate((el, f) => (el.scrollTop = f * el.scrollHeight), step / 10);
