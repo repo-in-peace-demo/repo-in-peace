@@ -16,7 +16,7 @@ const optionId = (row: Row): string => `search-${row.kind}-${encodeURIComponent(
 /**
  * The search box at the top centre (interface spec, Req 6): file names and paths of files and ghosts, ranked exact name, name prefix,
  * name contains, path only. Results update as you type. Up and Down move, Enter selects the active result (the top one at first) and
- * flies to it. Escape clears the text, and a second Escape leaves the box; neither clears the selection. `/` and Cmd+K (Ctrl+K)
+ * flies to it, then clears the box and gives the keyboard back to the scene. Escape clears the text, and a second Escape leaves the box; neither clears the selection. `/` and Cmd+K (Ctrl+K)
  * focus it. Typing in it never moves the camera.
  */
 export function SearchBox({ model }: { model: SceneModel }) {
@@ -54,7 +54,11 @@ export function SearchBox({ model }: { model: SceneModel }) {
   const choose = (row: Row): void => {
     select({ kind: row.kind, path: row.path });
     flyTo(row.path);
+    // Done searching: the box is cleared and gives the keyboard back to the scene, so W A S D fly the camera at once.
+    setQuery('');
+    setActive(0);
     setOpen(false);
+    input.current?.blur();
   };
 
   const onKey = (event: ReactKeyboardEvent<HTMLInputElement>): void => {

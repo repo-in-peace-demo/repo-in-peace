@@ -272,7 +272,7 @@ test.describe('search', () => {
     await expect(box(page)).toBeFocused();
   });
 
-  test('exact file-name matches come first, and Enter selects the top result and flies to it', async ({ page }) => {
+  test('exact file-name matches come first; Enter selects the top result, flies to it, clears the box and gives the keys back to the scene', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.keyboard.press('/');
     await page.keyboard.type('index.ts');
@@ -284,9 +284,19 @@ test.describe('search', () => {
     await page.keyboard.press('Enter');
     const selected = await page.evaluate(() => window.repoInPeace!.getSelection());
     expect(selected?.path.endsWith('index.ts')).toBe(true);
+    // Done searching: the box is empty, closed and not focused.
+    await expect(box(page)).toHaveValue('');
+    await expect(box(page)).not.toBeFocused();
+    await expect(page.getByRole('listbox', { name: 'Results' })).toHaveCount(0);
     await page.waitForTimeout(1800);
     const after = await page.evaluate(() => window.repoInPeace!.getPose());
     expect(Math.hypot(after.target.x - before.target.x, after.target.z - before.target.z), 'it flew').toBeGreaterThan(1);
+    // The keyboard is the scene's again: W flies the camera.
+    await page.keyboard.down('KeyW');
+    await page.waitForTimeout(400);
+    await page.keyboard.up('KeyW');
+    const flown = await page.evaluate(() => window.repoInPeace!.getPose());
+    expect(Math.hypot(flown.position.x - after.position.x, flown.position.z - after.position.z), 'W moves the camera').toBeGreaterThan(0.2);
     // The list (P4) shows the same one selected row.
     await page.getByRole('button', { name: /List · / }).click();
     await expect(page.getByRole('listbox', { name: 'Files and ghosts' }).locator('[role=option][aria-selected=true]')).toHaveCount(1);
@@ -576,4 +586,24 @@ test.describe('nothing in the way of the grave in focus', () => {
     await page.evaluate(() => window.repoInPeace!.resetView());
     await expect.poll(async () => Object.keys(await page.evaluate(() => window.repoInPeace!.getSignFade())).length, { timeout: 4000 }).toBe(0);
   });
+});
+
+test('a click on a search result also clears the box and gives the keys back to the scene', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/?graveyard=demo.oikosledger');
+  await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+  await page.waitForTimeout(800);
+  const box = page.getByRole('combobox', { name: 'Search graves by file name or path' });
+  await page.keyboard.press('/');
+  await page.keyboard.type('voice');
+  await page.getByRole('listbox', { name: 'Results' }).getByRole('option').first().click();
+  await expect(box).toHaveValue('');
+  await expect(box).not.toBeFocused();
+  await page.waitForTimeout(1800);
+  const after = await page.evaluate(() => window.repoInPeace!.getPose());
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(400);
+  await page.keyboard.up('KeyW');
+  const flown = await page.evaluate(() => window.repoInPeace!.getPose());
+  expect(Math.hypot(flown.position.x - after.position.x, flown.position.z - after.position.z), 'W moves the camera').toBeGreaterThan(0.2);
 });
