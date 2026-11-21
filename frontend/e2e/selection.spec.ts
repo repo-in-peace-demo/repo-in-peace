@@ -21,7 +21,7 @@ const graveyard = JSON.parse(readFileSync(FILE, 'utf8')) as Graveyard;
 const model = buildSceneModel(graveyard);
 
 const VIEWPORT = { width: 1280, height: 720 };
-const EMPTY_GROUND = { x: 640, y: 30 }; // above the graveyard in the starting view, clear of the panels
+const EMPTY_GROUND = { x: 640, y: 90 }; // the sky above the graveyard in the starting view, below the search box (top centre, to y 52) and clear of the panels
 
 // The stone nearest the camera in the starting view (largest z, then closest to the middle): nothing is in front of it.
 const { x: boundsX, w: boundsW } = model.layout.bounds;
