@@ -55,9 +55,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 6.4 **P11, reasoning blocks:** for any answer, a closed, unclosed or upper-case `<think>` or `<thinking>` block cleans to the answer alone, or to empty.
   - _Requirements: 4_
 
-- [ ] 7. Cache key (`core/eulogy-key.ts`)
-  - [ ] 7.1 `cacheKey`: a SHA-256 of canonical JSON (sorted keys).
-  - [ ] 7.2 **P3:** changing any one field (the model, the version, any input field, or one byte of contents) changes the key. Equal values built in a different key order give the same key.
+- [x] 7. Cache key (`core/eulogy-key.ts`)
+  - [x] 7.1 `cacheKey`: a SHA-256 of canonical JSON (sorted keys).
+  - [x] 7.2 **P3:** changing any one field (the model, the version, any input field, or one byte of contents) changes the key. Equal values built in a different key order give the same key.
   - _Requirements: 6.4_
 
 - [ ] 8. The run (`core/eulogy-run.ts`)
