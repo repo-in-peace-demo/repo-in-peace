@@ -81,7 +81,8 @@ test('a refused name shows the message and a way back to the boot screen, with n
   page.on('request', (r) => requested.push(r.url()));
   await page.goto('/?graveyard=..%2Fsecret');
   await expect(page.getByRole('alert')).toContainText('is not allowed');
-  expect(requested.some((u) => u.includes('secret'))).toBe(false);
+  // The page's own address holds the name; what must not happen is a request for a data file (none at all for a refused name).
+  expect(requested.filter((u) => new URL(u).pathname.includes('/graveyards/') && u.endsWith('.graveyard.json')), 'data files requested').toEqual([]);
   await page.getByRole('button', { name: 'Back to the graveyards' }).click();
   await expect(boot(page)).toBeVisible();
 });
