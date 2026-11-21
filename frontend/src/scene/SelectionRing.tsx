@@ -35,7 +35,8 @@ export function SelectionRing({ model }: { model: SceneModel }) {
   return (
     <mesh ref={ref} position={[at.x, selectionRingHeight(ghost?.visual, 0), at.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={5} raycast={noRaycast}>
       <ringGeometry args={[RING_INNER, RING_OUTER, 48]} />
-      <meshBasicMaterial color={SELECTION_RING_COLOR} transparent opacity={0.95} depthWrite={false} />
+      {/* Depth-tested: the stone (or ghost) in front of any part of the ring hides it, so the ring never crosses its face. */}
+      <meshBasicMaterial color={SELECTION_RING_COLOR} transparent opacity={0.95} depthTest depthWrite={false} />
     </mesh>
   );
 }

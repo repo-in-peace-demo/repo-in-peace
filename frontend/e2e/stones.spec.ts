@@ -489,4 +489,10 @@ test('the selection on a short stone is a thin outline: the stone keeps its own 
   await page.screenshot({ path: fileURLToPath(new URL('../test-results/screenshots/selected-short-stone.png', import.meta.url)), clip: { x: Math.max(0, centre.x - whole - 40), y: Math.max(0, centre.y - whole - 40), width: 2 * whole + 80, height: 2 * whole + 80 } });
   expect(middle, `magenta in the middle of the face (${(2 * inner) ** 2} pixels)`).toBeLessThanOrEqual(Math.ceil((2 * inner) ** 2 * 0.01));
   expect(all, 'an outline is drawn').toBeGreaterThan(20);
+  // The ring at the foot never crosses the face: no magenta on the lower part of the face (where the name is), inside the outline.
+  const foot = await page.evaluate(([x, z, h]) => [window.repoInPeace!.projectPoint(x! - 0.7, 0.02, z! + 0.25), window.repoInPeace!.projectPoint(x! + 0.7, h! * 0.5, z! + 0.25)], [x, z, height]);
+  const [fx0, fx1] = [Math.min(foot[0]!.x, foot[1]!.x) + 4, Math.max(foot[0]!.x, foot[1]!.x) - 4];
+  const [fy0, fy1] = [Math.min(foot[0]!.y, foot[1]!.y) + 4, Math.max(foot[0]!.y, foot[1]!.y) - 4];
+  const lowerHalf = Math.floor(Math.min(fx1 - fx0, fy1 - fy0) / 2);
+  expect(await countPixels(page, 'magenta', { x: (fx0 + fx1) / 2, y: (fy0 + fy1) / 2 }, lowerHalf), 'the ring over the lower face').toBeLessThanOrEqual(2);
 });
