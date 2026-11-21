@@ -1,3 +1,4 @@
+import { SHORTCUT_CODES } from './shortcuts';
 import { describe, expect, it } from 'vitest';
 import { CONTROL_GROUPS, DOCUMENTED_CODES, FLYING_CODES } from './controls-help';
 import { FLY_FAST_FACTOR } from './fly-controls';
@@ -37,4 +38,12 @@ describe('controls help', () => {
     const all = entries.flatMap((e) => e.codes ?? []);
     expect(new Set(all).size).toBe(all.length);
   });
+
+  it('documents every shortcut code, the search keys, and how to move through search and the list (interface spec)', () => {
+    for (const code of SHORTCUT_CODES) expect(DOCUMENTED_CODES.has(code), code).toBe(true);
+    const all = CONTROL_GROUPS.flatMap((g) => g.entries);
+    expect(all.some((e) => e.keys.includes('/') && e.keys.includes('Cmd+K'))).toBe(true);
+    expect(all.some((e) => e.action.includes('search or the list'))).toBe(true);
+  });
 });
+

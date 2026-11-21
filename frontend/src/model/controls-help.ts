@@ -53,6 +53,14 @@ export const CONTROL_GROUPS: readonly ControlGroup[] = [
       { keys: '?', action: 'Show or hide this panel' },
     ],
   },
+  {
+    title: 'Find',
+    entries: [
+      { keys: '/ or Cmd+K', action: 'Search graves by name or path', codes: ['Slash', 'KeyK'] },
+      { keys: '↑ ↓ and Enter', action: 'In search or the list: move, then fly to the grave' },
+      { keys: 'Esc in search', action: 'Clear the text, then leave the box' },
+    ],
+  },
 ];
 
 /** Every key code the entries document. */

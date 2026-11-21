@@ -211,20 +211,20 @@ Each task ends with **Commit** and a screenshot from `e2e/screenshots.spec.ts`. 
 
 ## Part 3: Docs and close-out
 
-- [ ] 12. Documentation
-  - [ ] 12.1 In the repository `README.md` and `frontend/README.md`, describe the new flow:
+- [x] 12. Documentation
+  - [x] 12.1 **Done.** The repository `README.md` was empty and is now written. In the repository `README.md` and `frontend/README.md`, describe the new flow:
     - a bare address shows the boot screen, then the digging screen, then the scene with its opening move;
     - `?graveyard=<name>` goes straight to the digging screen;
     - Open a graveyard file reads a local `.graveyard.json` in the browser only;
     - the demo list comes from the Vite plugin;
     - the new keys (`/`, Cmd+K or Ctrl+K, and the list keys) go into the controls table.
-  - [ ] 12.2 In the Kiro write-up notes in `docs/` (create `docs/kiro-notes.md` if the notes aren't there yet), add:
+  - [x] 12.2 In the Kiro write-up notes in `docs/` (create `docs/kiro-notes.md` if the notes aren't there yet), add:
     - how this spec went: requirements reviewed and answered, then the design, then tasks;
     - the flow, boot screen → digging → scene;
     - the properties that guard it;
     - where steering and specs shaped decisions. Examples: Bury only on unused stones, the snapshot-relative ages, and no uploads.
-  - [ ] 12.3 `docs/backlog.md` already records that a file opened from disk isn't kept across a reload. Check that the note is still accurate once task 6 is built.
-  - [ ] 12.4 Add the new controls to `model/controls-help.ts` (search, list keys). The controls test checks that every new key is listed.
+  - [x] 12.3 **Checked: still accurate.** `docs/backlog.md` already records that a file opened from disk isn't kept across a reload. Check that the note is still accurate once task 6 is built.
+  - [x] 12.4 Add the new controls to `model/controls-help.ts` (search, list keys). The controls test checks that every new key is listed.
   - _Requirements: 6.2, 7.2_
 
 - [ ] 13. **Final checkpoint**
