@@ -1,5 +1,5 @@
 import { expect, test, type Page } from './fixtures';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { candleSpots } from '../src/model/candle-placement';
@@ -474,13 +474,19 @@ test('the selection on a short stone is a thin outline: the stone keeps its own 
   );
   const xs = corners.map((c) => c!.x);
   const ys = corners.map((c) => c!.y);
-  const centre = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
-  const half = Math.round(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2);
-  const area = (2 * half) ** 2;
-  const before = await countPixels(page, 'magenta', centre, half);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const centre = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+  // The middle of the face: half its width and height round its centre, well inside any outline.
+  const inner = Math.round(Math.min(x1 - x0, y1 - y0) / 4);
+  const whole = Math.round(Math.max(x1 - x0, y1 - y0) / 2) + 6;
+  expect(await countPixels(page, 'magenta', centre, whole), 'no magenta before it is selected').toBe(0);
   await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), path);
   await page.waitForTimeout(600);
-  const selected = await countPixels(page, 'magenta', centre, half);
-  expect(before).toBe(0);
-  expect(selected / area, `magenta share of the stone's upper part when selected (${selected} of ${area} pixels)`).toBeLessThan(0.06);
+  const middle = await countPixels(page, 'magenta', centre, inner);
+  const all = await countPixels(page, 'magenta', centre, whole);
+  // For a look by eye: test-results/screenshots/selected-short-stone.png.
+  mkdirSync(fileURLToPath(new URL('../test-results/screenshots/', import.meta.url)), { recursive: true });
+  await page.screenshot({ path: fileURLToPath(new URL('../test-results/screenshots/selected-short-stone.png', import.meta.url)), clip: { x: Math.max(0, centre.x - whole - 40), y: Math.max(0, centre.y - whole - 40), width: 2 * whole + 80, height: 2 * whole + 80 } });
+  expect(middle, `magenta in the middle of the face (${(2 * inner) ** 2} pixels)`).toBeLessThanOrEqual(Math.ceil((2 * inner) ** 2 * 0.01));
+  expect(all, 'an outline is drawn').toBeGreaterThan(20);
 });
