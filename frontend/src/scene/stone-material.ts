@@ -3,6 +3,7 @@ import { NAME_BELOW_SEAM, NAME_BOX, NAME_FAR, NAME_MIN_BOTTOM, NAME_NEAR, RIP_AB
 import { STONE_D, STONE_W } from '../model/layout-constants';
 import { GLOW } from '../model/visual-constants';
 import { ENGRAVE_CELL_H, ENGRAVE_CELL_W, ENGRAVE_COLUMNS } from './engraving-atlas';
+import { FADE_FRAGMENT, FADE_FRAGMENT_DECLARATIONS, FADE_VERTEX, FADE_VERTEX_DECLARATIONS } from './fade-dither';
 import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
 
 /**
@@ -14,6 +15,7 @@ import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
  *   aHighlight  0 nothing, 0.5 hover (a pale rim), 1 selected (a rim in the selection ring's colour, slowly pulsing)
  *   aSeed       0 to 1; varies the noise from stone to stone
  *   aNameCell   the atlas cell of the file's name, or -1 (`model/engraving.ts`)
+ *   aFade       1 shown, 0 gone: a stone in front of the grave in focus fades out of the way, by dithering (`fade-dither.ts`)
  * On the front face it carves "RIP" into the arch of an unused stone (aCrack), and the file's name below it, which fades in as
  * the camera comes near (NAME_FAR to NAME_NEAR): letters paler than the face with a thin dark shadow on the upper edge, read from the
  * engraving atlas. Moss runs on under the letters (only the letters differ from the stone) and the crack glow keeps off them.
@@ -25,6 +27,7 @@ export interface StoneUniforms {
 }
 
 const VERTEX_DECLARATIONS = /* glsl */ `
+${FADE_VERTEX_DECLARATIONS}
 attribute float aTop;
 attribute float aHeight;
 attribute float aMoss;
@@ -49,6 +52,7 @@ varying float vSeed;
 // with it, so the stone's top is at its height. (Until task 25 follow-up 5 this said 0.5, the arch of a 1.0-wide stone, and stones
 // 1.4 wide were drawn 0.2 taller than their height.)
 const VERTEX_BEGIN = /* glsl */ `
+${FADE_VERTEX}
 float bodyHeight = max(aHeight - ${(STONE_W / 2).toFixed(4)}, 0.01);
 vec3 transformed = vec3(position);
 transformed.y = aTop > 0.5 ? (position.y - 1.0) + bodyHeight : position.y * bodyHeight;
@@ -70,6 +74,7 @@ vNameFade = aNameCell < 0.0 ? 0.0 : 1.0 - smoothstep(uNameFade.x, uNameFade.y, d
 `;
 
 const FRAGMENT_DECLARATIONS = /* glsl */ `
+${FADE_FRAGMENT_DECLARATIONS}
 varying vec3 vLocalPos;
 varying float vHeightFrac;
 varying float vMoss;
@@ -210,6 +215,7 @@ float fbm(vec2 p) {
 
 const FRAGMENT_COLOR = /* glsl */ `
 #include <color_fragment>
+${FADE_FRAGMENT}
 {
   // Coordinates on the stone's surface: along x and z together on the sides, so the noise does not streak.
   vec2 uv2 = vec2(vLocalPos.x + vLocalPos.z, vLocalPos.y);
@@ -334,6 +340,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v8';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v9';
   return { material, uniforms };
 }

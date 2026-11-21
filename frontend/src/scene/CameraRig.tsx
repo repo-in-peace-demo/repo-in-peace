@@ -6,6 +6,7 @@ import type { CameraPose } from '../model/camera-pose';
 import { openingShot, safeEstablishingShot, type Shot } from '../model/framing';
 import { handoverShare, openingAt, playsOpening, settleShare } from '../model/opening-move';
 import { sceneCameraLimits } from '../model/camera-bounds';
+import { clearFlyPose, sceneOccluders } from '../model/clear-view';
 import { MIN_TILT_DEG, boundsRadius, clampPose, flySpeed, isFast, moveCamera, movementFromKeys } from '../model/fly-controls';
 import type { SceneModel } from '../model/scene-model';
 import { lerp, vec3 } from '../model/vec3';
@@ -52,6 +53,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
   // The limits, inside the trees around the graveyard; the zoom-out is measured from the establishing shot for this window.
   const limits = useMemo(() => sceneCameraLimits(model.layout.bounds, aspect), [model, aspect]);
   const shot = useMemo(() => safeEstablishingShot(model.layout.bounds, camera.fov, aspect), [model, camera.fov, aspect]);
+  const occluders = useMemo(() => sceneOccluders(model), [model]);
   const latestShot = useRef(shot);
   latestShot.current = shot;
 
@@ -218,6 +220,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
           return { x0, x1, y0, y1 };
         },
         isFlying: () => flight.current.phase === 'flying',
+        poseFor: (path: string) => clearFlyPose(model, path, limits, occluders)?.pose,
         nudge: (pixels: number, path: string) => {
           const orbit = controls.current;
           const box = model.pickTargets.find((t) => t.path === path);
@@ -242,7 +245,7 @@ export function CameraRig({ model }: { model: SceneModel }) {
           flight.current = startFlight(from, clampPose(to, limits, 'slide'), performance.now());
         },
       }),
-    [camera, model, limits, shot, element],
+    [camera, model, limits, shot, element, occluders],
   );
 
   useFrame((_state, delta) => {

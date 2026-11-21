@@ -11,6 +11,7 @@ import { PLAQUE_COLOR } from './colors';
 import { focusPath } from './focus';
 import { noRaycast, placement } from './instances';
 import { signFade } from './sign-fade-state';
+import { obstruction } from './obstruction-state';
 
 /** A post with a board on it, as one shape, so all the plaques are one draw call. */
 function makePlaqueGeometry(): THREE.BufferGeometry {
@@ -108,7 +109,9 @@ export function Plaques({ model }: { model: SceneModel }) {
     const e = camera.matrixWorld.elements;
     const key = box === undefined ? '' : `${focus}|${e.map((v) => v.toFixed(3)).join(',')}|${size.width}x${size.height}`;
     if (key !== last.current.key) last.current = { key, hidden: box === undefined ? new Set() : signsInTheWay(box, signs, project) };
-    const hidden = last.current.hidden;
+    const inTheWay = last.current.hidden;
+    // Also any board that cuts the line to the grave's face (scene/Obstructions.tsx).
+    const hidden = obstruction.signs.size === 0 ? inTheWay : new Set([...inTheWay, ...obstruction.signs]);
     // Each sign eases toward its target; nothing is written while nothing moves.
     const seconds = isReducedMotion() ? Number.POSITIVE_INFINITY : delta;
     let changed = false;

@@ -6,7 +6,9 @@ import { engravingCells, engravingFor } from '../model/engraving';
 import { leanQuaternion, stoneAttributes } from '../model/stone-attributes';
 import { ENGRAVE_CAPACITY, makeEngravingAtlas } from './engraving-atlas';
 import { useRimHighlight } from './highlight';
-import { animationTime } from './animation-clock';
+import { animationTime, isReducedMotion } from './animation-clock';
+import { stepFade } from '../model/sign-fade';
+import { obstruction } from './obstruction-state';
 import { makeStoneMaterial } from './stone-material';
 import { makeTombstoneGeometry } from './tombstone-geometry';
 import { noRaycast, placement } from './instances';
@@ -35,9 +37,12 @@ export function Stones({ model }: { model: SceneModel }) {
     // The engraving: RIP and the names in one atlas, and each stone's name cell.
     const { texts, nameCell } = engravingCells(stones.map((s) => engravingFor(s.file.path, s.file.unused)), ENGRAVE_CAPACITY);
     geometry.setAttribute('aNameCell', attribute(Float32Array.from(nameCell)));
+    const fade = attribute(new Float32Array(stones.length).fill(1));
+    fade.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute('aFade', fade);
     const atlas = makeEngravingAtlas(texts);
     const { material, uniforms } = makeStoneMaterial({ atlas: atlas.texture, rows: atlas.rows });
-    return { geometry, material, uniforms, highlight, atlas: atlas.texture };
+    return { geometry, material, uniforms, highlight, fade, atlas: atlas.texture };
   }, [stones]);
   useEffect(
     () => () => {
@@ -61,8 +66,22 @@ export function Stones({ model }: { model: SceneModel }) {
   }, [stones]);
 
   useRimHighlight(assets.highlight, model, 'file');
-  useFrame(({ clock }) => {
+  // Stones in front of the grave in focus fade out of the way, and back in when the focus moves on (scene/Obstructions.tsx).
+  const paths = useMemo(() => stones.map((st) => st.file.path), [stones]);
+  useFrame(({ clock }, delta) => {
     assets.uniforms.uTime.value = animationTime(clock.elapsedTime);
+    const alphas = assets.fade.array as Float32Array;
+    const seconds = isReducedMotion() ? Number.POSITIVE_INFINITY : delta;
+    let changed = false;
+    for (let i = 0; i < paths.length; i++) {
+      const target = obstruction.stones.has(paths[i]!) ? 0 : 1;
+      if (alphas[i] === target) continue;
+      alphas[i] = stepFade(alphas[i]!, target, seconds);
+      changed = true;
+      if (alphas[i]! < 1) obstruction.alpha.stones.set(paths[i]!, alphas[i]!);
+      else obstruction.alpha.stones.delete(paths[i]!);
+    }
+    if (changed) assets.fade.needsUpdate = true;
   });
 
   if (stones.length === 0) return null;

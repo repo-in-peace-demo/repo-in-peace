@@ -19,6 +19,8 @@ export interface SceneRegistration {
   start: CameraPose;
   /** Starts a smooth flight of the camera to this pose. */
   fly: (to: CameraPose) => void;
+  /** The pose `flyTo` uses for this grave: a view of its face with nothing in the way when there is one (`model/clear-view.ts`). */
+  poseFor?: (path: string) => CameraPose | undefined;
   /** The box on the page (pixels) that the stone or ghost with this path covers now, or null when it is unknown or behind the camera. */
   screenBoxOf: (path: string) => ScreenBox | null;
   /** True while a flight is moving the camera. */
@@ -46,7 +48,7 @@ export function registerScene(registration: SceneRegistration): () => void {
  */
 export function flyTo(path: string): boolean {
   if (registered === null) return false;
-  const pose = flyToPose(registered.targets, path);
+  const pose = registered.poseFor?.(path) ?? flyToPose(registered.targets, path);
   if (pose === undefined) return false;
   registered.fly(pose);
   setFlownTo(path); // the signs in front of it fade (scene/focus.ts)

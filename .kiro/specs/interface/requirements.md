@@ -62,6 +62,7 @@ The two demo graveyards of the scene spec: `demo.oikosledger` (129 files, 12 unu
 8b. **One panel per side.** WHILE the detail panel is open THE other panels on its side SHALL fold to their header bar (the legend on the right; the stats panel and the list on the left), keeping their own open or closed state, and WHEN it closes they SHALL come back as they were. A folded panel's header brings it back and closes the details. No two panels SHALL ever overlap.
 8. THE panel SHALL NOT cover the selected stone or ghost on screen: it SHALL open on the side of the window away from it. IF it would still cover it (a narrow window) THEN the camera SHALL be moved sideways just enough, smoothly, without changing what is selected.
 10. WHILE a stone or ghost is in focus (selected, or the last one flown to) THE signs nearer the camera than it whose board or label would cover it on screen SHALL fade out (over a quarter of a second, at once under reduced motion), board and label together, and SHALL fade back in when the focus moves on (another selection, clearing it, or Reset view). The camera's path is not changed for it.
+11. AFTER `flyTo` (and so a double-click, a list row or a search result) nothing SHALL block the grave's face: `flyTo` SHALL pick, from a few camera positions inside the camera's limits (higher elevations first for a short stone, then small sideways shifts, then a little nearer), the first from which no stone, fence post or rail, or sign board stands between the camera and the face. IF none is fully clear THEN it SHALL take the one with the fewest in the way, and those SHALL fade (stones and fences by a per-instance dithered fade, signs with their labels) while the grave is in focus, and come back when the focus moves on.
 9. Every value SHALL be text (never markup from the data file), and long paths SHALL wrap or shorten in the middle, keeping the file name readable.
 
 ### 4b. Richer hover label
@@ -137,6 +138,7 @@ Supporting properties:
 - **P12** Dates on the hover line are the data file's dates in UTC, for any time zone the tests run in, and carry the year exactly when it differs from the snapshot's (Req 4b.4).
 - **P14** For any thresholds, the stats panel, the legend and the detail panel give the same name and the same rule wording for every fact, the hover line the same state name, and the stats panel and legend the same groups in the same order (Req 8).
 - **P15** After `flyTo` for every stone and ghost of both demo files, no sign left showing is nearer the camera than it with its board or label over it on screen; on oikos_ledger, `app/components/charts/index.ts` fades its own folder's sign (Req 4.10).
+- **P16** After `flyTo` for every stone and ghost of both demo files, the camera is inside its limits, near enough to read the name, and every stone, fence or sign box on a line from it to the face is in the fade list (more than 95% of graves need none); `app/lib/db/queries/recommendations.ts` is seen with nothing in the way (Req 4.11).
 - **P13** Bury is offered exactly for unused stones, whatever their state, and never for a used stone or a ghost; Resurrect exactly for ghosts (Req 4.7).
 
 ## Out of scope

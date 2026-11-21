@@ -9,6 +9,7 @@ import { buildSceneModel } from '../src/model/scene-model';
 import type { CameraPose } from '../src/model/camera-pose';
 import { SIGN_FADE_SECONDS, plaqueBox } from '../src/model/sign-fade';
 import { flyView } from '../test/fly-view';
+import { blockersOf, faceOf, sceneOccluders } from '../src/model/clear-view';
 
 /**
  * The interface around the scene, in the real app (interface spec, tasks 7 to 11): the hover line, the detail panel, the list,
@@ -445,17 +446,19 @@ test.describe('layout and access', () => {
   });
 });
 
-test.describe('signs in front of the grave in focus', () => {
+test.describe('nothing in the way of the grave in focus', () => {
   test.setTimeout(600_000); // every stone and ghost of both files
 
   for (const name of ['demo.oikosledger', 'demo.spatialql']) {
-    test(`${name}: after flyTo for every stone and ghost, no sign board left showing is in front of it and over its face on screen`, async ({ page }) => {
+    test(`${name}: after flyTo for every stone and ghost, nothing left showing is in the way of its face: no stone, fence or sign board, and no sign label over it`, async ({ page }) => {
       const data = name === 'demo.oikosledger' ? oikos : spatialql;
       const model = buildSceneModel(data);
       await openScene(page, name);
       await page.mouse.move(640, 5);
       const problems: string[] = [];
       let faded = 0;
+      let stillInTheWay = 0;
+      const occluders = sceneOccluders(model);
       for (const target of model.pickTargets) {
         // flyTo sets the focus; the pose is then put in place at once (the same end pose), so the check does not wait for each flight.
         const end = flyView(model, target.path).pose;
@@ -501,9 +504,22 @@ test.describe('signs in front of the grave in focus', () => {
         faded += result.faded;
         if (!result.inView) problems.push(`${target.path}: not in view after the flight`);
         for (const p of result.covering) problems.push(`${target.path}: the sign of ${p} is in front of it and over its face`);
+        // Nothing else in the way either: every stone, fence post or rail and sign board that cuts a line from the real camera to the
+        // face has faded out of the way.
+        const camera = (await page.evaluate(() => window.repoInPeace!.getPose())).position;
+        const blockers = blockersOf(camera, faceOf(model, target.path)!, occluders);
+        if (blockers.length > 0) {
+          const fades = await page.evaluate(() => ({ ...window.repoInPeace!.getObstructionFade(), signs: window.repoInPeace!.getSignFade() }));
+          for (const b of blockers) {
+            const alpha = (b.kind === 'stone' ? fades.stones : b.kind === 'fence' ? fades.fences : fades.signs)[b.id] ?? 1;
+            if (alpha > 0.05) problems.push(`${target.path}: ${b.kind} ${b.id} is in the way and showing (opacity ${alpha.toFixed(2)})`);
+          }
+          stillInTheWay += blockers.length;
+        }
       }
       expect(problems).toEqual([]);
-      if (name === 'demo.oikosledger') expect(faded, 'some sign faded on the way').toBeGreaterThan(0);
+      // flyTo chooses views with nothing in the way: what is left to fade is a few stones of spatialql's crowded rows at most.
+      expect(stillInTheWay, 'boxes still in the way after the flights (all faded)').toBeLessThan(model.pickTargets.length * 0.05);
     });
   }
 

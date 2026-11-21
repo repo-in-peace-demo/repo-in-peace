@@ -16,6 +16,10 @@ export const FENCE_INSET = 0.1;
 /** Posts are at most this far apart along a side. */
 export const FENCE_POST_SPACING = 1.5;
 
+/** The size of a post and of a rail (the scene draws them; `model/clear-view.ts` knows them to see past them). */
+export const FENCE_POST = { width: 0.12, height: 1.1 };
+export const FENCE_RAIL = { thickness: 0.06, height: 0.08, y: 0.85 };
+
 /** The gate is a little wider than the plaque. */
 export const GATE_WIDTH = SIGN_W + 0.8;
 
