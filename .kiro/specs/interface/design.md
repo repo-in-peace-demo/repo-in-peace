@@ -219,7 +219,7 @@ function searchRows(rows: readonly Row[], query: string, limit = 50): Row[];  //
 
 `ui/HoverLabel.tsx` gets the scene model and adds one line under the name and folder: `stoneSummary` or `ghostSummary`.
 
-- The line has `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` and a max width of 28 rem.
+- The line has `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` and a max width of 34 rem (28 cut a summary with both flags).
 - The summary is ordered state, date, lines, flags, so a cut at the end loses the flags first and the state and date always show.
 - It is still hidden while dragging, as now: the hover store is cleared on a drag.
 

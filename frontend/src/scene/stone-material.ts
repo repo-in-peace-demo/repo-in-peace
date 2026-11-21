@@ -139,14 +139,16 @@ Engrave engraveAt(float cell, float boxY, float boxW, float boxH, vec2 shift) {
   return e;
 }
 // How much of a carved text covers this point (x, 0 to 1), and the thin dark shadow along the upper edge of its letters (y): the
-// mask here, and the mask a little further down, which is lit where this point is not. Letters fade out when they would be under
-// about 12 pixels tall on screen (6 or more atlas texels to a pixel), so a distant stone shows plain stone and no smudge of text.
+// mask here, and the mask a little further down, which is lit where this point is not. Letters fade out when their box would be
+// under about 9 pixels tall on screen (8 or more atlas texels to a pixel), so a distant stone shows plain stone and no smudge of text.
 vec2 carved(float cell, float boxY, float boxW, float boxH) {
   Engrave e = engraveAt(cell, boxY, boxW, boxH, vec2(0.0));
   Engrave l = engraveAt(cell, boxY, boxW, boxH, vec2(0.0, -0.012));
   float ink = textureGrad(uEngrave, e.at, e.dx, e.dy).a * e.inside;
   float lower = textureGrad(uEngrave, l.at, l.dx, l.dy).a * l.inside;
-  float legible = 1.0 - smoothstep(3.0, 6.0, e.texels);
+  // Full from a box of about 9 px on screen (8 texels to a pixel), gone below about 5 px (14): a stone flown to (up to 14 units
+  // away) shows its name; a distant stone's few-pixel box shows plain stone, never a smudge.
+  float legible = 1.0 - smoothstep(8.0, 14.0, e.texels);
   return vec2(ink, clamp(lower - ink, 0.0, 1.0)) * legible;
 }
 // 1 on a text's letters and within about reach (scene units) of them: eight taps round the point. Only ever this close to the letters,
@@ -161,7 +163,7 @@ float nearInk(float cell, float boxY, float boxW, float boxH, float reach) {
     m = max(m, textureGrad(uEngrave, e.at, e.dx, e.dy).a * e.inside);
     texels = e.texels;
   }
-  return smoothstep(0.0, 0.6, m) * (1.0 - smoothstep(3.0, 6.0, texels));
+  return smoothstep(0.0, 0.6, m) * (1.0 - smoothstep(8.0, 14.0, texels));
 }
 // Cracks: the borders of a jittered cell pattern, a few of them kept, so they run as long thin lines that branch, not as
 // contours of noise (which closed into specks all over the stone). The distance to the nearest kept border, in the pattern's units.
@@ -332,6 +334,6 @@ export function makeStoneMaterial(engraving: { atlas: THREE.Texture; rows: numbe
       .replace('#include <color_fragment>', FRAGMENT_COLOR)
       .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
   };
-  material.customProgramCacheKey = () => 'repo-in-peace-stone-v7';
+  material.customProgramCacheKey = () => 'repo-in-peace-stone-v8';
   return { material, uniforms };
 }
