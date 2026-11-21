@@ -108,7 +108,11 @@ export function ListView({ model }: { model: SceneModel }) {
       </button>
       {open && (
         <div id="list-body" className="list-body">
-          <div className="list-tools" role="group" aria-label="Sort by">
+          <div className="list-tools" role="group" aria-labelledby="list-sort-label">
+            <span id="list-sort-label" className="list-tools-label">
+              Sort
+            </span>
+            <span className="list-tools-buttons">
             {SORTS.map(({ key, label }) => (
               <button
                 key={key}
@@ -121,8 +125,13 @@ export function ListView({ model }: { model: SceneModel }) {
                 {sort.key === key ? (sort.reversed ? ' ↑' : ' ↓') : ''}
               </button>
             ))}
+            </span>
           </div>
-          <div className="list-tools" role="group" aria-label="Show only">
+          <div className="list-tools" role="group" aria-labelledby="list-show-label">
+            <span id="list-show-label" className="list-tools-label">
+              Show
+            </span>
+            <span className="list-tools-buttons">
             {KINDS.map((k) => (
               <button key={k} type="button" aria-pressed={kinds.has(k)} onClick={() => setKinds((s) => toggle(s, k))}>
                 {KIND_LABELS[k]}
@@ -133,6 +142,7 @@ export function ListView({ model }: { model: SceneModel }) {
                 {f}
               </button>
             ))}
+            </span>
           </div>
           <p className="list-count" aria-live="polite">
             {rows.length.toLocaleString('en-US')} of {all.length.toLocaleString('en-US')}

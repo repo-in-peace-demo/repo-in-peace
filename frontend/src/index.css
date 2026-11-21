@@ -717,9 +717,21 @@ body,
 
 .list-tools {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.25rem;
   margin-bottom: 0.35rem;
+}
+
+.list-tools-label {
+  flex: 0 0 2.6rem; /* the same width for both rows, so their buttons line up */
+  padding-top: 0.15rem;
+  color: var(--ink-dim);
+}
+
+.list-tools-buttons {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 0.25rem; /* a wrapped line starts under the first button, not under the label */
 }
 
 .list-tools button {

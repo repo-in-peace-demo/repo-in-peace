@@ -164,6 +164,21 @@ test.describe('the list', () => {
     await expect(list(page)).toContainText('7 of 129');
   });
 
+  test('the button rows are labelled: Sort before the orders, Show before the filters', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await openList(page);
+    const sortRow = list(page).getByRole('group', { name: 'Sort' });
+    const showRow = list(page).getByRole('group', { name: 'Show' });
+    await expect(sortRow.getByRole('button')).toHaveText([/^decay/, /^age/, /^name/, /^size/]);
+    await expect(showRow.getByRole('button')).toHaveText(['fresh', 'stale', 'ancient', 'ghosts', 'unused', 'hot']);
+    // The labels come first in their rows, and the first buttons of both rows line up.
+    const [sortLabel, showLabel] = [await sortRow.getByText('Sort', { exact: true }).boundingBox(), await showRow.getByText('Show', { exact: true }).boundingBox()];
+    const [firstSort, firstShow] = [await sortRow.getByRole('button').first().boundingBox(), await showRow.getByRole('button').first().boundingBox()];
+    expect(sortLabel!.x).toBeLessThan(firstSort!.x);
+    expect(showLabel!.x).toBeLessThan(firstShow!.x);
+    expect(Math.abs(firstSort!.x - firstShow!.x)).toBeLessThan(1);
+  });
+
   test('on spatialql the two ghosts come after every stone; a second press on a sort reverses it', async ({ page }) => {
     await openScene(page, 'demo.spatialql');
     await openList(page);
