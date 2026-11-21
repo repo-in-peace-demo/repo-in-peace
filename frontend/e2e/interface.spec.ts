@@ -307,6 +307,18 @@ test.describe('layout and access', () => {
     }
   });
 
+  test('at 1920 × 1080, with every panel open, the list starts below the stats and the detail panel below the legend', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
+    await expect(page.getByRole('button', { name: /List · / })).toHaveAttribute('aria-expanded', 'true'); // open from 1600 px
+    await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    await expect(page.getByRole('complementary', { name: 'Selected grave' })).toBeVisible();
+    await page.waitForTimeout(900);
+    const box = async (selector: string) => (await page.locator(selector).first().boundingBox())!;
+    const [stats, list, legend, detail] = [await box('.stats'), await box('.list'), await box('.legend'), await box('.detail')];
+    expect(overlaps(stats, list), `stats ${JSON.stringify(stats)} and list ${JSON.stringify(list)}`).toBe(false);
+    expect(overlaps(legend, detail), `legend ${JSON.stringify(legend)} and detail ${JSON.stringify(detail)}`).toBe(false);
+  });
+
   test('Tab reaches every control, each with a name and a visible focus ring', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.getByRole('button', { name: /List · / }).click();

@@ -568,14 +568,14 @@ body,
 /* ---- Interface spec: the detail panel of the selected grave. On the side away from it; over the legend when on the right. ---- */
 .detail {
   position: fixed;
-  top: 4rem;
+  top: 4rem; /* DetailPanel moves it below the legend or the stats panel when one is open on its side */
   z-index: 15;
   width: 340px;
   max-width: calc(100vw - 2rem);
   max-height: calc(100vh - 8rem);
   overflow: auto;
   padding: 0.9rem 1rem 1rem;
-  background: var(--panel);
+  background: rgb(8, 12, 22); /* solid: whatever it overlays never shows through its text */
   border: 1px solid var(--rim);
   border-radius: 4px;
   font-size: 0.8rem;
@@ -710,7 +710,8 @@ body,
 .list-body {
   display: flex;
   flex-direction: column;
-  height: max(14rem, calc(100vh - 20rem));
+  /* Short enough to start below the open stats panel (about 15rem tall from the top) on a large window. */
+  height: max(12rem, calc(100vh - 27rem));
   padding: 0 0.6rem 0.6rem;
 }
 

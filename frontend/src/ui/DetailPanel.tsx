@@ -20,6 +20,8 @@ export function DetailPanel({ model }: { model: SceneModel }) {
   const [side, setSide] = useState<Side>('right');
   // Set once the side has been worked out for the current selection: the nudge waits for it (it must measure the panel on its side).
   const [placed, setPlaced] = useState(0);
+  // Where its top goes: below the panel above it on its side (the legend on the right, the stats on the left) when there is room.
+  const [top, setTop] = useState<number | null>(null);
   const panel = useRef<HTMLElement>(null);
 
   const found = selection ? model.lookup.get(selection.path) : undefined;
@@ -38,7 +40,9 @@ export function DetailPanel({ model }: { model: SceneModel }) {
         return;
       }
       const box = screenBoxOf(path);
-      if (box) setSide(panelSide((box.x0 + box.x1) / 2, window.innerWidth));
+      const nextSide = box ? panelSide((box.x0 + box.x1) / 2, window.innerWidth) : 'right';
+      setSide(nextSide);
+      setTop(topBelow(nextSide));
       settled = true;
       setPlaced((n) => n + 1);
     };
@@ -69,13 +73,30 @@ export function DetailPanel({ model }: { model: SceneModel }) {
   const meta = model.graveyard.meta;
   const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} />;
   return (
-    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave">
+    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave" style={top === null ? undefined : { top, maxHeight: `calc(100vh - ${top}px - 4rem)` }}>
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
         ×
       </button>
       {content}
     </aside>
   );
+}
+
+/** The least height the panel needs below the panel above it; with less room it overlays that panel instead (from the default top). */
+const MIN_ROOM_PX = 280;
+const GAP_PX = 8;
+
+/**
+ * The top of the detail panel on this side: just below the legend (right) or the stats panel (left) when that panel is there and
+ * leaves room under it, or null for the default (the CSS top, overlaying a collapsed one).
+ */
+function topBelow(side: Side): number | null {
+  const above = document.querySelector<HTMLElement>(side === 'right' ? '.legend' : '.stats');
+  if (!above) return null;
+  const bottom = above.getBoundingClientRect().bottom + GAP_PX;
+  const defaultTop = 4 * parseFloat(getComputedStyle(document.documentElement).fontSize);
+  if (bottom <= defaultTop) return null; // collapsed: the default top already clears it
+  return window.innerHeight - bottom >= MIN_ROOM_PX ? bottom : null;
 }
 
 function Heading({ path, ghost }: { path: string; ghost: boolean }) {
