@@ -37,8 +37,51 @@ const ghost = (over: Partial<Ghost> = {}): Ghost => ({
 const bury = (f: FileEntry): Eligible => ({ action: 'bury', file: f });
 const resurrect = (g: Ghost): Eligible => ({ action: 'resurrect', ghost: g });
 
-/** The text with its code spans removed: what GitHub parses for mentions and references. */
-const outsideCode = (md: string): string => md.replace(/\\`/g, ' ').replace(/(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g, ' ');
+/**
+ * The text with its code spans removed: what GitHub parses for mentions and references. Scanned as CommonMark does: outside code a
+ * backslash escapes the next character (so "\`" opens nothing); a run of n backticks opens a code span that the next run of exactly n
+ * closes; inside a code span backslashes are literal; an unmatched run is literal text.
+ */
+function outsideCode(md: string): string {
+  let out = '';
+  let i = 0;
+  while (i < md.length) {
+    const c = md[i]!;
+    if (c === '\\' && i + 1 < md.length) {
+      out += md.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (c === '`') {
+      let n = 0;
+      while (md[i + n] === '`') n++;
+      let j = i + n;
+      let close = -1;
+      while (j < md.length) {
+        if (md[j] === '`') {
+          let m = 0;
+          while (md[j + m] === '`') m++;
+          if (m === n) {
+            close = j;
+            break;
+          }
+          j += m;
+        } else j++;
+      }
+      if (close === -1) {
+        out += md.slice(i, i + n);
+        i += n;
+      } else {
+        out += ' ';
+        i = close + n;
+      }
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
 
 describe('the pull request text', () => {
   it('reads as in the design for a Bury', () => {
@@ -94,6 +137,19 @@ describe('the pull request text', () => {
     expect(commitMessage(bury(file({ path: '@types/#1.ts' })))).toBe(`RIP @\u2060types/#\u20601.ts\n\n${OPENED_BY}`);
   });
 
+  it('finds code spans as CommonMark does (the test helper)', () => {
+    expect(outsideCode('a `@x` b')).toBe('a   b');
+    expect(outsideCode('``@x/`/\\`` y')).toBe('  y'); // a backslash is literal inside a span
+    expect(outsideCode('\\`@x`')).toBe('\\`@x`'); // an escaped backtick opens nothing
+    expect(outsideCode('`` x ` y')).toBe('`` x ` y'); // unmatched runs are text
+  });
+
+  it('keeps a path ending in a backslash inside its code span (the counterexample from a full run)', () => {
+    const body = prBody(resurrect(ghost({ path: '@octocat/`/\\', eulogy: '', deletedBy: '' })), meta);
+    expect(body).toContain('``@octocat/`/\\``');
+    expect(outsideCode(body)).not.toMatch(/@(?!\u2060)/);
+  });
+
   it('puts any path in a code span that holds it exactly', () => {
     expect(codeSpan('a`b')).toBe('``a`b``');
     expect(codeSpan('`x`')).toBe('`` `x` ``');
@@ -122,7 +178,7 @@ describe('P7: the text comes from the data and notifies nobody', () => {
         expect(body.split('\n').filter((l) => l.startsWith('>')).length).toBeLessThanOrEqual(1);
         expect(neutralise(path).replace(/\u2060/g, '')).toBe(path);
       }),
-      { numRuns: 500 },
+      { numRuns: Number(process.env.PR_TEXT_RUNS ?? 500) },
     );
   });
 
