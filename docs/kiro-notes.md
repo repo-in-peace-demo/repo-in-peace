@@ -17,6 +17,7 @@ Three always-on steering files (`.kiro/steering/`) set the rules every spec foll
 | `repo-analyser` | A local git clone in, one graveyard data file out: ages, sizes, decay, Knip's unused files, and ghosts for deleted files |
 | `graveyard-scene` | The 3D scene: nested plots, tombstones, moss, cracks, candles and ghosts, signs, the camera and its limits, the atmosphere, the opening move |
 | `interface` | Everything around the scene: boot screen → digging → scene, the hover line, the detail panel, the list and search |
+| `bury-and-resurrect` | Real pull requests on demo forks from the detail panel, through one serverless function, with session-only scene changes |
 | `eulogies` | A two-sentence epitaph for every grave, written at analysis time by a local model through Ollama, stored in the data file and shown in the detail panel |
 
 ## The interface spec, step by step
@@ -63,6 +64,16 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 - **Found by reading the third run:** openings varied and ages were mostly right, but the model echoed the prompt ("Age: 16 days before snapshot", "Begin by speaking to the file…"), said "here lies" of used files, gave wrong ages ("for two decades" on a 20-day-old file), and passed doc comments off as epitaphs. Each became a check; that was the last eulogy round: the demos are committed with the fourth run's result, whatever it is.
 - **Time-agnostic, after the last run:** giving the model each file's age made it write "Last updated 17 days ago" on dozens of graves, which reads relative to today, not the snapshot (`src/panel.ts`: "Last updated just four days ago"). The prompt now gives no age and asks for none, and a cleaning rule drops any sentence stating an age or time. The rule was applied to the committed eulogies without re-running the model: 68 of 231 changed, 5 emptied.
 - **Found by the code, not the design:** `git cat-file --batch` answers with a blob's SHA, not the `<commit>:<path>` it was asked for, so ghosts' contents need a `git rev-parse` step first.
+
+## The Bury and Resurrect spec: decisions
+
+- **One function, the server decides.** `api/pr.ts` accepts only a demo name, an action and a path, and checks them against the demo's data file on the server: Bury only on a file marked unused, Resurrect only on a ghost. The title and body are built there too. P1 runs random requests (with a fork name and an `@everyone` eulogy added by the "browser") through the handler and checks that only eligible ones reach GitHub, and that what reaches it carries nothing the browser sent.
+- **The base head rule.** The branch starts from the fork's base branch head; Bury needs the file to be there, Resurrect needs the path to be free, otherwise it refuses with a message, so a pull request never conflicts with what the fork has now.
+- **Byte for byte.** Resurrect reuses the original blob and mode from the last existing commit; no file content passes through the function. Trees are read one folder at a time, so a large repository never hits GitHub's truncation limit.
+- **One pull request per grave.** Deterministic branch names (`rip/<action>/<stem>-<hash8>`, checked against `git check-ref-format`), an existing open pull request returned first, and fallbacks at the two places concurrent requests can collide. The fake GitHub server's test runs up to eight at once and checks that one pull request is opened, and that the requests really overlapped.
+- **Nobody notified.** `@` and `#<digit>` from the data get a word joiner; paths and SHAs go in code spans. A property test found that its own helper mis-read a backslash inside a code span; the helper now scans as CommonMark does.
+- **The token stays put.** Fine-grained, forks only; messages come from fixed error kinds, never from GitHub's body; every response and log line is redacted as a last guard (P5 echoes the token in GitHub's errors and headers). The e2e dev server ignores any token (`RIP_FAKE_PRS=1`), so a test can't open a real pull request.
+- **Session only.** The scene changes (sinking stone and mound, settling ghost and new stone, numbered stakes) last for the visit, since the data file doesn't change until a merge. The first screenshots caught a ghost's tag still floating in front of its new stone: camera-facing cards ignore an instance's scale, so hidden instances are moved below the ground.
 
 ## Where specs and steering caught things
 

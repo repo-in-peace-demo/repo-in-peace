@@ -1,6 +1,6 @@
 # Frontend: the graveyard scene
 
-Loads a graveyard data file and draws it as a night-time cemetery with Vite, React, three.js and react-three-fiber. The app has three screens: a boot screen to choose a graveyard, a digging screen while it loads, and the scene with its panels. The data files are made ahead of time by the analyser (`../analyser`); the browser only loads them and never calls the GitHub API.
+Loads a graveyard data file and draws it as a night-time cemetery with Vite, React, three.js and react-three-fiber. The app has three screens: a boot screen to choose a graveyard, a digging screen while it loads, and the scene with its panels. The data files are made ahead of time by the analyser (`../analyser`); the browser only loads them and never calls the GitHub API (Bury and Resurrect go through the one serverless function, below).
 
 ## Run and test
 
@@ -73,6 +73,49 @@ The camera stays above the ground, at least 20° above the horizontal from its l
 - **Layout.** Every folder is a fenced plot, and nested folders are plots inside it, packed by a skyline packer. Every file is a stone in a block of cells; a stone's height follows its lines of code. The same file always gives the same layout.
 - **One source for each effect.** Each effect shows one fact of the data and nothing else: moss shows how long a file has gone untouched (more and higher with age), lean shows that it is ancient, cracks and a faint red glow show that Knip found it unused (and RIP is carved on it), a candle shows that it is hot, a translucent ghost shows a deleted file. Size, the decay score and the other flags never change an effect (property P8 in the spec checks it). Nothing in the scene is decoration that could be taken for data.
 - **Draw calls.** Stones, candles, ghosts, fences and plaques are instanced meshes, so the number of draw calls does not grow with the number of files (under 40 with `?synthetic=2000`).
+
+## Bury and Resurrect: the PR function
+
+On a demo graveyard, **Bury** (an unused stone) opens a pull request that deletes the file, and **Resurrect** (a ghost) opens one that restores it exactly as it was at its last commit. Both go to a **demo fork** of the graveyard's repository, never to the original, and never straight to a branch. The browser never calls GitHub: it asks the one serverless function, `api/pr.ts`, which checks the request against the demo's own data file on the server and then uses the Git Data API. The logic is in `server/pr/` (pure parts tested with fast-check; the GitHub side against a fake GitHub server on 127.0.0.1); the design is in `.kiro/specs/bury-and-resurrect/`.
+
+| | |
+| --- | --- |
+| `GET /api/pr` | which demos have working actions: `{"available":true,"demos":{…},"fake":…}`, or `{"available":false}` |
+| `POST /api/pr` | `{"graveyard","action":"bury"\|"resurrect","path"}` → the pull request's number and link, or an `error` |
+
+- **Only demos, only eligible graves.** A graveyard opened from a file keeps the buttons disabled ("Pull requests are only available on the demo graveyards."). The server accepts Bury only for a file its data file marks unused, and Resurrect only for one of its ghosts; it builds the title and body itself, and mentions nobody (`@` and `#123` are neutralised).
+- **One pull request per grave.** The branch is `rip/bury/<slug>` or `rip/resurrect/<slug>`; the same request again (or two at once) returns the open pull request.
+- **Limits.** 3 pull requests a minute and 20 an hour per client (in memory, per function instance), and at most 50 open ones per fork (counted on GitHub).
+- **The scene, for the session.** After a Bury the stone sinks and a mound of fresh earth with a numbered stake takes its place; after a Resurrect the ghost settles and becomes a clean stone with a stake. Reduced motion shows the end at once. A reload shows the data file again: nothing changes until a pull request is merged.
+
+### Configuration
+
+Environment variables, never prefixed `VITE_` (so never in the browser bundle):
+
+| Variable | Example | |
+| --- | --- | --- |
+| `GITHUB_TOKEN` | `github_pat_…` | a fine-grained token for the demo forks only: Contents and Pull requests, read and write |
+| `RIP_DEMOS` | `{"demo.oikosledger":{"repo":"repo-in-peace-demo/oikos_ledger","base":"main"}}` | demo name to fork and base branch |
+| `RIP_PR_CAP` | `50` | optional: open pull requests allowed per fork |
+
+Locally they go in `frontend/.env.local`, which `.gitignore` keeps out of git (check with `git check-ignore -v .env.local`). On Vercel, set them for Production only. The step-by-step setup (organisation, forks, token, Vercel) is at the end of `.kiro/specs/bury-and-resurrect/design.md`.
+
+### Local development
+
+`npm run dev` runs the function too (`vite-plugins/api-dev.ts`). **Without a token** it makes up pull requests after the same checks: the link opens `/api/fake-pr/<n>`, a page that says it's fake, and nothing is sent to GitHub. With a token in `.env.local`, it opens real pull requests on the forks. The browser tests set `RIP_FAKE_PRS=1` for their dev server, which ignores the token, so a test never opens a real pull request.
+
+```
+curl -s localhost:5173/api/pr      # {"available":true, ... "fake":true} without a token
+```
+
+### Reset
+
+Closes every open Repo In Peace pull request on the forks and deletes every `rip/` branch, and nothing else:
+
+```
+npm run reset-demo-prs -- --dry-run     # lists what it would do
+npm run reset-demo-prs
+```
 
 ## Why react-three-fiber is pinned to 9
 

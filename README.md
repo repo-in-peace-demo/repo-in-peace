@@ -10,7 +10,7 @@ shared/     the data file's versioned schema, used by both sides
 frontend/   the graveyard in the browser: boot screen → digging → scene    (Vite, React, three.js)
 ```
 
-The analyser runs ahead of time. The browser only reads data files (the demos in `frontend/public/graveyards/`, or a file you pick), and never calls the GitHub API or uploads anything.
+The analyser runs ahead of time. The browser only reads data files (the demos in `frontend/public/graveyards/`, or a file you pick), and never calls the GitHub API or uploads anything; Bury and Resurrect go through one serverless function (below).
 
 ## Walk a graveyard
 
@@ -25,6 +25,10 @@ npm run dev        # http://localhost:5173/
 3. **Scene.** The camera rises from a low shot into the overview (any input ends the move). Hover a grave for a summary line, click it for the detail panel, browse every grave in the list, or search with `/` or Cmd+K. "← Graveyards" (or the browser's Back) returns to the boot screen.
 
 A direct link such as `?graveyard=demo.oikosledger` skips the boot screen and goes straight to digging, then the scene. A file opened from disk is not kept across a reload: a reload returns to the boot screen.
+
+## Bury and Resurrect
+
+On the demo graveyards, **Bury** on an unused stone opens a real pull request that deletes the file, and **Resurrect** on a ghost opens one that restores it byte for byte as it was at its last commit. Both go to demo forks in a GitHub organisation of their own, never to the original repositories, and always as a pull request. A small serverless function (`frontend/api/pr.ts`) opens them; it checks every request against the demo's data file on the server and holds the only token, scoped to the forks. For the rest of the visit the stone sinks under a mound of fresh earth, or the ghost becomes a stone, each with a stake showing the pull request number. See `frontend/README.md`.
 
 ## Make your own graveyard
 

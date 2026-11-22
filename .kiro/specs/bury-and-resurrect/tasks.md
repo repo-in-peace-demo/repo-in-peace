@@ -112,11 +112,11 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 5: Documentation and going live
 
-- [ ] 15. Documentation
-  - [ ] 15.1 `frontend/README.md`: the function, local development (fake flow, `.env.local`), the reset command, the environment variables.
-  - [ ] 15.2 The main `README.md`: one paragraph on Bury and Resurrect and the demo forks.
-  - [ ] 15.3 `docs/kiro-notes.md`: this spec's decisions (one function, server-side checks, the base-head rule, the duplicate handling, no mentions, the session-only scene).
-  - [ ] 15.4 `docs/backlog.md`: signing in with GitHub, merging, several files per pull request.
+- [x] 15. Documentation
+  - [x] 15.1 `frontend/README.md`: the function, local development (fake flow, `.env.local`), the reset command, the environment variables.
+  - [x] 15.2 The main `README.md`: one paragraph on Bury and Resurrect and the demo forks.
+  - [x] 15.3 `docs/kiro-notes.md`: this spec's decisions (one function, server-side checks, the base-head rule, the duplicate handling, no mentions, the session-only scene).
+  - [x] 15.4 `docs/backlog.md`: signing in with GitHub, merging, several files per pull request.
   - _Requirements: all_
 
 - [ ] 16. **Final checkpoint** (yours to run)

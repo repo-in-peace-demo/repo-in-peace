@@ -2,6 +2,9 @@
 
 Ideas kept out of the current tasks on purpose. Each needs its own small spec before it is built.
 
+- **Pull requests from your own account** (bury-and-resurrect, out of scope): sign in with GitHub to open Bury and Resurrect pull requests on your own repositories instead of the demo forks.
+- **After a merge**: updating the graveyard when a Bury or Resurrect pull request is merged (today the scene change lasts for the session only, and a reload shows the data file).
+- **Several files in one pull request**: bury a whole folder of unused files, or resurrect a deleted folder, as one change.
 - **Importer list**: analyser builds a reverse-import map (TypeScript resolution or dependency-cruiser); data file gains `importedBy`; detail panel lists importers (first few + count), each clickable to flyTo; framework-loaded files (Next.js pages, routes, layouts) say "entry point (loaded by the framework)".
 - **Bats** crossing the sky now and then (task 24b.5 in `.kiro/specs/graveyard-scene/tasks.md`): one instanced mesh of 3 to 6, a wingspan of about 3 units, flapping in the vertex shader, hidden with reduced motion.
 - **Shooting stars**: a rare streak across the upper sky, never near the moon, none with reduced motion.
