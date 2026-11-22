@@ -8,8 +8,11 @@ import type { EulogyInput } from './eulogy-input';
  *
  * Version 3 gives no example eulogy: with one, the model copied it word for word onto graves it said nothing about, and took its
  * opening for every grave. The tone and the opening are described in words instead.
+ *
+ * Version 4 gives no age and asks for none: a eulogy is read long after the snapshot, so "four days ago" would mislead, and the panel
+ * shows the dates.
  */
-export const PROMPT_VERSION = 3;
+export const PROMPT_VERSION = 4;
 
 /** The most characters a eulogy may have (Req 4.1); the prompt asks for less, to leave room. */
 export const EULOGY_MAX_CHARS = 240;
@@ -61,7 +64,7 @@ const SYSTEM = [
   "- Accurate about what the file does or did, judged only from its name, path and contents. If you cannot tell, say so gently; never invent a fact.",
   '- Match the tone given for the grave. Call a file unused only if its flags say Unused, and ancient only if its state says Ancient.',
   '- Do not start with "Here lies" unless the tone allows it; follow the opening given.',
-  "- Say how old it is only as the Age line says: never \"for years\", \"for decades\", \"for ages\" or \"since time immemorial\" for a file under a year old.",
+  "- Don't mention dates, ages or how recently the file changed (no \"days ago\", \"last updated\", \"for years\" or \"since time immemorial\").",
   '- Do not begin with the file name on a line of its own.',
   '- Never mock or name its authors, or anyone.',
   '- Never quote code, strings, function calls, URLs, keys or tokens.',
@@ -89,7 +92,6 @@ export function buildPrompt(input: EulogyInput, retry = false): { system: string
           `Path: ${input.path}`,
           `State: ${input.state}`,
           `Flags: ${input.flags.length === 0 ? 'none' : input.flags.join('; ')}`,
-          `Age: last changed ${input.ageDays} ${input.ageDays === 1 ? 'day' : 'days'} before the snapshot`,
           `Lines of code: ${input.lines}`,
           `Last change: ${input.subject.trim() === '' ? '(no message)' : input.subject}`,
         ]

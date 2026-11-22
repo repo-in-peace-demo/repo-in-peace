@@ -104,12 +104,11 @@ describe('the prompt', () => {
     expect(system).not.toMatch(/lantern|example/i);
   });
 
-  it('gives the real age in days, and forbids claiming years for a younger file', () => {
-    expect(stone.kind === 'file' && stone.ageDays).toBe(20);
-    expect(buildPrompt(stone).prompt).toContain('Age: last changed 20 days before the snapshot');
-    expect(buildPrompt({ ...stone, ageDays: 1 } as typeof stone).prompt).toContain('Age: last changed 1 day before the snapshot');
-    expect(buildPrompt(stone).system).toMatch(/since time immemorial/);
-    expect(buildPrompt(stone).system).toMatch(/file name on a line of its own/);
+  it('gives no age, and asks for no dates, ages or how recently the file changed', () => {
+    const { system, prompt } = buildPrompt(stone);
+    expect(prompt).not.toMatch(/Age:|days before the snapshot/);
+    expect(system).toContain("Don't mention dates, ages or how recently the file changed");
+    expect(system).toMatch(/file name on a line of its own/);
   });
 
   it('chooses the opening from the path alone, the same every time, and spreads paths across the openings', () => {
@@ -120,8 +119,8 @@ describe('the prompt', () => {
     expect(Math.min(...counts)).toBeGreaterThan(50); // about 100 each
   });
 
-  it('is prompt version 3', () => {
-    expect(PROMPT_VERSION).toBe(3);
+  it('is prompt version 4', () => {
+    expect(PROMPT_VERSION).toBe(4);
   });
 
   const FIXED_WORDS = new Set(

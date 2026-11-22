@@ -90,7 +90,7 @@ function ghostInput(ghost: RawGhost, contents: Contents, people: People): Eulogy
 ## Prompt (`analyser/src/core/eulogy-prompt.ts`)
 
 ```ts
-const PROMPT_VERSION = 3; // 1 and 2 were the first two real runs' prompts
+const PROMPT_VERSION = 4; // 4: no age given and none asked for
 function buildPrompt(input: EulogyInput, retry: boolean): { system: string; prompt: string };
 ```
 
@@ -98,7 +98,7 @@ function buildPrompt(input: EulogyInput, retry: boolean): { system: string; prom
   - The rules, in plain words: two sentences at most and under 240 characters; atmospheric and lightly witty; accurate about what the file does or did, from its contents and name only; never mock or name its authors; never quote code, strings, identifiers with brackets, URLs, keys or tokens; plain text with no quotes, markdown or emoji. Answer with the epitaph only.
   - Match the tone given; call a file unused only if its flags say so, and ancient only if its state does; don't start with "Here lies" unless the tone allows it; prose, not verse.
 - **No example eulogy** (second revision, task 16). Version 2 gave one per tone, about an invented `lantern-keeper.example.ts`; the model copied the alive one word for word onto 4 graves, its second sentence onto 27, and its opening ("Every dusk") onto about half. Tone and opening are now described in words only, and copies of the former examples are rejected (below).
-- **Age** (second revision, task 16): a file's facts include `Age: last changed N days before the snapshot`, and the rules forbid "for years", "for decades", "for ages" or "since time immemorial" for a file under a year old, and the file name on a line of its own.
+- **No ages or dates** (time-agnostic, task 18): the `Age` line of version 3 is gone, and the rules say "Don't mention dates, ages or how recently the file changed". A eulogy is read long after the snapshot, so "four days ago" reads as four days before today, and the panel already shows the dates. (Version 3 gave the age in days and forbade claiming years; the model then wrote "Last updated 17 days ago" on dozens of graves.) The rules still forbid the file name on a line of its own.
 - **Tone** (revision after the first real run, task 15), from the grave's facts (`toneOf`):
   - **alive** (fresh and used): living and at work; never forgotten, silent, dormant, dead, unused or ancient;
   - **serving** (stale or ancient, and used): weathered and long-standing, still at its post;
@@ -114,7 +114,7 @@ function buildPrompt(input: EulogyInput, retry: boolean): { system: string; prom
 type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
 type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 function cleanEulogy(raw: string, context: { people: People; input?: EulogyInput }): Cleaned;
-const CLEANING_VERSION = 4; // part of the cache key: raise it whenever these rules change
+const CLEANING_VERSION = 5; // part of the cache key: raise it whenever these rules change
 ```
 
 **Reasoning blocks go first** (P11). Everything from `<think>` or `<thinking>` (any case) to its closing tag is removed. An opening tag with no closing tag removes everything after it, which leaves nothing, so the answer is rejected as `empty`. A stray closing tag removes everything before it.
@@ -142,11 +142,12 @@ E-mails are checked before URLs, since an address's domain looks like one.
 - Also drop a single word alone on the first line, a name used as a heading ("PanelSystem\nA lively guardian…") (third revision, task 17).
 - Join lines broken inside a sentence (revision after the first real run, task 15): a break after a lowercase letter or `, ; : —` followed by a capitalised word becomes a space, and the word loses its capital, unless it is "I", has more capitals or digits, or is spelled that way in the file's path or contents (a name such as "Meta"; (third revision, task 17): only if the contents use it after a lowercase word, comma or digit, since "Last" or "Re-exports" starting a comment is an ordinary word). A line ending in a file name keeps the capital of the next word ({R}).
 - Collapse all whitespace, including line breaks, to single spaces, and trim. Then remove what is left around the one line (a leading marker, a label, wrapping quotes) together, until nothing changes, since they can wrap each other.
+- Drop every sentence that states an age or a time (time-agnostic, task 18) (`withoutTimeSentences`, `statesTime`): "… ago"; a number with days, weeks, months or years ("17 days", "six days young", "twenty-three days"); "over a month"; "for many days", "through the years"; "fortnight", "last week", "this year"; "recently updated", "updated just now"; "last updated/changed/seen/checked…"; "since time immemorial", "since its last change", "since the summer"; "long since", "these days", "lately", "of late"; "though young"; "recent activity", "a fresh change"; a month's name (not May or March, which are also words). The other sentences stay; nothing left is `empty`. A sentence also ends before a digit ("… in focus. 6 days young…"). Words about time that claim no age stay ("every dawn", "by the month", "not for a day", "today's date").
 - Keep whole sentences (revision after the first real run, task 15): the first two if they fit in 240 characters (code points), else the first alone; if the first alone doesn't fit, `long` (and the retry). A sentence ends at `.`, `!` or `?`, perhaps with a closing quote, followed by a space and a capital letter, or at the end. A dot inside a file name (`index.ts`) doesn't end one. (The first version cut at a word and added a full stop, which left "…true to the daily and the.")
 - An answer with no closing stop gets a full stop.
 - Empty after cleaning is `empty`.
 
-**Then checked again, on the cleaned text** (revision after the first real run, task 15):
+**Then checked again, on the cleaned text** (revision after the first real run, task 15). The age checks below stay as a safety net, though the time rule now drops those sentences first (time-agnostic, task 18):
 - **Quotes:** straight double quotes in pairs, and curly and angled ones matched; otherwise `quotes`. An answer that opens with a quote is `quotes` too. Wrapping quotes are removed only as a pair, or one at either end with no partner, so a quotation that ends the eulogy keeps its closing quote. Single quotes are not counted, as they are also apostrophes.
 - **Facts** (`contradictsFacts`, files only):
   - a used file called "unused", or "no longer used/imported/called", "never used", "nothing imports it";

@@ -172,6 +172,13 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 17.6 `CLEANING_VERSION` 4 (`PROMPT_VERSION` stays 3). Tests for each. Replayed on the third run's 248 eulogies: 17 rejected, all real problems.
   - _Requirements: 4.5_
 
+- [x] 18. Time-agnostic eulogies, without re-running the model
+  - [x] 18.1 `withoutTimeSentences` drops each sentence stating an age or a time; nothing left is `empty`. `CLEANING_VERSION` 5.
+  - [x] 18.2 Prompt: no `Age` line; "Don't mention dates, ages or how recently the file changed". `PROMPT_VERSION` 4.
+  - [x] 18.3 Applied to the eulogies already in both demo files (no model run): 68 of 231 changed, 5 emptied (every sentence stated a time). Nothing else in the files changed.
+  - [x] 18.4 Tests: examples, the words that stay, and a property that any time sentence added to a eulogy is dropped.
+  - _Requirements: 3.5, 4.1_
+
 - [ ] 14. **Final checkpoint** (yours to run)
   - [ ] 14.1 **Run:**
     ```

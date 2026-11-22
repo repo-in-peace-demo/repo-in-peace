@@ -9,7 +9,8 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *   2. the text left is checked: anything code-like, a URL, a secret-like string, an e-mail or a person of the repository rejects it
  *      (before cleaning, so removing markdown cannot hide code);
  *   3. it is cleaned: markdown and emoji go, broken lines are joined, a label and wrapping quotes go, whitespace becomes single spaces,
- *      and it keeps the whole sentences that fit (two at most);
+ *      every sentence that states an age or a time is dropped (the panel shows the dates), and it keeps the whole sentences that fit
+ *      (two at most);
  *   4. the cleaned text is checked again: unbalanced quotes, no whole sentence that fits, or a claim the grave's facts contradict
  *      (a used file called unused, a file that is not ancient called ancient, a living file called forgotten, a file under a year old
  *      said to be years old, a wrong number of days, "here lies" on a used file), a copy of an earlier prompt's example, an echo of
@@ -18,7 +19,7 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *
  * Raise CLEANING_VERSION whenever these rules change: it is part of the cache key, so cached eulogies are cleaned by the new rules.
  */
-export const CLEANING_VERSION = 4;
+export const CLEANING_VERSION = 5;
 
 export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 export type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
@@ -91,12 +92,12 @@ export function rejectReason(text: string, people: People): RejectReason | null 
 const QUOTES = `"'“”‘’«»„‟‚‛`;
 const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu;
 
-/** The sentences of a text: a sentence ends at . ! or ?, perhaps with a closing quote, followed by a space and a capital letter (so
+/** The sentences of a text: a sentence ends at . ! or ?, perhaps with a closing quote, followed by a space and a capital letter or a digit (so
  * "index.ts" does not end one). */
 export function sentencesOf(text: string): string[] {
   const out: string[] = [];
   let start = 0;
-  const end = /[.!?]+["”’»]?(?=\s+["“‘«]?\p{Lu})/gu;
+  const end = /[.!?]+["”’»]?(?=\s+["“‘«]?[\p{Lu}\p{N}])/gu; // a capital or a digit ("6 days young") starts the next
   for (const m of text.matchAll(end)) {
     const stop = m.index! + m[0].length;
     out.push(text.slice(start, stop).trim());
@@ -157,6 +158,37 @@ function withoutLeadingFileName(text: string): string {
   // Also a single word alone on the first line: a name used as a heading ("PanelSystem\nA lively guardian…").
   const rest = text.replace(LEADING_FILE_NAME, '').replace(/^\s*["“'‘]?[\p{L}\p{N}_$@.\/-]+["”'’]?[ \t]*\r?\n\s*/u, '');
   return /[\p{L}\p{N}]/u.test(rest) ? rest : text;
+}
+
+/**
+ * A sentence that says how old the file is or when it changed: "17 days ago", "six days young", "last updated…", "recently updated",
+ * "a fortnight", "for many days", "since time immemorial", a month's name. A eulogy is read long after the snapshot, and "four days
+ * ago" would read as four days before today; the panel shows the real dates. Such sentences are dropped, not the whole eulogy.
+ */
+const TIME_PATTERNS: readonly RegExp[] = [
+  /\bago\b/i,
+  /\b(?:over|nearly|almost|about|under|more than|less than|just shy of)\s+an?\s+(day|week|month|year|decade)\b/i,
+  /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|few|several|many|countless)([\s-]+(and\s+)?(one|two|three|four|five|six|seven|eight|nine))?[\s-]+(days?|weeks?|fortnights?|months?|years?|decades?|centuries|aeons?|eons?)\b/i,
+  /\b(for|over|in|after|through|across|despite)\s+(the\s+)?(days|weeks|months|years|decades|ages|aeons|eons|centuries)\b/i,
+  /\b(fortnight|yesterday|last week|this week|last month|this month|last year|this year)\b/i,
+  /\b(recently|lately|newly|freshly)\s+(updated|changed|touched|edited|modified|refreshed|tended|fixed|written|added|made)\b/i,
+  /\b(updated|changed|touched|edited|modified|refreshed|tended)\s+(just|only|so|very)?\s*(recently|lately|now)\b/i,
+  /\blast\s+(updated|changed|touched|edited|modified|refreshed|seen|checked|spoken|heard|measured|laid out|tended|altered|shifted|stirred|change|update)\b/i,
+  /\b(since|from)\s+(time\s+immemorial|ancient\s+times|the\s+dawn\s+of\s+time|days\s+of\s+old|time\s+began|the\s+beginning\s+of\s+time|its\s+last\s+(change|update))\b/i,
+  /\btime\s+out\s+of\s+mind\b|\bof\s+yore\b|\bages\s+past\b/i,
+  /\b(long since|these days|lately|after all (these|this) (days|time)|of late)\b/i,
+  /\b(though|still|so|yet|very|quite)\s+young\b|\b\w+ (days?|weeks?|months?) young\b/i,
+  /\b(recent activity|a fresh change|a new change|freshly changed|just changed)\b/i,
+  /\bsince the (first|last) (frost|snow|thaw|rain)\b|\bsince the (summer|spring|winter|autumn|fall)('s)?\b/i,
+  /\b(January|February|April|June|July|August|September|October|November|December)\b/,
+];
+export const statesTime = (sentence: string): boolean => TIME_PATTERNS.some((p) => p.test(sentence));
+
+/** The text without its sentences that state an age or a time; "" when every sentence does. */
+export function withoutTimeSentences(text: string): string {
+  return sentencesOf(text)
+    .filter((sentence) => !statesTime(sentence))
+    .join(' ');
 }
 
 /** The whole sentences that fit: the first two, or the first alone when two are too long; none when the first alone is. */
@@ -314,6 +346,8 @@ export function cleanEulogy(raw: string, context: { people: People; input?: Eulo
   }
   if (text === '' || !/[\p{L}\p{N}]/u.test(text)) return { ok: false, reason: 'empty' };
 
+  text = withoutTimeSentences(text);
+  if (text === '' || !/[\p{L}\p{N}]/u.test(text)) return { ok: false, reason: 'empty' };
   const fitted = wholeSentences(text, EULOGY_MAX_CHARS);
   if (fitted === undefined) return { ok: false, reason: 'long' };
   text = stripWrappingQuotes(fitted);

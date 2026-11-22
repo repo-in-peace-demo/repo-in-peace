@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { FORMER_EXAMPLES, cleanEulogy, contradictsFacts, copiesExample, quotesBalanced, rejectReason, sentencesOf, stripReasoning } from './eulogy-clean';
+import { FORMER_EXAMPLES, cleanEulogy, contradictsFacts, copiesExample, quotesBalanced, rejectReason, sentencesOf, statesTime, stripReasoning, withoutTimeSentences, wrongStatedAge } from './eulogy-clean';
 import type { EulogyInput } from './eulogy-input';
 import { EULOGY_MAX_CHARS } from './eulogy-prompt';
 import type { People } from './history';
@@ -266,7 +266,7 @@ describe('the facts of the grave', () => {
     );
   });
 
-  it('rejects a claim of years, ages or time immemorial for a file under a year old, and allows it for an older one', () => {
+  it('the fact check (kept behind the time rule) counts years, ages and time immemorial as wrong for a file under a year old', () => {
     for (const claim of [
       'It has stood watch for decades.',
       'The guardian has watched these paths for years.',
@@ -279,9 +279,10 @@ describe('the facts of the grave', () => {
       'It has kept watch over many years.',
     ]) {
       for (const [state, unused] of [['stale', false], ['ancient', false], ['ancient', true], ['fresh', false]] as const) {
-        expect(check(claim, fileOf(state, unused, 364)), `${claim} at 364 days`).toEqual({ ok: false, reason: 'facts' });
+        expect(contradictsFacts(claim, fileOf(state, unused, 364)), `${claim} at 364 days`).toBe(true);
       }
-      expect(check(claim, fileOf('ancient', false, 365)).ok, `${claim} at 365 days`).toBe(true);
+      expect(contradictsFacts(claim, fileOf('ancient', false, 365)), `${claim} at 365 days`).toBe(false);
+      expect(check(claim, fileOf('stale', false, 40)), 'and cleaning drops it as a time sentence').toEqual({ ok: false, reason: 'empty' });
     }
   });
 
@@ -362,8 +363,8 @@ describe('cleaning version 4', () => {
   describe('(1) ages', () => {
     it('rejects years with a number word or "the" before them, for a file under a year old', () => {
       for (const claim of ['Its purpose unaltered for two decades.', 'It stands steadfast despite the years.', 'It has guided us through the years.', 'It has kept watch for 3 centuries.']) {
-        expect(check(claim, fileOf(20)), claim).toEqual({ ok: false, reason: 'facts' });
-        expect(check(claim, fileOf(400)).ok, claim).toBe(true);
+        expect(contradictsFacts(claim, fileOf(20)), claim).toBe(true);
+        expect(contradictsFacts(claim, fileOf(400)), claim).toBe(false);
       }
     });
 
@@ -387,15 +388,13 @@ describe('cleaning version 4', () => {
         ['Twenty-three days have passed since it last changed.', 23, true],
         ['Twenty-three days have passed since it last changed.', 40, false],
       ];
-      for (const [text, age, ok] of cases) expect(check(text, fileOf(age)).ok, `${text} at ${age} days`).toBe(ok);
+      for (const [text, age, ok] of cases) expect(wrongStatedAge(text, age), `${text} at ${age} days`).toBe(!ok);
     });
 
     it('for any age, the true number of days is accepted and one off by more than a day is not', () => {
       fc.assert(
         fc.property(fc.integer({ min: 2, max: 360 }), fc.integer({ min: 2, max: 50 }), (age, off) => {
-          const right = check(`Last changed ${age} days ago, it still keeps the gate.`, fileOf(age));
-          const wrong = check(`Last changed ${age + off} days ago, it still keeps the gate.`, fileOf(age));
-          return right.ok && !wrong.ok && wrong.reason === 'facts';
+          return !wrongStatedAge(`Last changed ${age} days ago, it still keeps the gate.`, age) && wrongStatedAge(`Last changed ${age + off} days ago, it still keeps the gate.`, age);
         }),
       );
     });
@@ -405,9 +404,9 @@ describe('cleaning version 4', () => {
     it('rejects the prompt\'s labels and instructions in the answer', () => {
       for (const echo of [
         'Begin by speaking to the file directly and keep the tone alive.',
-        'It stands firm. Age: 16 days before snapshot.',
+        'It stands firm. State: stale and steady, it waits.',
         'Mourned like a real grave, it rests undisturbed.',
-        'It keeps watch. Last change: fixing cached query issues.',
+        'It keeps watch. Flags: none, so it stays.',
         'Opening: it guards the gate.',
       ]) {
         expect(clean(echo), echo).toEqual({ ok: false, reason: 'prompt' });
@@ -455,15 +454,81 @@ describe('cleaning version 4', () => {
     });
 
     it('keeps a capital after a joined line only if the contents use the word mid-sentence', () => {
-      const withComments = fileOf(30, false, '// Last updated by the build.\n// Re-exports the primitives.\nconst a = 1;\n');
-      expect(check('A weathered component still standing tall,\nLast updated 30 days past its call.', withComments)).toEqual({ ok: true, text: 'A weathered component still standing tall, last updated 30 days past its call.' });
+      const withComments = fileOf(30, false, '// Last of the build steps.\n// Re-exports the primitives.\nconst a = 1;\n');
+      expect(check('A weathered component still standing tall,\nLast of its kind, it holds the gate.', withComments)).toEqual({ ok: true, text: 'A weathered component still standing tall, last of its kind, it holds the gate.' });
       expect(check('Here lies index.ts,\nRe-exporting the primitives.', { ...withComments, unused: true } as EulogyInput)).toEqual({ ok: true, text: 'Here lies index.ts, re-exporting the primitives.' });
       const withName = fileOf(30, false, '// press the Meta button to recenter\n');
       expect(check('It waits for the\nMeta button and the headset.', withName)).toEqual({ ok: true, text: 'It waits for the Meta button and the headset.' });
     });
   });
 
-  it('is cleaning version 4', async () => {
-    expect((await import('./eulogy-clean')).CLEANING_VERSION).toBe(4);
+  it('is cleaning version 5', async () => {
+    expect((await import('./eulogy-clean')).CLEANING_VERSION).toBe(5);
+  });
+});
+
+describe('cleaning version 5: no ages or times', () => {
+  it('drops each sentence that states an age or a time, and keeps the others', () => {
+    for (const [raw, kept] of [
+      ['A lively guardian of the welcome page. Last updated just four days ago.', 'A lively guardian of the welcome page.'],
+      ['Keeps watch over player reach. Last measured just nine days ago.', 'Keeps watch over player reach.'],
+      ['Nine days young, it keeps close watch. It guards the tables.', 'It guards the tables.'],
+      ['Recently updated, it guards the gate. It never sleeps.', 'It never sleeps.'],
+      ['It was changed a fortnight past. It counts the coins.', 'It counts the coins.'],
+      ['Last changed on a cool October morn, it keeps watch. It guards the accounts.', 'It guards the accounts.'],
+      ['It has stood since time immemorial. Its rules hold.', 'Its rules hold.'],
+      ['It has watched for over a month. It keeps the gate.', 'It keeps the gate.'],
+      ['It has guarded the data for many days. It keeps the gate.', 'It keeps the gate.'],
+      ['Stays busy, updated just last week. It shines.', 'It shines.'],
+      ['Twenty-three days have passed since it changed. It waits.', 'It waits.'],
+      ['Autumn dawn breaks, and it watches over the graveyard. 6 days young, it still casts its gaze far.', 'Autumn dawn breaks, and it watches over the graveyard.'],
+      ['At dawn of another day, you stood steadfast. Still used, though long since changed.', 'At dawn of another day, you stood steadfast.'],
+      ['A flicker of light still watches over the code. Though young, it keeps vigil.', 'A flicker of light still watches over the code.'],
+      ['It keeps the voice sessions, a beacon of recent activity. It smooths every turn.', 'It smooths every turn.'],
+      ['Still in service after all these days, it animates. It eases every frame.', 'It eases every frame.'],
+      ['It checks the puzzles. Still active, though restless lately.', 'It checks the puzzles.'],
+      ['Morning has brought a fresh change to the flags. It toggles features.', 'It toggles features.'],
+      ['Autumn breeze stirs this leaf, silent since the summer\'s heat. The joins stand firm.', 'The joins stand firm.'],
+    ] as const) {
+      expect(withoutTimeSentences(raw), raw).toBe(kept);
+      expect(clean(raw), raw).toEqual({ ok: true, text: kept });
+    }
+  });
+
+  it('leaves nothing when every sentence states a time, which cleaning rejects as empty', () => {
+    expect(withoutTimeSentences('Last updated 17 days ago.')).toBe('');
+    expect(clean('Still vital. Last updated 17 days ago.')).toEqual({ ok: true, text: 'Still vital.' });
+    expect(clean('Last updated 17 days ago. It changed recently updated.')).toEqual({ ok: false, reason: 'empty' });
+  });
+
+  it('keeps sentences whose words about time state no age', () => {
+    for (const ok of [
+      'Every dawn it watches the gate.',
+      'It keeps the time for every session.',
+      'It counts the commits in each month of the ledger.',
+      'It was never unused, not for a day.',
+      'Every query looks here for today\'s date.',
+      'It sorts transactions by the month.',
+      'It keeps the last word on every route.',
+      'May it keep watch a while longer.',
+      'It holds the first day of each week.',
+    ]) {
+      expect(statesTime(ok), ok).toBe(false);
+      expect(clean(ok), ok).toEqual({ ok: true, text: ok });
+    }
+  });
+
+  it('any time sentence added to a eulogy is dropped, and the eulogy is what it was', () => {
+    const time = fc.constantFrom(
+      'Last updated 4 days ago.', 'Recently updated, it hums.', 'Six days young, it shines.', 'It changed a week ago.',
+      'Last seen 14 days back.', 'It has stood for decades.', 'It has waited since time immemorial.', 'Last changed in October.',
+    );
+    const good = fc.constantFrom('The keeper watches the gate.', 'It counts every coin in the ledger.', 'It guards the welcome page.');
+    fc.assert(
+      fc.property(good, time, fc.boolean(), (g, t, first) => {
+        const r = clean(first ? `${t} ${g}` : `${g} ${t}`);
+        return r.ok && r.text === g && !statesTime(r.text);
+      }),
+    );
   });
 });

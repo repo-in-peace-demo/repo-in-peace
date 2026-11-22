@@ -137,7 +137,11 @@ The model is told how each grave should sound, from its facts:
 - **unused:** may be mourned ("here lies");
 - **a ghost:** departed.
 
-Each grave also gets one of seven ways to begin, picked from its path, so the eulogies don't all open alike, and a file's real age in days. There is no example eulogy in the prompt: the model copied one word for word.
+Each grave also gets one of seven ways to begin, picked from its path, so the eulogies don't all open alike. There is no example eulogy in the prompt (the model copied one word for word), and no age: eulogies are time-agnostic.
+
+### Time-agnostic
+
+A eulogy never says how old a file is or when it changed. It is read long after the snapshot, so "last updated four days ago" would read as four days before today, and the detail panel already shows the real dates. The prompt asks for no dates or ages, and any sentence that states one anyway ("… ago", "17 days", "recently updated", "last changed…", "since time immemorial", a month's name) is dropped. If every sentence does, the eulogy is left empty.
 
 ### What gets rejected
 
@@ -150,7 +154,7 @@ Each answer is checked before it is kept. It is rejected if it contains code, an
 - it gives a number of days, weeks or months that isn't the file's age ("last updated 17 days ago" must be right within a day), or says "here lies" or "rest in peace" of a file that is still used;
 - it echoes the prompt (`Age:`, `Last change:`, "Begin by…", "like a real grave") or copies eight words in a row from the file's contents. Negated words ("never forgotten") and words about something else ("unused imports", "ancient lore") are allowed.
 
-A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, a file name written as a heading is dropped, lines the model broke inside a sentence are joined, and the eulogy keeps the whole sentences that fit (two at most, 240 characters). It is never cut mid-sentence.
+A rejected answer is asked for once more; if the second is rejected too, that grave's eulogy is left empty, and the panel says "Words failed us for this one." Accepted answers are tidied: any `<think>` block, markdown, emoji, labels and wrapping quotes are removed, a file name written as a heading is dropped, lines the model broke inside a sentence are joined, sentences stating an age or a time are dropped, and the eulogy keeps the whole sentences that fit (two at most, 240 characters). It is never cut mid-sentence.
 
 ### The summary
 

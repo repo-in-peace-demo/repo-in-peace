@@ -300,7 +300,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "A steadfast sentinel, weathered yet reliable, standing guard over the auth routes for over two months. Still serving, though quiet these days."
+      "eulogy": ""
     },
     {
       "path": "app/app/(auth)/login/page.tsx",
@@ -378,7 +378,7 @@
       "decayScore": 0.2356,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "A steadfast sentinel, weathered yet watchful. Last updated in the shadows of time, it still guides the dashboard's layout with its familiar hand."
+      "eulogy": "A steadfast sentinel, weathered yet watchful."
     },
     {
       "path": "app/app/(dashboard)/macro/page.tsx",
@@ -391,7 +391,7 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "If only I could speak, I'd watch over this place. Last updated 19 days back, still needed, don't forget."
+      "eulogy": "If only I could speak, I'd watch over this place."
     },
     {
       "path": "app/app/(dashboard)/page.tsx",
@@ -404,7 +404,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Autumn's breeze still stirs the leaves of this ancient page, though its hands have not altered since the first frost. Still standing tall beside its siblings, it watches over the dashboard with unwavering vigilance."
+      "eulogy": "Still standing tall beside its siblings, it watches over the dashboard with unwavering vigilance."
     },
     {
       "path": "app/app/(dashboard)/recommendations/page.tsx",
@@ -443,7 +443,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Guides the comparison of memory across accounts, keeping watch over recent changes and ensuring fresh insights. Last updated 15 days ago."
+      "eulogy": "Guides the comparison of memory across accounts, keeping watch over recent changes and ensuring fresh insights."
     },
     {
       "path": "app/app/api/analytics/route.ts",
@@ -456,7 +456,7 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Tracks user transactions across months, merchants, and payment methods, though you've not visited in many days. Still relied upon by others."
+      "eulogy": "Still relied upon by others."
     },
     {
       "path": "app/app/api/auth/[...nextauth]/route.ts",
@@ -495,7 +495,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Autumn's breeze finds it still in service, guiding the way through accounts with grace. Last changed on a cool October morn, keeping watch over transactions and uploads."
+      "eulogy": "Autumn's breeze finds it still in service, guiding the way through accounts with grace."
     },
     {
       "path": "app/app/api/bank_accounts/route.ts",
@@ -521,7 +521,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Weathered yet watchful, guiding paths through the ancient API. Last updated long ago, still relied upon by newer code."
+      "eulogy": "Weathered yet watchful, guiding paths through the ancient API."
     },
     {
       "path": "app/app/api/insights/cache/route.ts",
@@ -547,7 +547,7 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": "Autumn's chill finds it still in service, its code alive and vigilant. Last changed just shy of two weeks ago, it keeps watch over the graveyard with steady purpose."
+      "eulogy": "Autumn's chill finds it still in service, its code alive and vigilant."
     },
     {
       "path": "app/app/api/insights/route.ts",
@@ -586,7 +586,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "A vital link in the balance history chain, always fetching and filtering snapshots for the Macro trend charts. Last updated 17 days ago."
+      "eulogy": "A vital link in the balance history chain, always fetching and filtering snapshots for the Macro trend charts."
     },
     {
       "path": "app/app/api/macro/query/route.ts",
@@ -599,7 +599,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": "Watches over the Macro page's voice queries, keeping the financial facts fresh and the answers precise. Last changed 17 days ago."
+      "eulogy": "Watches over the Macro page's voice queries, keeping the financial facts fresh and the answers precise."
     },
     {
       "path": "app/app/api/macro/route.ts",
@@ -677,7 +677,7 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Maps user transactions to distinct categories, serving the analytics page faithfully for over a month. Still standing strong, though its code grows weathered with age."
+      "eulogy": "Still standing strong, though its code grows weathered with age."
     },
     {
       "path": "app/app/api/transactions/months/route.ts",
@@ -768,7 +768,7 @@
       "decayScore": 0.0933,
       "decayState": "stale",
       "hot": false,
-      "eulogy": "A steadfast sentinel, weathered yet watchful, 21 days since its last whisper of change."
+      "eulogy": ""
     },
     {
       "path": "app/app/public/pcm-processor.js",
@@ -859,7 +859,7 @@
       "decayScore": 0.1644,
       "decayState": "stale",
       "hot": false,
-      "eulogy": "A weathered component still standing tall, last updated 37 days past its call."
+      "eulogy": ""
     },
     {
       "path": "app/components/analytics/ComparePage.tsx",
@@ -885,7 +885,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": "Keeps watch over account comparisons, updated just last week. Stays busy with confidence and color, ensuring insights shine through."
+      "eulogy": "Stays busy with confidence and color, ensuring insights shine through."
     },
     {
       "path": "app/components/analytics/CompareVoiceButton.tsx",
@@ -963,7 +963,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Here lies DashboardClient.tsx, once a vibrant component connecting bank accounts and transactions. Now unused, it rests in peace after 65 days of silence."
+      "eulogy": "Here lies DashboardClient.tsx, once a vibrant component connecting bank accounts and transactions."
     },
     {
       "path": "app/components/guest/GuestContext.tsx",
@@ -1002,7 +1002,7 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Still watching over insights, keeping conversations flowing smoothly. Last seen 14 days ago, ready for the next query."
+      "eulogy": "Still watching over insights, keeping conversations flowing smoothly."
     },
     {
       "path": "app/components/insights/TurnCard.tsx",
@@ -1054,7 +1054,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": "If only I could speak, I'd say I keep watch over the balances and indicators, ensuring the voice questions are always in sync with what's shown. Still vital after 15 days of quiet updates."
+      "eulogy": "If only I could speak, I'd say I keep watch over the balances and indicators, ensuring the voice questions are always in sync with what's shown."
     },
     {
       "path": "app/components/macro/MacroVoiceButton.tsx",
@@ -1067,7 +1067,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": "A voice of the page, ever vigilant and responsive, last heard 17 days ago. Still guiding ears through economic landscapes."
+      "eulogy": "Still guiding ears through economic landscapes."
     },
     {
       "path": "app/components/macro/MemoryPanel.tsx",
@@ -1236,7 +1236,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Here lies TransactionList.tsx, once vibrant with transactions, now reduced to shadows. Merged and forgotten, it rests in peace after 65 days of silence."
+      "eulogy": "Here lies TransactionList.tsx, once vibrant with transactions, now reduced to shadows."
     },
     {
       "path": "app/components/transactions/TransactionsPanel.tsx",
@@ -1301,7 +1301,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "A weathered sentinel of the UI, steadfast and ancient. Still called upon by the living code, though its own lines remain unchanged for many days."
+      "eulogy": "A weathered sentinel of the UI, steadfast and ancient."
     },
     {
       "path": "app/components/ui/index.ts",
@@ -1314,7 +1314,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Here lies index.ts, re-exporter of shadcn/ui's primitives—buttons, inputs, cards, and more. Once vibrant, now unused, it rests in peace after 65 days of slumber."
+      "eulogy": "Here lies index.ts, re-exporter of shadcn/ui's primitives—buttons, inputs, cards, and more."
     },
     {
       "path": "app/components/ui/input.tsx",
@@ -1431,7 +1431,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Keeps watch over the database connection, weathered yet steadfast. Still used by many, though long since unchanged."
+      "eulogy": "Keeps watch over the database connection, weathered yet steadfast."
     },
     {
       "path": "app/lib/compare/comparisonSnapshots.ts",
@@ -1444,7 +1444,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "If only markers could speak, they'd tell of a cache that keeps the Compare page and voice handler in sync. Last spoken 17 days past, still vital in its role."
+      "eulogy": "If only markers could speak, they'd tell of a cache that keeps the Compare page and voice handler in sync."
     },
     {
       "path": "app/lib/constants/banks.ts",
@@ -1535,7 +1535,7 @@
       "decayScore": 0.1733,
       "decayState": "stale",
       "hot": false,
-      "eulogy": "Autumn's chill nips at the edges of this weathered query, still holding its ground despite the long stretch since it was last tended. Its lines remain sharp, though the world around has moved on."
+      "eulogy": "Its lines remain sharp, though the world around has moved on."
     },
     {
       "path": "app/lib/db/queries/recommendations.ts",
@@ -1561,7 +1561,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Still watching over accounts and transactions, your code lives on. Last updated 15 days ago."
+      "eulogy": "Still watching over accounts and transactions, your code lives on."
     },
     {
       "path": "app/lib/db/queries/users.ts",
@@ -1613,7 +1613,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "A weathered sentinel, still serving its purpose, last updated 65 days ago."
+      "eulogy": ""
     },
     {
       "path": "app/lib/highlightText.tsx",
@@ -1626,7 +1626,7 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "In the night of the graveyard, a flicker of light still watches over the code. Though young, it keeps vigil, ensuring that even the most fleeting highlights are not lost in the shadows."
+      "eulogy": "In the night of the graveyard, a flicker of light still watches over the code."
     },
     {
       "path": "app/lib/hooks/useAvailableMonths.ts",
@@ -1743,7 +1743,7 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Morning has broken, and with it, factCandidates.ts keeps watch. Last updated a fortnight past, still serving insights fresh."
+      "eulogy": "Morning has broken, and with it, factCandidates.ts keeps watch."
     },
     {
       "path": "app/lib/logger.ts",
@@ -1782,7 +1782,7 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Keeps watch over the balance and gap trends, ensuring accuracy in the Macro page's charts. Last updated 17 days ago."
+      "eulogy": "Keeps watch over the balance and gap trends, ensuring accuracy in the Macro page's charts."
     },
     {
       "path": "app/lib/macro/formatIndicator.ts",
@@ -1795,7 +1795,7 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Still watching over the graveyard, ensuring values are rendered truthfully and consistently. Last updated 19 days ago."
+      "eulogy": "Still watching over the graveyard, ensuring values are rendered truthfully and consistently."
     },
     {
       "path": "app/lib/mcp/client.ts",
@@ -1847,7 +1847,7 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "In the graveyard at night, its watch kept, queryCacheFreshness still ponders the freshness of cached memories. Last changed just shy of a fortnight ago, it remains vigilant, ensuring no stale answers haunt the users."
+      "eulogy": "In the graveyard at night, its watch kept, queryCacheFreshness still ponders the freshness of cached memories."
     },
     {
       "path": "app/lib/today.ts",
@@ -1873,7 +1873,7 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "Weathered and true, long at its post, still used in view. Last changed 'feat' days ago, but since then, steadfast and slow."
+      "eulogy": "Weathered and true, long at its post, still used in view."
     },
     {
       "path": "app/lib/voice/index.ts",
@@ -1886,7 +1886,7 @@
       "decayScore": 0.6844,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "Here lies the shared voice session hook, once vital for Insights, Compare, Macro, and Recommendations. Now unused, it rests in peace after 19 days of solitude."
+      "eulogy": "Here lies the shared voice session hook, once vital for Insights, Compare, Macro, and Recommendations."
     },
     {
       "path": "app/lib/voice/useRealtimeVoiceSession.ts",
@@ -1899,7 +1899,7 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": "In the graveyard at night, this file watches over the living, its code a beacon of recent activity. Seven hundred and twenty-three lines keep watch, fixing bugs and smoothing turns in real-time voice sessions."
+      "eulogy": "Seven hundred and twenty-three lines keep watch, fixing bugs and smoothing turns in real-time voice sessions."
     },
     {
       "path": "app/middleware.ts",
@@ -1964,7 +1964,7 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
-      "eulogy": "At dawn of another day, you stood steadfast. Still used, though long since changed."
+      "eulogy": "At dawn of another day, you stood steadfast."
     }
   ],
   "ghosts": []
