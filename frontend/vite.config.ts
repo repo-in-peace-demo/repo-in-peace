@@ -19,6 +19,6 @@ export default defineConfig({
   test: {
     // The logic under test is pure, so it runs in Node, not in a browser.
     environment: 'node',
-    include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts', 'server/**/*.test.ts', 'scripts/**/*.test.ts'],
   },
 });

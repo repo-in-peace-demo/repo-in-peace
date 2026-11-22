@@ -16,6 +16,7 @@ export {
   FACT_NAMES,
   INDEPENDENCE_NOTE,
   USED_RULE,
+  calendarDay,
   factNameOne,
   factRule,
   factRuleSentence,
@@ -24,7 +25,7 @@ export {
   type FactId,
   type GroupId,
 } from '@shared/vocabulary';
-import { FACT_NAMES, USED_RULE, factNameOne, factRule, type FactId } from '@shared/vocabulary';
+import { FACT_NAMES, USED_RULE, calendarDay, factNameOne, factRule, type FactId } from '@shared/vocabulary';
 
 /** How each fact looks in the scene, for the legend. */
 export const FACT_LOOKS: Record<FactId, string> = {
@@ -39,7 +40,6 @@ export const FACT_LOOKS: Record<FactId, string> = {
 export type StateName = 'Fresh' | 'Stale' | 'Ancient';
 
 const STATE_NAMES: Record<FileEntry['decayState'], StateName> = { fresh: 'Fresh', stale: 'Stale', ancient: 'Ancient' }; // = FACT_NAMES
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 const count = (n: number, one: string, many: string): string => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
@@ -54,12 +54,6 @@ export function stateSentence(file: FileEntry, meta: RepoMeta): string {
   return `${stateName(file)}: last changed ${days} before the snapshot (${stateName(file)} is ${factRule(file.decayState, meta.thresholds)})`;
 }
 
-/** A calendar day in UTC: "Jun 13", or "Jun 13, 2025" when the year is not the snapshot's. */
-export function calendarDay(iso: string, snapshotIso: string): string {
-  const d = new Date(iso);
-  const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
-  return d.getUTCFullYear() === new Date(snapshotIso).getUTCFullYear() ? day : `${day}, ${d.getUTCFullYear()}`;
-}
 
 export const linesText = (n: number): string => count(n, 'line', 'lines');
 

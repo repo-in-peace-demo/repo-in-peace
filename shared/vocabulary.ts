@@ -37,6 +37,15 @@ export const FACT_GROUPS: readonly FactGroup[] = [
 /** What a used file is, the counterpart of the Unused rule: the detail panel's Usage row for a file that is not unused. */
 export const USED_RULE = 'imported by other files in the project';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+/** A calendar day in UTC: "Jun 13", or "Jun 13, 2025" when the year is not the snapshot's. Shared so the panel and the PR text agree. */
+export function calendarDay(iso: string, snapshotIso: string): string {
+  const d = new Date(iso);
+  const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  return d.getUTCFullYear() === new Date(snapshotIso).getUTCFullYear() ? day : `${day}, ${d.getUTCFullYear()}`;
+}
+
 export const INDEPENDENCE_NOTE = "A file's age and its usage are independent: a fresh file can be unused.";
 
 /** "1 day", "21 days" (and "1 commit", "5 commits"). */
