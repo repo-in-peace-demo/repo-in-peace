@@ -100,13 +100,14 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run:** `cd frontend && npx playwright test e2e/pull-requests.spec.ts`
   - _Requirements: 9, 10.5_
 
-- [ ] 14. The scene (`model/pr-scene.ts`, `Stones.tsx`, `Ghosts.tsx`, `Mounds.tsx`, `pr-marker-atlas.ts`, `Picker.tsx`, `Legend.tsx`, `dev-api.ts`)
+- [x] 14. The scene (`model/pr-scene.ts`, `Stones.tsx`, `Ghosts.tsx`, `Mounds.tsx`, `pr-marker-atlas.ts`, `Picker.tsx`, `Legend.tsx`, `dev-api.ts`)
   - [x] 14.1 `overrideFrame` and `overridePickBox` (pure): the timings of the design; reduced motion gives the end state; the layout is unchanged. Tests: frames are monotonic in time; pick boxes stay on the grave's slot.
   - [x] 14.2 Bury: the stone sinks with its moss, cracks, glow and candle, then the mound and the stake rise. Resurrect: the ghost settles and becomes a clean, upright stone (the shortest height) with the stake.
   - [x] 14.3 The stake's glyph atlas; picking on the mound and the new stone; the legend's **Pull requests (this session)** group; `getPullRequests` and `getOverrideFrame` in the dev API.
   - [x] 14.4 **Browser checks:** after a fake Bury the stone is below ground and a mound shows `#1`; after a fake Resurrect a stone stands at the ghost's slot; reduced motion changes at once; a reload restores the data file's graveyard; the legend group appears and goes.
-  - [ ] 14.5 Screenshot tests `bury mound` and `resurrect stone` (close up, after the change).
+  - [x] 14.5 Screenshot tests `bury mound` and `resurrect stone` (close up, after the change).
   - **Run:** `npx playwright test e2e/pull-requests.spec.ts`, then `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts -g "bury mound|resurrect stone"`. I check the pictures by eye.
+  - (Checked by eye twice. The first pictures showed the ghost's toe tag floating in front of the new stone (camera-facing cards ignore an instance's scale, so hidden instances are now moved below the ground, for the tag, the pool and a buried candle's glow), a mound too dark to read as earth, and a stake too small to read; all three fixed in `cb9dd62`.)
   - _Requirements: 10_
 
 ## Part 5: Documentation and going live
