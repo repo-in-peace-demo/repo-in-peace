@@ -4,7 +4,7 @@
  * different paths: the stem is readable, the hash of the exact path keeps `a/b.ts` and `a-b.ts` apart.
  */
 import { createHash } from 'node:crypto';
-import type { Action } from './request';
+import type { Action } from './request.js';
 
 /** Every Repo In Peace branch starts with this; the cap and the reset count and close only these. */
 export const BRANCH_PREFIX = 'rip/';

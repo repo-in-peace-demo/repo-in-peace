@@ -4,16 +4,16 @@
  * throttle, configuration, the demo's data file, then GitHub (or the fake in development). Nothing reaches GitHub until every local
  * check has passed (P1). Every body and log line goes through `redact` (P5).
  */
-import type { Graveyard } from '../../../shared/graveyard-schema';
-import { branchName } from './branch';
-import { checkAgainstGraveyard } from './check';
-import type { ForkConfig, PrConfig } from './config';
-import { GitHubError, githubProblem, type GitHubClient } from './github';
-import { forkOf, openPullRequest } from './open-pr';
-import { prTitle } from './pr-text';
-import { redact } from './redact';
-import { MAX_BODY_BYTES, parseRequest } from './request';
-import type { Throttle } from './limits';
+import type { Graveyard } from '../../../shared/graveyard-schema.js';
+import { branchName } from './branch.js';
+import { checkAgainstGraveyard } from './check.js';
+import type { ForkConfig, PrConfig } from './config.js';
+import { GitHubError, githubProblem, type GitHubClient } from './github.js';
+import { forkOf, openPullRequest } from './open-pr.js';
+import { prTitle } from './pr-text.js';
+import { redact } from './redact.js';
+import { MAX_BODY_BYTES, parseRequest } from './request.js';
+import type { Throttle } from './limits.js';
 
 /** Pull requests made up in development without a token: the same grave gets the same number (Req 7.3, Decision 7). */
 export interface FakePrs {

@@ -1,4 +1,4 @@
-import type { FileEntry, Thresholds } from './graveyard-schema';
+import type { FileEntry, Thresholds } from './graveyard-schema.js';
 
 /**
  * The one vocabulary of Repo In Peace: the names and rules for a grave's states, flags and ghosts, the same everywhere. The frontend's

@@ -3,9 +3,9 @@
  * file only. They notify nobody: every `@` and every `#` before a digit from the data is followed by a word joiner (U+2060), so GitHub
  * makes no mention, team mention or cross-reference; paths and SHAs are in code spans, where GitHub parses neither. Pure.
  */
-import type { RepoMeta } from '../../../shared/graveyard-schema';
-import { FACT_NAMES, calendarDay, factRule } from '../../../shared/vocabulary';
-import type { Eligible } from './check';
+import type { RepoMeta } from '../../../shared/graveyard-schema.js';
+import { FACT_NAMES, calendarDay, factRule } from '../../../shared/vocabulary.js';
+import type { Eligible } from './check.js';
 
 const WORD_JOINER = '\u2060';
 export const OPENED_BY = 'Opened by Repo In Peace from the demo graveyard.';

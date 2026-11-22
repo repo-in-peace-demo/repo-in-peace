@@ -3,12 +3,12 @@
  * fork is under its cap and the base branch head matches (Req 2.4, 3.4), one commit with a one-path tree change goes on a
  * deterministic branch, and a pull request is opened from it. Two requests at once give one pull request (P4).
  */
-import type { Graveyard } from '../../../shared/graveyard-schema';
-import { BRANCH_PREFIX, branchName } from './branch';
-import type { Eligible } from './check';
-import { GitHubError, type GitHubClient } from './github';
-import { commitMessage, prBody, prTitle } from './pr-text';
-import { buryChange, lookupPath, resurrectChange, type Change, type ReadTree, type TreeEntry } from './tree-change';
+import type { Graveyard } from '../../../shared/graveyard-schema.js';
+import { BRANCH_PREFIX, branchName } from './branch.js';
+import type { Eligible } from './check.js';
+import { GitHubError, type GitHubClient } from './github.js';
+import { commitMessage, prBody, prTitle } from './pr-text.js';
+import { buryChange, lookupPath, resurrectChange, type Change, type ReadTree, type TreeEntry } from './tree-change.js';
 
 export interface Fork {
   owner: string;

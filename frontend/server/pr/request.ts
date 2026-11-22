@@ -2,7 +2,7 @@
  * The one request the browser may send (bury-and-resurrect Req 5.1): a demo name, an action and a path. Everything else in the body is
  * ignored. Pure.
  */
-import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load';
+import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load.js';
 
 export type Action = 'bury' | 'resurrect';
 export const ACTIONS: readonly Action[] = ['bury', 'resurrect'];

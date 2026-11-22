@@ -1,6 +1,6 @@
 // A relative path, not the `@shared` alias: the demo-list plugin (vite-plugins/graveyard-manifest.ts) runs this module inside
 // Vite's config loader, which does not apply the alias. It is the same shared module.
-import { SCHEMA_VERSION, validateGraveyard, type Graveyard } from '../../../shared/graveyard-schema';
+import { SCHEMA_VERSION, validateGraveyard, type Graveyard } from '../../../shared/graveyard-schema.js';
 
 /**
  * Deciding where the page address leads, which data file to load and whether what came back is usable. Pure: the fetch itself

@@ -3,7 +3,7 @@
  * as a plain object. Server code imports shared/ and src/ by relative paths, never through the `@shared` alias: Vercel's function
  * bundler doesn't apply tsconfig path mappings.
  */
-import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load';
+import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load.js';
 
 export type Mode = 'production' | 'development';
 

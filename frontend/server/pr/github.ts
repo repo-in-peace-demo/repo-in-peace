@@ -3,7 +3,7 @@
  * Failures become a GitHubError with a kind, and the message a user sees comes from the kind only, never from GitHub's body (Req 6.3),
  * so the token can't travel in an error (P5).
  */
-import { redact } from './redact';
+import { redact } from './redact.js';
 
 export const API_VERSION = '2026-03-10';
 export const TIMEOUT_MS = 15_000;

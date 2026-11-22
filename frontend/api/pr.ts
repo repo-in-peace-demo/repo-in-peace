@@ -3,11 +3,11 @@
  * pull request on a demo fork. The work is in server/pr/handler.ts. The dependencies are made once per instance, so the throttle and
  * the data file cache last as long as the instance does.
  */
-import { modeFromVercelEnv, readConfig } from '../server/pr/config';
-import { graveyardReader } from '../server/pr/graveyards';
-import { githubClient } from '../server/pr/github';
-import { clientKeyFromHeaders, createFakePrs, handlePr, type PrDeps } from '../server/pr/handler';
-import { Throttle } from '../server/pr/limits';
+import { modeFromVercelEnv, readConfig } from '../server/pr/config.js';
+import { graveyardReader } from '../server/pr/graveyards.js';
+import { githubClient } from '../server/pr/github.js';
+import { clientKeyFromHeaders, createFakePrs, handlePr, type PrDeps } from '../server/pr/handler.js';
+import { Throttle } from '../server/pr/limits.js';
 
 let deps: PrDeps | undefined;
 function dependencies(): PrDeps {

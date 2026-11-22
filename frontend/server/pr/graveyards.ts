@@ -4,8 +4,8 @@
  */
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { validateGraveyard, type Graveyard } from '../../../shared/graveyard-schema';
-import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load';
+import { validateGraveyard, type Graveyard } from '../../../shared/graveyard-schema.js';
+import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load.js';
 
 const SUFFIX = '.graveyard.json';
 
