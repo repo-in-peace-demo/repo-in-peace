@@ -57,9 +57,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 3: GitHub, the function and the reset
 
-- [ ] 8. The fake GitHub server (`frontend/test/fake-github.ts`)
-  - [ ] 8.1 An in-memory repository (blobs, nested trees, commits, refs, pull requests) seeded from a file list and a history; the endpoints of the design with GitHub's shapes and status codes (including 422 for an existing ref or pull request and for deleting a missing path, and paginated lists); a record of every request; injected failures (403 rate limit, 500, slow, an error body containing the token).
-  - [ ] 8.2 Its own tests: a tree change and commit read back as GitHub would return them.
+- [x] 8. The fake GitHub server (`frontend/test/fake-github.ts`)
+  - [x] 8.1 An in-memory repository (blobs, nested trees, commits, refs, pull requests) seeded from a file list and a history; the endpoints of the design with GitHub's shapes and status codes (including 422 for an existing ref or pull request and for deleting a missing path, and paginated lists); a record of every request; injected failures (403 rate limit, 500, slow, an error body containing the token).
+  - [x] 8.2 Its own tests: a tree change and commit read back as GitHub would return them.
   - _Requirements: 11_
 
 - [ ] 9. The GitHub client and opening a pull request (`github.ts`, `open-pr.ts`)

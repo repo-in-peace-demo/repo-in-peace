@@ -11,8 +11,8 @@ export interface TreeStore {
   read: (sha: string) => Promise<readonly TreeEntry[]>;
 }
 
-export function buildTrees(files: FlatTree, submodules: ReadonlyMap<string, string> = new Map()): TreeStore {
-  const trees = new Map<string, TreeEntry[]>();
+export function buildTrees(files: FlatTree, submodules: ReadonlyMap<string, string> = new Map(), into: Map<string, TreeEntry[]> = new Map()): TreeStore {
+  const trees = into;
   type Node = { files: Map<string, { mode: string; sha: string; type: 'blob' | 'commit' }>; dirs: Map<string, Node> };
   const rootNode: Node = { files: new Map(), dirs: new Map() };
   const add = (path: string, value: { mode: string; sha: string; type: 'blob' | 'commit' }) => {
@@ -50,3 +50,16 @@ export function buildTrees(files: FlatTree, submodules: ReadonlyMap<string, stri
 
 /** A blob SHA for test contents. */
 export const blobSha = (content: string): string => createHash('sha1').update(`blob:${content}`).digest('hex');
+
+/** Every file under a tree, as a flat map (submodules left out). */
+export function flattenTree(trees: ReadonlyMap<string, readonly TreeEntry[]>, rootSha: string, prefix = ''): Map<string, { mode: string; sha: string }> {
+  const out = new Map<string, { mode: string; sha: string }>();
+  const entries = trees.get(rootSha);
+  if (!entries) throw new Error(`no tree ${rootSha}`);
+  for (const e of entries) {
+    const path = prefix === '' ? e.path : `${prefix}/${e.path}`;
+    if (e.type === 'tree') for (const [p, f] of flattenTree(trees, e.sha, path)) out.set(p, f);
+    else if (e.type === 'blob') out.set(path, { mode: e.mode, sha: e.sha });
+  }
+  return out;
+}
