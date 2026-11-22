@@ -1,0 +1,114 @@
+import fc from 'fast-check';
+import { describe, expect, it } from 'vitest';
+import { buildSceneModel } from './scene-model';
+import { makeSyntheticGraveyard } from './synthetic';
+import {
+  HASH_GLYPH,
+  MOUND_START_S,
+  SETTLE_S,
+  SINK_S,
+  buryFrame,
+  markerGlyphs,
+  overridePickTarget,
+  overridesOf,
+  pickTargetsWith,
+  prLegendLines,
+  riseFrame,
+  risenHeight,
+  stakeSpot,
+} from './pr-scene';
+
+const model = buildSceneModel(makeSyntheticGraveyard({ files: 60, seed: 4, ghosts: 3 }));
+const unused = model.stones.filter((s) => s.file.unused);
+const pr = (action: string, number: number, openedAt = 0) => ({ action, number, openedAt });
+
+describe('overridesOf', () => {
+  it('takes a Bury on a stone and a Resurrect on a ghost, and nothing else', () => {
+    const stone = unused[0]!.file.path;
+    const ghost = model.ghosts[0]!.ghost.path;
+    const prs = new Map([
+      [`file:${stone}`, pr('bury', 3)],
+      [`ghost:${ghost}`, pr('resurrect', 4)],
+      [`ghost:${stone}`, pr('resurrect', 5)], // not a ghost
+      ['file:nowhere.ts', pr('bury', 6)],
+      [`file:${model.stones[1]!.file.path}`, pr('resurrect', 7)], // wrong action for a stone
+    ]);
+    expect(overridesOf(model, prs).map((o) => [o.kind, o.path, o.number])).toEqual(
+      [['buried', stone, 3], ['risen', ghost, 4]].sort((a, b) => (String(a[1]) < String(b[1]) ? -1 : 1)),
+    );
+  });
+});
+
+describe('the animation frames', () => {
+  it('end at once under reduced motion', () => {
+    fc.assert(fc.property(fc.double({ min: -1e6, max: 1e6, noNaN: true }), (now) => {
+      expect(buryFrame(0, now, true)).toEqual({ sink: 1, mound: 1 });
+      expect(riseFrame(0, now, true)).toEqual({ settle: 1, solid: 1 });
+    }));
+  });
+
+  it('only move forward in time, stay in 0..1, and start and end where the design says', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 3000, noNaN: true }), fc.double({ min: 0, max: 3000, noNaN: true }), (a, b) => {
+        const [t1, t2] = a <= b ? [a, b] : [b, a];
+        const [f1, f2] = [buryFrame(0, t1, false), buryFrame(0, t2, false)];
+        const [r1, r2] = [riseFrame(0, t1, false), riseFrame(0, t2, false)];
+        for (const v of [f1.sink, f1.mound, r1.settle, r1.solid]) expect(v >= 0 && v <= 1).toBe(true);
+        expect(f2.sink).toBeGreaterThanOrEqual(f1.sink);
+        expect(f2.mound).toBeGreaterThanOrEqual(f1.mound);
+        expect(r2.settle).toBeGreaterThanOrEqual(r1.settle);
+        expect(r2.solid).toBeGreaterThanOrEqual(r1.solid);
+      }),
+    );
+    expect(buryFrame(1000, 1000, false)).toEqual({ sink: 0, mound: 0 });
+    expect(buryFrame(0, SINK_S * 1000, false)).toEqual({ sink: 1, mound: 1 });
+    expect(buryFrame(0, MOUND_START_S * 1000 - 1, false).mound).toBe(0);
+    expect(riseFrame(0, SETTLE_S * 1000, false)).toEqual({ settle: 1, solid: 0 });
+    expect(riseFrame(0, 1600, false)).toEqual({ settle: 1, solid: 1 });
+    expect(buryFrame(5000, 0, false)).toEqual({ sink: 0, mound: 0 }); // a clock before the start is the start
+  });
+});
+
+describe('picking an overridden grave', () => {
+  it('stays on the grave\'s slot, from the ground up, and replaces only that grave\'s box', () => {
+    const prs = new Map([...unused.slice(0, 3).map((s) => [`file:${s.file.path}`, pr('bury', 1)] as const), [`ghost:${model.ghosts[1]!.ghost.path}`, pr('resurrect', 2)] as const]);
+    const overrides = overridesOf(model, prs);
+    const targets = pickTargetsWith(model, overrides);
+    expect(targets).toHaveLength(model.pickTargets.length);
+    for (const o of overrides) {
+      const box = overridePickTarget(o, model);
+      const at = o.kind === 'buried' ? model.stones[o.index]!.layout : model.ghosts[o.index]!.layout;
+      expect(box.min.x < at.x && at.x < box.max.x && box.min.z < at.z && at.z < box.max.z).toBe(true);
+      expect(box.min.y).toBe(0);
+      const stake = stakeSpot(o, model);
+      expect(stake.x > box.min.x && stake.x < box.max.x && stake.z > box.min.z && stake.z < box.max.z).toBe(true);
+      expect(targets.filter((t) => t.path === o.path && t.kind === box.kind)).toEqual([box]);
+    }
+    const changed = targets.filter((t, i) => t !== model.pickTargets[i]);
+    expect(changed).toHaveLength(overrides.length);
+    expect(pickTargetsWith(model, [])).toBe(model.pickTargets);
+  });
+
+  it('gives the new stone the graveyard\'s shortest height', () => {
+    expect(risenHeight(model)).toBe(Math.min(...model.stones.map((s) => s.layout.height)));
+    expect(risenHeight({ stones: [] })).toBeGreaterThan(0);
+  });
+});
+
+describe('the stake and the legend', () => {
+  it('writes "#" and up to four digits', () => {
+    expect(markerGlyphs(12)).toEqual([HASH_GLYPH, 1, 2]);
+    expect(markerGlyphs(1)).toEqual([HASH_GLYPH, 1]);
+    expect(markerGlyphs(123456)).toEqual([HASH_GLYPH, 3, 4, 5, 6]);
+    fc.assert(fc.property(fc.integer({ min: 1, max: 9999 }), (n) => markerGlyphs(n).slice(1).join('') === String(n)));
+  });
+
+  it('explains what is shown, each kind only when it is', () => {
+    const buried = overridesOf(model, new Map([[`file:${unused[0]!.file.path}`, pr('bury', 1)]]));
+    const risen = overridesOf(model, new Map([[`ghost:${model.ghosts[0]!.ghost.path}`, pr('resurrect', 1)]]));
+    expect(prLegendLines([])).toEqual([]);
+    expect(prLegendLines(buried).map((l) => l.id)).toEqual(['pr-buried']);
+    expect(prLegendLines(risen)).toEqual([{ id: 'pr-risen', title: 'Clean stone with a stake', text: "A pull request to restore this file is open. Its height doesn't show its size." }]);
+    expect(prLegendLines([...buried, ...risen]).map((l) => l.id)).toEqual(['pr-buried', 'pr-risen']);
+  });
+});
