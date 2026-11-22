@@ -39,9 +39,9 @@ export const MOUND_HALF_W = 0.62;
 export const MOUND_HALF_D = 0.7;
 export const MOUND_H = 0.3;
 /** The stake with its number plate. */
-export const STAKE_H = 0.62;
-export const PLATE_W = 0.46;
-export const PLATE_H = 0.18;
+export const STAKE_H = 0.95; // after the first screenshot: at 0.62 with a 0.46 plate the number could not be read close up
+export const PLATE_W = 0.72;
+export const PLATE_H = 0.3;
 export const MAX_GLYPHS = 5;
 
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));

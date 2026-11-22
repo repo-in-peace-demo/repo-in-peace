@@ -102,11 +102,12 @@ export function Ghosts({ model }: { model: SceneModel }) {
       if (shown.current.get(o.index) === state) continue;
       shown.current.set(o.index, state);
       const { layout } = ghosts[o.index]!;
-      const bodyScale = state === 'gone' ? 0 : 1;
-      const extrasScale = state === 'floating' ? 1 : 0;
-      body.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, bodyScale, bodyScale, bodyScale));
-      tags.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, extrasScale, extrasScale, extrasScale));
-      pools.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, extrasScale, extrasScale, extrasScale));
+      // Hidden by moving far below the ground, not by scaling: the tag is a card built around its instance's centre, so a scale
+      // of 0 left it floating in front of the new stone (seen in the first resurrect screenshot).
+      const away = -1000;
+      body.current?.setMatrixAt(o.index, placement(layout.x, state === 'gone' ? away : 0, layout.z, 1, 1, 1));
+      tags.current?.setMatrixAt(o.index, placement(layout.x, state === 'floating' ? 0 : away, layout.z, 1, 1, 1));
+      pools.current?.setMatrixAt(o.index, placement(layout.x, state === 'floating' ? 0 : away, layout.z, 1, 1, 1));
       moved = true;
     }
     if (changed) assets.settle.needsUpdate = true;

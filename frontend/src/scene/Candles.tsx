@@ -162,9 +162,9 @@ export function Candles({ model }: { model: SceneModel }) {
       if (frame.kind !== 'buried' || sunk.current.get(i) === frame.sink) continue;
       sunk.current.set(i, frame.sink);
       const spot = spots[i]!;
-      // Below the ground at the end, and hidden there (the glow quad is drawn over everything, so it must also shrink to nothing).
-      const scale = frame.sink >= 1 ? 0 : 1;
-      for (const mesh of [wax.current, flame.current]) mesh?.setMatrixAt(i, placement(spot.x, -frame.sink * 1.2, spot.z, scale, scale, scale));
+      // Below the ground at the end, far enough that the glow (a card built around its centre, which ignores scale) can't show.
+      const y = frame.sink >= 1 ? -1000 : -frame.sink * 1.2;
+      for (const mesh of [wax.current, flame.current]) mesh?.setMatrixAt(i, placement(spot.x, y, spot.z, 1, 1, 1));
       moved = true;
     }
     if (moved) for (const mesh of [wax.current, flame.current]) if (mesh) mesh.instanceMatrix.needsUpdate = true;

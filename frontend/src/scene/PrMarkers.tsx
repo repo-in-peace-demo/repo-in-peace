@@ -13,12 +13,13 @@ import { currentOverrides, frameOf } from './pr-overrides';
  * Four instanced meshes (mounds, posts, plates, glyphs) with room for every unused stone and every ghost, all hidden until needed; only
  * the overridden instances are written, each frame while they rise.
  */
-const POST_W = 0.06;
-const GLYPH_W = 0.075;
-const GLYPH_H = 0.12;
-const EARTH = '#4b3524';
-const WOOD = '#6e4d2f';
-const PAINT = '#ddd6c6';
+const POST_W = 0.07;
+const GLYPH_W = 0.12;
+const GLYPH_H = 0.2;
+// After the first screenshot: a darker earth read as a hole under the moonlight; this reads as turned soil against the grass.
+const EARTH = '#86613f';
+const WOOD = '#9a7146';
+const PAINT = '#f1ece0';
 
 const GLYPH_VERTEX = /* glsl */ `
 attribute float aGlyph;
@@ -86,7 +87,7 @@ export function PrMarkers({ model }: { model: SceneModel }) {
   useLayoutEffect(() => {
     for (const mesh of [mounds.current, posts.current, plates.current, glyphs.current]) {
       if (!mesh) continue;
-      for (let i = 0; i < mesh.count; i++) mesh.setMatrixAt(i, placement(0, -10, 0, 0, 0, 0));
+      for (let i = 0; i < mesh.count; i++) mesh.setMatrixAt(i, placement(0, -1000, 0, 0, 0, 0));
       mesh.instanceMatrix.needsUpdate = true;
     }
   }, [assets]);
