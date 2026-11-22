@@ -39,7 +39,7 @@ export function RisenStones({ model }: { model: SceneModel }) {
     const fade = attribute(new Float32Array(n));
     fade.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('aFade', fade);
-    const atlas = makeEngravingAtlas(texts);
+    const atlas = makeEngravingAtlas(texts, false); // not the atlas the browser test reads: that is the stones'
     const { material, uniforms } = makeStoneMaterial({ atlas: atlas.texture, rows: atlas.rows });
     return { geometry, material, uniforms, highlight, fade, atlas: atlas.texture };
   }, [ghosts, model]);

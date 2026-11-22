@@ -453,10 +453,14 @@ test.describe('layout and access', () => {
     await expect(page.locator('.legend .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
   });
 
-  test('Bury and Resurrect look disabled: dimmed, dashed, a not-allowed cursor', async ({ page }) => {
+  test('Bury and Resurrect look disabled where pull requests are unavailable: dimmed, dashed, a not-allowed cursor', async ({ page }) => {
+    // The dev server offers fake pull requests on the demos, so the buttons are live there; with the PR function unreachable they
+    // are disabled (bury-and-resurrect Req 1.4), which is the look this checks.
+    await page.route('**/api/pr', (route) => route.abort());
     await openScene(page, 'demo.oikosledger');
     await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
     const bury = page.locator('.detail').getByRole('button', { name: 'Bury' });
+    await expect(bury).toHaveAttribute('aria-disabled', 'true');
     const style = await bury.evaluate((el) => {
       const s = getComputedStyle(el);
       return { opacity: Number(s.opacity), cursor: s.cursor, border: s.borderTopStyle };

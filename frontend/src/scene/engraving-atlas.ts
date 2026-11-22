@@ -17,7 +17,8 @@ export const ENGRAVE_CAPACITY = ENGRAVE_COLUMNS * MAX_ROWS;
 /** For the development API: how many pixels of each text's cell are lit, which shows the text was drawn. */
 export const engravingDebug: { litPixels: Record<string, number> } = { litPixels: {} };
 
-export function makeEngravingAtlas(texts: readonly string[]): { texture: THREE.CanvasTexture; rows: number } {
+/** @param debug whether this atlas is the one `engravingDebug` reports (the stones'); the resurrected stones' atlas is not. */
+export function makeEngravingAtlas(texts: readonly string[], debug = true): { texture: THREE.CanvasTexture; rows: number } {
   const rows = Math.max(1, Math.ceil(texts.length / ENGRAVE_COLUMNS));
   const canvas = document.createElement('canvas');
   canvas.width = ENGRAVE_CELL_W * ENGRAVE_COLUMNS;
@@ -68,7 +69,7 @@ export function makeEngravingAtlas(texts: readonly string[]): { texture: THREE.C
     for (let n = 3; n < data.length; n += 4) if (data[n]! > 128) count++;
     lit[text] = count;
   });
-  engravingDebug.litPixels = lit;
+  if (debug) engravingDebug.litPixels = lit;
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.NoColorSpace; // a mask, not a colour
   texture.anisotropy = 4;
