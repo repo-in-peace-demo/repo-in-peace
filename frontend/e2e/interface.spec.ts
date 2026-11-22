@@ -73,7 +73,7 @@ test.describe('the hover line', () => {
 test.describe('the detail panel', () => {
   const panel = (page: Page) => page.getByRole('complementary', { name: 'Selected grave' });
 
-  test('a click on a stone opens it with the stone\'s facts in words, the eulogy placeholder and Bury on an unused stone', async ({ page }) => {
+  test('a click on a stone opens it with the stone\'s facts in words, its eulogy and Bury on an unused stone', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     const voice = oikos.files.find((f) => f.path === 'app/components/voice/index.ts')!;
     const at = await pointAt(page, voice.path);
@@ -84,7 +84,13 @@ test.describe('the detail panel', () => {
     await expect(panel(page)).toContainText(hotDetail(voice, oikos.meta));
     await expect(panel(page)).toContainText(usageDetail(voice, oikos.meta));
     await expect(panel(page)).toContainText(voice.decayScore.toFixed(2));
-    await expect(panel(page)).toContainText('No eulogies were written for this graveyard.');
+    // The demo has eulogies: the stone's own, with its model's credit (or "Words failed us" when it was left empty).
+    if (voice.eulogy !== '') {
+      await expect(panel(page).locator('figure.detail-epitaph blockquote')).toHaveText(voice.eulogy);
+      await expect(panel(page).locator('figure.detail-epitaph figcaption')).toHaveText(`written by ${oikos.meta.eulogyModel}`);
+    } else {
+      await expect(panel(page).locator('.detail-eulogy-empty')).toHaveText('Words failed us for this one.');
+    }
     const bury = panel(page).getByRole('button', { name: 'Bury' });
     await expect(bury).toHaveAttribute('aria-disabled', 'true');
     await expect(panel(page)).toContainText('Arrives with the PR function.');
