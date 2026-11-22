@@ -31,9 +31,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 3.2 **P1 (pure part):** for random graveyards and paths (from the files, the ghosts and elsewhere), exactly the eligible combinations pass.
   - _Requirements: 2.1, 3.1, 5.2_
 
-- [ ] 4. Branch names (`branch.ts`)
-  - [ ] 4.1 `branchName(action, path)` and `isValidRefName` (git's `check-ref-format` rules, written out).
-  - [ ] 4.2 **P2:** deterministic; always valid; distinct for distinct paths (including paths differing only in case, separators or dropped characters) and for the two actions.
+- [x] 4. Branch names (`branch.ts`)
+  - [x] 4.1 `branchName(action, path)` and `isValidRefName` (git's `check-ref-format` rules, written out).
+  - [x] 4.2 **P2:** deterministic; always valid; distinct for distinct paths (including paths differing only in case, separators or dropped characters) and for the two actions.
   - _Requirements: 4.2_
 
 - [ ] 5. The tree change (`tree-change.ts`)
