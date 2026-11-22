@@ -41,10 +41,10 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 5.2 **P3:** over random base trees, Bury removes exactly the chosen path; Resurrect adds exactly one path with the ghost's original sha and mode. Resurrect is refused when the path, or a file at any parent folder's path, exists.
   - _Requirements: 2.2, 2.4, 3.2, 3.4, 4.1_
 
-- [ ] 6. The pull request text (`pr-text.ts`)
-  - [ ] 6.1 Titles and bodies as in the design, from the data file and the fork only, in the shared vocabulary; `neutralise` for `@` and `#<digit>`; paths and SHAs in code spans; the eulogy as an escaped quotation; the deleter's name as plain text; nobody named in a Bury.
-  - [ ] 6.2 **P7:** random extra fields in the request never change the text; no `@` or `#<digit>` from the data survives un-neutralised; paths are always in code spans, whatever characters they hold.
-  - [ ] 6.3 **Examples:** the two bodies from the design, exactly; a eulogy with `> ` and `**`; a name with `@`.
+- [x] 6. The pull request text (`pr-text.ts`)
+  - [x] 6.1 Titles and bodies as in the design, from the data file and the fork only, in the shared vocabulary; `neutralise` for `@` and `#<digit>`; paths and SHAs in code spans; the eulogy as an escaped quotation; the deleter's name as plain text; nobody named in a Bury.
+  - [x] 6.2 **P7:** random extra fields in the request never change the text; no `@` or `#<digit>` from the data survives un-neutralised; paths are always in code spans, whatever characters they hold.
+  - [x] 6.3 **Examples:** the two bodies from the design, exactly; a eulogy with `> ` and `**`; a name with `@`.
   - _Requirements: 2.3, 3.3, 5.3_
 
 - [ ] 7. Limits and redaction (`limits.ts`, `redact.ts`)
