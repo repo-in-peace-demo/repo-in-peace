@@ -20,6 +20,8 @@ import { SignLayer } from '../ui/SignLayer';
 import { Ghosts } from './Ghosts';
 import { PrMarkers } from './PrMarkers';
 import { RisenStones } from './RisenStones';
+import { overridesOf } from '../model/pr-scene';
+import { usePrSession } from '../store/pr-store';
 import { Stones } from './Stones';
 
 /** Development builds only: measures each frame for the performance overlay. Null, and not in the bundle, in production. */
@@ -56,8 +58,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Stones model={model} />
         <Candles model={model} />
         <Ghosts model={model} />
-        <RisenStones model={model} />
-        <PrMarkers model={model} />
+        <PrOverrideMeshes model={model} />
         <Mist model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />
@@ -70,5 +71,24 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
       </Canvas>
       <SignLayer containerRef={signs} />
     </div>
+  );
+}
+
+/**
+ * The meshes for this session's pull requests (bury-and-resurrect Req 10), mounted only once the session has one for this scene, so a
+ * scene without any starts as fast as before (their shaders compile when they first draw, which is slow under software rendering).
+ * Once mounted they stay for the scene.
+ */
+function PrOverrideMeshes({ model }: { model: SceneModel }) {
+  const { prs } = usePrSession();
+  const overrides = overridesOf(model, prs);
+  const seen = useRef({ risen: false, any: false });
+  if (overrides.length > 0) seen.current.any = true;
+  if (overrides.some((o) => o.kind === 'risen')) seen.current.risen = true;
+  return (
+    <>
+      {seen.current.risen && <RisenStones model={model} />}
+      {seen.current.any && <PrMarkers model={model} />}
+    </>
   );
 }
