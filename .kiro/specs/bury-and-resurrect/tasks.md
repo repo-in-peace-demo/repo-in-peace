@@ -88,9 +88,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 4: The frontend
 
-- [ ] 12. Client and session store (`ui/pr-client.ts`, `store/pr-store.ts`)
-  - [ ] 12.1 `availability`, `openPr`, `safePrLink`, the friendly messages; the session store, cleared when the scene unmounts.
-  - [ ] 12.2 **P8:** `safePrLink` accepts only the expected fork's pull request URLs (and the fake path when fake), for random strings, other hosts and repos, `javascript:` and look-alike URLs.
+- [x] 12. Client and session store (`ui/pr-client.ts`, `store/pr-store.ts`)
+  - [x] 12.1 `availability`, `openPr`, `safePrLink`, the friendly messages; the session store, cleared when the scene unmounts.
+  - [x] 12.2 **P8:** `safePrLink` accepts only the expected fork's pull request URLs (and the fake path when fake), for random strings, other hosts and repos, `javascript:` and look-alike URLs.
   - _Requirements: 1.2 to 1.4, 9.5_
 
 - [ ] 13. The detail panel, list and hover (`DetailPanel.tsx`, `ListView.tsx`, `HoverLabel.tsx`, `index.css`)
