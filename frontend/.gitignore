@@ -6,3 +6,5 @@ playwright-report/
 # Secrets for the PR function (GITHUB_TOKEN, RIP_DEMOS): never committed.
 .env
 .env*.local
+.vercel
+.env*
