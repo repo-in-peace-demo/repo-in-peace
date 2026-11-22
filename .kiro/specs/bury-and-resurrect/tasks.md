@@ -70,13 +70,13 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 9.5 **Examples:** Bury of a file gone from the base; Resurrect onto an existing path; a ghost whose blob the fork lacks; the cap reached (existing pull requests still returned); each injected GitHub failure gives its short message.
   - _Requirements: 2, 3, 4, 6.1, 6.3_
 
-- [ ] 10. The handler and the function (`graveyards.ts`, `handler.ts`, `api/pr.ts`)
-  - [ ] 10.1 `handlePr`: `GET` configuration, `POST` with the order of work, the status table, headers, the log line, the `Origin` check, the fake flow in development.
-  - [ ] 10.2 `api/pr.ts`: the environment and mode (`VERCEL_ENV`), the real client, the data reader.
-  - [ ] 10.3 **P1 end to end:** random (demo, action, path) and malformed bodies through `handlePr`; the fake server records no request for any refused one.
-  - [ ] 10.4 **P5:** the fake server echoing the token in error bodies and headers; no response body, header or log line contains it.
-  - [ ] 10.5 **P6 end to end:** throttled requests make no GitHub call.
-  - [ ] 10.6 **Examples:** production without a token (`GET` unavailable, `POST` 503); development without a token (fake numbers counting up, the same number again for a repeat); wrong content type, too large a body, a cross-site `Origin`.
+- [x] 10. The handler and the function (`graveyards.ts`, `handler.ts`, `api/pr.ts`)
+  - [x] 10.1 `handlePr`: `GET` configuration, `POST` with the order of work, the status table, headers, the log line, the `Origin` check, the fake flow in development.
+  - [x] 10.2 `api/pr.ts`: the environment and mode (`VERCEL_ENV`), the real client, the data reader.
+  - [x] 10.3 **P1 end to end:** random (demo, action, path) and malformed bodies through `handlePr`; the fake server records no request for any refused one.
+  - [x] 10.4 **P5:** the fake server echoing the token in error bodies and headers; no response body, header or log line contains it.
+  - [x] 10.5 **P6 end to end:** throttled requests make no GitHub call.
+  - [x] 10.6 **Examples:** production without a token (`GET` unavailable, `POST` 503); development without a token (fake numbers counting up, the same number again for a repeat); wrong content type, too large a body, a cross-site `Origin`.
   - _Requirements: 1.2, 5, 6, 7_
 
 - [ ] 11. Local development and the reset (`vite-plugins/api-dev.ts`, `scripts/reset-demo-prs.ts`)
