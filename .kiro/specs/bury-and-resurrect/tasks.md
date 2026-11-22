@@ -124,7 +124,8 @@ Status key: `[x]` done, `[ ]` not started.
     ```
     cd frontend && npm run typecheck && npm test && npm run e2e
     ```
-  - [ ] 16.2 The setup steps in `design.md`: the organisation, the forks (with the remote check before any force-push), the token, `.env.local`, then one real Bury and one real Resurrect from `npm run dev`, and the reset command (dry run first).
-  - [ ] 16.3 Vercel: settings, the two production variables, deploy; `/api/pr` shows the forks; one real pull request from the deployed site; reset.
+  - [x] 16.2 The setup steps in `design.md`: the organisation, the forks (with the remote check before any force-push), the token, `.env.local`, then one real Bury and one real Resurrect from `npm run dev`, and the reset command (dry run first).
+  - [x] 16.3 Vercel: settings, the two production variables, deploy; `/api/pr` shows the forks; one real pull request from the deployed site; reset.
+  - (16.2 and 16.3 done: a real Bury and Resurrect from `npm run dev`, then from the deployment. Found on the way and fixed: the token's resource owner was the personal account and Contents was read-only; the oikos fork's `main` had been pushed spatialql's snapshot (setup step 2.4 now checks the exact fork); the function's relative imports needed `.js` for Vercel's ES module output; the data files are found from the reader's own file, not the working directory. The forks are to be public, so visitors can open the links.)
   - [ ] 16.4 **Manual check:** each pull request on GitHub changes exactly one file (the Resurrect diff shows the file restored byte for byte); the body names nobody with `@`; no notification went to anyone; a second click on the same grave returns the same pull request.
   - _Requirements: all_
