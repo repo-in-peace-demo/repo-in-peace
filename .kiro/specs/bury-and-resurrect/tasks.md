@@ -94,8 +94,8 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: 1.2 to 1.4, 9.5_
 
 - [ ] 13. The detail panel, list and hover (`DetailPanel.tsx`, `ListView.tsx`, `HoverLabel.tsx`, `index.css`)
-  - [ ] 13.1 Enabled or disabled with the notes; the inline confirmation naming the fork, the action and the path; progress; the link, "already open", fake marking; error and Try again; Escape cancels the confirmation first.
-  - [ ] 13.2 The list row's `PR #n` marker and the hover's `· PR #n open`.
+  - [x] 13.1 Enabled or disabled with the notes; the inline confirmation naming the fork, the action and the path; progress; the link, "already open", fake marking; error and Try again; Escape cancels the confirmation first.
+  - [x] 13.2 The list row's `PR #n` marker and the hover's `· PR #n open`.
   - [ ] 13.3 **Browser checks** in `e2e/pull-requests.spec.ts` (fake flow): Bury and Resurrect through confirmation to the fake link; the same Bury again says already open; the list and hover markers; a local file shows the demo-only note; `page.route` aborting `/api/pr` shows the unavailable note.
   - **Run:** `cd frontend && npx playwright test e2e/pull-requests.spec.ts`
   - _Requirements: 9, 10.5_

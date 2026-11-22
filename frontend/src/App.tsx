@@ -20,6 +20,8 @@ import { StatusMessage } from './ui/StatusMessage';
 import { hasWebGL } from './ui/webgl';
 import { prefersReducedMotion } from './scene/reduced-motion';
 import { clearSelection } from './store/selection-store';
+import { clearPrSession } from './store/pr-store';
+import { availability, fetchPrConfig, type PrConfigAnswer } from './ui/pr-client';
 
 /** Development builds only: the performance overlay and the other extras (`dev/DevExtras.tsx`). Null, and not in the bundle, in production. */
 const DevExtras = import.meta.env.DEV ? lazy(() => import('./dev/DevExtras')) : null;
@@ -113,7 +115,7 @@ export function App() {
       );
     case 'scene':
       // Keyed on the source, so another graveyard is a new scene: the old one is unmounted and its GPU resources are freed.
-      return <Scene key={sourceKey(state.source)} model={state.model} onBack={back} />;
+      return <Scene key={sourceKey(state.source)} model={state.model} source={state.source} onBack={back} />;
   }
 }
 
@@ -192,7 +194,18 @@ function Digging({ state, baseUrl, dispatch }: { state: Extract<FlowState, { scr
 }
 
 /** The scene and its panels, for one graveyard. */
-function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
+function Scene({ model, source, onBack }: { model: SceneModel; source: Source; onBack: () => void }) {
+  // Whether Bury and Resurrect work here: asked once per scene (bury-and-resurrect Req 1.2). Until the answer comes, "unavailable".
+  const [prConfig, setPrConfig] = useState<PrConfigAnswer | 'unreachable'>('unreachable');
+  useEffect(() => {
+    let live = true;
+    if (source.kind === 'demo') void fetchPrConfig().then((answer) => live && setPrConfig(answer));
+    return () => {
+      live = false;
+      clearPrSession(); // the session's pull requests belong to this scene
+    };
+  }, [source]);
+  const pr = { availability: availability(source, prConfig), graveyard: source.kind === 'demo' ? source.name : null };
   return (
     <>
       <SceneCanvas model={model} />
@@ -201,7 +214,7 @@ function Scene({ model, onBack }: { model: SceneModel; onBack: () => void }) {
       <ControlsPanel onBack={onBack} />
       <SearchBox model={model} />
       <ListView model={model} />
-      <DetailPanel model={model} />
+      <DetailPanel model={model} pr={pr} />
       <HoverLabel model={model} />
       {DevExtras && (
         <Suspense fallback={null}>

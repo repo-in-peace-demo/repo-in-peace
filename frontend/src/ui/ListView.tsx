@@ -9,6 +9,7 @@ import { scrollToShow, visibleRange } from '../model/virtual-window';
 import { flyTo } from '../scene/api';
 import { requestStatsCollapse } from '../store/panel-events';
 import { clearSelection, select, useSelection } from '../store/selection-store';
+import { graveKey, usePrSession } from '../store/pr-store';
 
 /** Every row is this tall, so the list can draw only the rows in view. */
 export const ROW_HEIGHT = 30;
@@ -56,6 +57,7 @@ export function ListView({ model }: { model: SceneModel }) {
   const selection = useSelection();
 
   const all = useMemo(() => buildRows(model.graveyard), [model]);
+  const { prs } = usePrSession();
   const rows = useMemo(() => sortRows(filterRows(all, kinds, flags), sort.key, sort.reversed), [all, kinds, flags, sort]);
   const highlighted = highlightedIndex(rows, selection);
 
@@ -249,6 +251,7 @@ export function ListView({ model }: { model: SceneModel }) {
               {shown.map((row, i) => {
                 const index = first + i;
                 const kind = kindOfRow(row);
+                const pull = prs.get(graveKey(row.kind, row.path));
                 return (
                   <div
                     key={`${row.kind}:${row.path}`}
@@ -277,6 +280,12 @@ export function ListView({ model }: { model: SceneModel }) {
                         <>
                           <span className="list-sep" aria-hidden="true">·</span>
                           <span className="list-mark-hot">{FACT_NAMES.hot}</span>
+                        </>
+                      )}
+                      {pull !== undefined && (
+                        <>
+                          <span className="list-sep" aria-hidden="true">·</span>
+                          <span className="list-mark-pr">PR #{pull.number}</span>
                         </>
                       )}
                     </span>

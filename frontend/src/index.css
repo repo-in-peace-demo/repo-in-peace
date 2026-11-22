@@ -734,6 +734,47 @@ body,
   font-size: 0.74rem;
 }
 
+/* Bury and Resurrect (bury-and-resurrect spec): the inline confirmation, the pull request link, an error. */
+.detail-actions-wrap {
+  flex-wrap: wrap;
+}
+
+.detail-confirm {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--rim);
+  border-radius: 4px;
+}
+
+.detail-confirm-question {
+  margin: 0 0 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.detail-actions button.detail-primary {
+  border-color: #cfe2ff;
+  color: var(--ink);
+}
+
+.detail-pr {
+  margin: 0;
+}
+
+.detail-pr a {
+  color: #cfe2ff;
+}
+
+.detail-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: #f0b4a8;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.list-mark-pr {
+  color: #cfe2ff;
+}
+
 .detail button:focus-visible {
   outline: 2px solid #cfe2ff;
   outline-offset: 2px;

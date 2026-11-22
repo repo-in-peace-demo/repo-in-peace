@@ -92,8 +92,9 @@ test.describe('the detail panel', () => {
       await expect(panel(page).locator('.detail-eulogy-empty')).toHaveText('Words failed us for this one.');
     }
     const bury = panel(page).getByRole('button', { name: 'Bury' });
-    await expect(bury).toHaveAttribute('aria-disabled', 'true');
-    await expect(panel(page)).toContainText('Arrives with the PR function.');
+    // The dev server runs the PR function with fake pull requests, so on a demo Bury is offered (bury-and-resurrect spec).
+    await expect(bury).toBeVisible();
+    await expect(bury).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   test('an ancient stone that is still used is not offered Bury; a ghost is offered Resurrect, with its deletion', async ({ page }) => {
@@ -109,7 +110,7 @@ test.describe('the detail panel', () => {
     await expect(panel(page)).toContainText(`${calendarDay(ghost.deletedDate, spatialql.meta.snapshotDate)} by ${ghost.deletedBy}`);
     await expect(panel(page)).toContainText(ghost.deletedInSha.slice(0, 7));
     await expect(panel(page)).toContainText('.ts');
-    await expect(panel(page).getByRole('button', { name: 'Resurrect' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(panel(page).getByRole('button', { name: 'Resurrect' })).toBeVisible();
     await expect(panel(page).getByRole('button', { name: 'Bury' })).toHaveCount(0);
   });
 

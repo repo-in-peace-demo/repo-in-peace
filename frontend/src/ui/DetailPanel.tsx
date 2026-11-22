@@ -6,19 +6,20 @@ import type { SceneModel } from '../model/scene-model';
 import { isFlying, nudge, screenBoxOf } from '../scene/api';
 import { setDetailSide } from '../store/detail-side-store';
 import { clearSelection, useSelection } from '../store/selection-store';
+import { PrAction, type PrContext } from './PrAction';
 
 /** How many characters of a path the heading keeps (the file name always whole). */
 const PATH_CHARS = 44;
 
 /**
- * The selected stone or ghost, in words (interface spec, Req 4): what it is, why it looks as it does, its eulogy, and the actions that
- * will come with the PR function. Opens on any selection (scene, list, search) and closes when the selection is cleared (×, Escape,
+ * The selected stone or ghost, in words (interface spec, Req 4): what it is, why it looks as it does, its eulogy, and Bury or
+ * Resurrect (bury-and-resurrect spec, PrAction.tsx). Opens on any selection (scene, list, search) and closes when the selection is cleared (×, Escape,
  * an empty-ground click). It sits on the side of the window away from the selected item, and moves the picture sideways only if it
  * would still cover it. One panel per side: while it is open, the other panels on its side fold to their header bar (the legend on
  * the right; the stats panel and the list on the left), and they come back as they were when it closes. Everything from the data
  * file is put on the page as text.
  */
-export function DetailPanel({ model }: { model: SceneModel }) {
+export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext }) {
   const selection = useSelection();
   const [side, setSide] = useState<Side>('right');
   // Set once the side has been worked out for the current selection: the nudge waits for it (it must measure the panel on its side).
@@ -78,7 +79,7 @@ export function DetailPanel({ model }: { model: SceneModel }) {
 
   if (!item || !selection) return null;
   const meta = model.graveyard.meta;
-  const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} />;
+  const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} pr={pr} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} pr={pr} />;
   return (
     <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave">
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
@@ -104,8 +105,7 @@ function Heading({ path, ghost }: { path: string; ghost: boolean }) {
   );
 }
 
-function StoneDetail({ file, meta }: { file: FileEntry; meta: RepoMeta }) {
-  const noteId = 'detail-bury-note';
+function StoneDetail({ file, meta, pr }: { file: FileEntry; meta: RepoMeta; pr: PrContext }) {
   return (
     <>
       <Heading path={file.path} ghost={false} />
@@ -127,21 +127,13 @@ function StoneDetail({ file, meta }: { file: FileEntry; meta: RepoMeta }) {
       </dl>
       <Eulogy text={file.eulogy} model={meta.eulogyModel} />
       {buryOffered(file) && (
-        <div className="detail-actions">
-          <button type="button" aria-disabled="true" aria-describedby={noteId} onClick={(e) => e.preventDefault()}>
-            Bury
-          </button>
-          <p id={noteId} className="detail-note">
-            Arrives with the PR function.
-          </p>
-        </div>
+        <PrAction kind="file" path={file.path} action="bury" pr={pr} question={(repo) => `Open a pull request on ${repo} that deletes ${file.path}?`} />
       )}
     </>
   );
 }
 
-function GhostDetail({ ghost, meta }: { ghost: Ghost; meta: RepoMeta }) {
-  const noteId = 'detail-resurrect-note';
+function GhostDetail({ ghost, meta, pr }: { ghost: Ghost; meta: RepoMeta; pr: PrContext }) {
   return (
     <>
       <Heading path={ghost.path} ghost />
@@ -158,14 +150,13 @@ function GhostDetail({ ghost, meta }: { ghost: Ghost; meta: RepoMeta }) {
         <dd>{fileType(ghost.path)}</dd>
       </dl>
       <Eulogy text={ghost.eulogy ?? ''} model={meta.eulogyModel} />
-      <div className="detail-actions">
-        <button type="button" aria-disabled="true" aria-describedby={noteId} onClick={(e) => e.preventDefault()}>
-          Resurrect
-        </button>
-        <p id={noteId} className="detail-note">
-          Arrives with the PR function.
-        </p>
-      </div>
+      <PrAction
+        kind="ghost"
+        path={ghost.path}
+        action="resurrect"
+        pr={pr}
+        question={(repo) => `Open a pull request on ${repo} that restores ${ghost.path} as it was at ${ghost.lastExistingSha.slice(0, 7)}?`}
+      />
     </>
   );
 }

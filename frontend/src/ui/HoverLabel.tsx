@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { hoverLabel, hoverSummary } from '../model/hover-label';
 import type { SceneModel } from '../model/scene-model';
 import { getPointer, subscribePointer, useHover } from '../store/hover-store';
+import { graveKey, usePrSession } from '../store/pr-store';
 
 /** How far the label sits from the pointer, in pixels. */
 const OFFSET_X = 14;
@@ -14,6 +15,7 @@ const OFFSET_Y = 18;
  */
 export function HoverLabel({ model }: { model: SceneModel }) {
   const target = useHover();
+  const { prs } = usePrSession();
   const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -33,7 +35,9 @@ export function HoverLabel({ model }: { model: SceneModel }) {
 
   if (target === null) return null;
   const label = hoverLabel(target);
-  const summary = hoverSummary(model, target);
+  const pull = prs.get(graveKey(target.kind, target.path));
+  const base = hoverSummary(model, target);
+  const summary = base !== null && pull !== undefined ? `${base} · PR #${pull.number} open` : base;
   return (
     <div ref={ref} className="hover-label" role="status">
       <div className="hover-name">
