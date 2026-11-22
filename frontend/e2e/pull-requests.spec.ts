@@ -140,6 +140,16 @@ test('when the PR function can\'t be reached, the buttons stay disabled with the
 
 test.describe('the scene after a pull request (this session only)', () => {
   const legend = (page: Page) => page.getByRole('region', { name: 'Pull requests (this session)' });
+  /** The legend starts folded on a window under 1600 px wide (the tests use 1280): open it, as a user would. */
+  async function openLegend(page: Page): Promise<void> {
+    const toggle = page.getByRole('region', { name: 'Legend' }).getByRole('button', { name: 'Legend' });
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  }
+  /** The frame the scene last drew for a grave, once it has drawn one (software rendering can take a moment). */
+  async function frameWhenDrawn(page: Page, path: string) {
+    await expect.poll(() => page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), path), { timeout: 5000 }).not.toBeNull();
+    return page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), path);
+  }
 
   async function openFake(page: Page, kind: 'file' | 'ghost', path: string, verb: 'Bury' | 'Resurrect'): Promise<void> {
     await select(page, kind, path);
@@ -152,12 +162,13 @@ test.describe('the scene after a pull request (this session only)', () => {
     const stone = unused[3]!;
     await openScene(page, 'demo.oikosledger');
     await openFake(page, 'file', stone.path, 'Bury');
-    const early = await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path);
+    const early = await frameWhenDrawn(page, stone.path);
     expect(early).toMatchObject({ kind: 'buried' });
-    expect((early as { sink: number }).sink).toBeLessThan(1);
+    expect((early as { mound: number }).mound).toBeLessThan(1); // still on its way: the mound comes at the end
     await page.waitForTimeout(2000);
     expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
     await page.evaluate(() => window.repoInPeace!.clearSelection()); // the legend shows while the details are closed
+    await openLegend(page);
     await expect(legend(page)).toContainText('Fresh earth with a stake');
     await expect(legend(page)).not.toContainText('Clean stone');
     expect(Object.values(await page.evaluate(() => window.repoInPeace!.getPullRequests()))).toEqual([expect.objectContaining({ action: 'bury' })]);
@@ -165,6 +176,8 @@ test.describe('the scene after a pull request (this session only)', () => {
     await openScene(page, 'demo.oikosledger');
     expect(await page.evaluate(() => window.repoInPeace!.getPullRequests())).toEqual({});
     expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toBeNull();
+    await openLegend(page);
+    await expect(page.getByRole('region', { name: 'Legend' })).toContainText('Darker ground'); // open, and without the group
     await expect(legend(page)).toHaveCount(0);
   });
 
@@ -175,6 +188,7 @@ test.describe('the scene after a pull request (this session only)', () => {
     await page.waitForTimeout(2000);
     expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), ghost.path)).toEqual({ kind: 'risen', settle: 1, solid: 1 });
     await page.evaluate(() => window.repoInPeace!.clearSelection());
+    await openLegend(page);
     await expect(legend(page)).toContainText('Clean stone with a stake');
 
     // Clicking the new stone selects the ghost's grave.
@@ -193,7 +207,6 @@ test.describe('the scene after a pull request (this session only)', () => {
     await openScene(page, 'demo.oikosledger');
     const stone = unused[4]!;
     await openFake(page, 'file', stone.path, 'Bury');
-    await page.waitForTimeout(150);
-    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
+    expect(await frameWhenDrawn(page, stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 }); // the first frame drawn is the end
   });
 });
