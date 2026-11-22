@@ -47,11 +47,11 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 6.3 **Examples:** the two bodies from the design, exactly; a eulogy with `> ` and `**`; a name with `@`.
   - _Requirements: 2.3, 3.3, 5.3_
 
-- [ ] 7. Limits and redaction (`limits.ts`, `redact.ts`)
-  - [ ] 7.1 `Throttle` (3 a minute, 20 an hour, an injected clock, pruning, at most 10,000 keys).
-  - [ ] 7.2 `redact`: the token, and any `github_pat_` or `ghp_` string.
-  - [ ] 7.3 **P6 (pure part):** for random request times, exactly the requests over each rule are refused, with a correct `Retry-After`.
-  - [ ] 7.4 **P5 (pure part):** for random tokens embedded anywhere in random text, `redact` leaves none.
+- [x] 7. Limits and redaction (`limits.ts`, `redact.ts`)
+  - [x] 7.1 `Throttle` (3 a minute, 20 an hour, an injected clock, pruning, at most 10,000 keys).
+  - [x] 7.2 `redact`: the token, and any `github_pat_` or `ghp_` string.
+  - [x] 7.3 **P6 (pure part):** for random request times, exactly the requests over each rule are refused, with a correct `Retry-After`.
+  - [x] 7.4 **P5 (pure part):** for random tokens embedded anywhere in random text, `redact` leaves none.
   - **Run (checkpoint A):** `cd frontend && npm run typecheck && npm test`
   - _Requirements: 6.2, 7.2_
 
