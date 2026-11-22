@@ -309,6 +309,32 @@ test.describe('screenshots to judge by eye', () => {
     }
   });
 
+  // Bury and Resurrect spec, task 14: after a fake Bury, the mound and its stake; after a fake Resurrect, the new stone and its stake.
+  for (const [name, kind, verb, file] of [
+    ['demo.oikosledger', 'file', 'Bury', 'bury-mound'],
+    ['demo.spatialql', 'ghost', 'Resurrect', 'resurrect-stone'],
+  ] as const) {
+    test(file.replace('-', ' '), async ({ page }) => {
+      mkdirSync(OUT, { recursive: true });
+      await page.setViewportSize({ width: 1280, height: 720 });
+      const g = JSON.parse(readFileSync(fileURLToPath(new URL(`../public/graveyards/${name}.graveyard.json`, import.meta.url)), 'utf8')) as Graveyard;
+      const path = kind === 'file' ? g.files.filter((f) => f.unused)[5]!.path : g.ghosts[0]!.path;
+      await page.goto(`/?graveyard=${name}`);
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(800);
+      await page.evaluate((p) => window.repoInPeace!.flyTo(p), path);
+      await page.waitForTimeout(1800);
+      await page.evaluate(([k, p]) => window.repoInPeace!.select({ kind: k as 'file' | 'ghost', path: p! }), [kind, path]);
+      const panel = page.getByRole('complementary', { name: 'Selected grave' });
+      await panel.getByRole('button', { name: verb }).click();
+      await panel.getByRole('button', { name: 'Open pull request' }).click();
+      await panel.getByRole('link', { name: /^Pull request #\d+/ }).waitFor();
+      await page.waitForTimeout(2200);
+      await page.mouse.move(640, 8);
+      await page.screenshot({ path: `${OUT}${file}.png` });
+    });
+  }
+
   // Eulogies spec, task 12: a stone with its epitaph, from a copy of spatialql with eulogies, opened from disk.
   test('interface epitaph', async ({ page }) => {
     mkdirSync(OUT, { recursive: true });

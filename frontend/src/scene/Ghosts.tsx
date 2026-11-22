@@ -11,6 +11,7 @@ import { makeTagAtlas } from './ghost-tag-atlas';
 import { makeTagGeometry, makeTagMaterial } from './ghost-tag-material';
 import { useRimHighlight } from './highlight';
 import { noRaycast, placement } from './instances';
+import { currentOverrides, frameOf } from './pr-overrides';
 
 /**
  * The ghosts, three instanced meshes (three draw calls however many ghosts there are):
@@ -40,6 +41,9 @@ export function Ghosts({ model }: { model: SceneModel }) {
     const highlight = new THREE.InstancedBufferAttribute(new Float32Array(ghosts.length), 1);
     highlight.setUsage(THREE.DynamicDrawUsage);
     bodyGeometry.setAttribute('aHighlight', highlight);
+    const settle = new THREE.InstancedBufferAttribute(new Float32Array(ghosts.length), 1);
+    settle.setUsage(THREE.DynamicDrawUsage);
+    bodyGeometry.setAttribute('aSettle', settle);
     const bodyMaterial = makeGhostMaterial();
 
     const texts = tagAtlasTexts(ghosts.map((g) => g.ghost.path));
@@ -55,7 +59,7 @@ export function Ghosts({ model }: { model: SceneModel }) {
     poolGeometry.setAttribute('aPhase', phase());
     const poolMaterial = makePoolMaterial();
 
-    return { bodyGeometry, bodyMaterial, highlight, tagGeometry, tagMaterial, atlas, poolGeometry, poolMaterial };
+    return { bodyGeometry, bodyMaterial, highlight, settle, tagGeometry, tagMaterial, atlas, poolGeometry, poolMaterial };
   }, [ghosts]);
   useEffect(
     () => () => {
@@ -79,6 +83,36 @@ export function Ghosts({ model }: { model: SceneModel }) {
   }, [ghosts]);
 
   useRimHighlight(assets.highlight, model, 'ghost');
+  // Resurrect (bury-and-resurrect Req 10.2): the ghost settles to the ground and turns opaque; its tag and glow pool go at once (it no
+  // longer floats over anything); once the new stone stands (RisenStones.tsx), the ghost is gone.
+  const shown = useRef(new Map<number, string>());
+  useFrame(() => {
+    const values = assets.settle.array as Float32Array;
+    let changed = false;
+    let moved = false;
+    for (const o of currentOverrides(model)) {
+      if (o.kind !== 'risen') continue;
+      const frame = frameOf(o);
+      if (frame.kind !== 'risen') continue;
+      if (values[o.index] !== frame.settle) {
+        values[o.index] = frame.settle;
+        changed = true;
+      }
+      const state = frame.solid >= 0.5 ? 'gone' : frame.settle > 0 ? 'settling' : 'floating';
+      if (shown.current.get(o.index) === state) continue;
+      shown.current.set(o.index, state);
+      const { layout } = ghosts[o.index]!;
+      const bodyScale = state === 'gone' ? 0 : 1;
+      const extrasScale = state === 'floating' ? 1 : 0;
+      body.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, bodyScale, bodyScale, bodyScale));
+      tags.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, extrasScale, extrasScale, extrasScale));
+      pools.current?.setMatrixAt(o.index, placement(layout.x, 0, layout.z, extrasScale, extrasScale, extrasScale));
+      moved = true;
+    }
+    if (changed) assets.settle.needsUpdate = true;
+    if (moved) for (const mesh of [body.current, tags.current, pools.current]) if (mesh) mesh.instanceMatrix.needsUpdate = true;
+  });
+
   useFrame(({ clock }) => {
     const t = animationTime(clock.elapsedTime);
     assets.bodyMaterial.uniforms.uTime.value = t;

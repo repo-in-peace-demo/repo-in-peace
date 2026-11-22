@@ -1,6 +1,8 @@
 import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
 import { freezeAnimation, freezeAnimationAt, isReducedMotion, resumeAnimation } from './animation-clock';
+import { prSceneDebug, type OverrideFrame } from './pr-overrides';
+import { getPrSession } from '../store/pr-store';
 import { engravingDebug } from './engraving-atlas';
 import { atlasDebug } from './ghost-tag-atlas';
 import { horizonDebug } from './Horizon';
@@ -30,6 +32,10 @@ export interface RepoInPeaceDevApi {
   isReducedMotion: () => boolean;
   /** For each ghost-tag text, how many pixels of its cell of the atlas are lit: shows that the text was drawn. */
   getGhostTagAtlas: () => Record<string, number>;
+  /** This session's pull requests, by grave ("file:<path>" or "ghost:<path>"). */
+  getPullRequests: () => Record<string, { action: string; number: number; existing: boolean }>;
+  /** Where an overridden grave is in its Bury or Resurrect animation, as last drawn; null when it has none. */
+  getOverrideFrame: (path: string) => OverrideFrame | null;
   /** Where the camera is and what it looks at, right now. */
   getPose: () => CameraPose;
   /** The page position (in pixels) of the middle of the stone or ghost with this path, or `null` when it is behind the camera or unknown. */
@@ -85,6 +91,8 @@ export function installDevApi(
   const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getRenderInfo, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }),
     getViewShift,
     setPose,
+    getPullRequests: () => Object.fromEntries([...getPrSession().prs].map(([k, p]) => [k, { action: p.action, number: p.number, existing: p.existing }])),
+    getOverrideFrame: (path) => prSceneDebug.frames.get(path) ?? null,
     getEngravingAtlas: () => ({ ...engravingDebug.litPixels }),
     getSignFade: () => Object.fromEntries(signFade.alpha),
     getObstructionFade: () => ({ stones: Object.fromEntries(obstruction.alpha.stones), fences: Object.fromEntries(obstruction.alpha.fences) }),

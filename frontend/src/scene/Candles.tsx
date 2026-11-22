@@ -9,6 +9,7 @@ import { animationTime } from './animation-clock';
 import { EFFECT_COLORS } from './colors';
 import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
 import { noRaycast, placement } from './instances';
+import { currentOverrides, frameOf } from './pr-overrides';
 
 /**
  * A lit candle for every hot stone (requirement 5.4): two instanced meshes, so two draw calls however many there are.
@@ -148,8 +149,25 @@ export function Candles({ model }: { model: SceneModel }) {
     }
   }, [spots]);
 
+  // A buried stone's candle goes down with it (bury-and-resurrect Req 10.1), and its glow with it.
+  const spotOf = useMemo(() => new Map(spots.map((s, i) => [s.path, i])), [spots]);
+  const sunk = useRef(new Map<number, number>());
   useFrame(({ clock }) => {
     assets.uniforms.uTime.value = animationTime(clock.elapsedTime);
+    let moved = false;
+    for (const o of currentOverrides(model)) {
+      const i = o.kind === 'buried' ? spotOf.get(o.path) : undefined;
+      if (i === undefined) continue;
+      const frame = frameOf(o);
+      if (frame.kind !== 'buried' || sunk.current.get(i) === frame.sink) continue;
+      sunk.current.set(i, frame.sink);
+      const spot = spots[i]!;
+      // Below the ground at the end, and hidden there (the glow quad is drawn over everything, so it must also shrink to nothing).
+      const scale = frame.sink >= 1 ? 0 : 1;
+      for (const mesh of [wax.current, flame.current]) mesh?.setMatrixAt(i, placement(spot.x, -frame.sink * 1.2, spot.z, scale, scale, scale));
+      moved = true;
+    }
+    if (moved) for (const mesh of [wax.current, flame.current]) if (mesh) mesh.instanceMatrix.needsUpdate = true;
   });
 
   if (spots.length === 0) return null;

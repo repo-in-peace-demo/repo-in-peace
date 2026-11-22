@@ -4,6 +4,7 @@ import type { Mesh } from 'three';
 import type { SceneModel } from '../model/scene-model';
 import { selectionRingHeight } from '../model/selection-ring';
 import { useSelection } from '../store/selection-store';
+import { graveKey, usePrSession } from '../store/pr-store';
 import { animationTime } from './animation-clock';
 import { SELECTION_RING_COLOR } from './colors';
 import { noRaycast } from './instances';
@@ -24,7 +25,10 @@ export function SelectionRing({ model }: { model: SceneModel }) {
   const ref = useRef<Mesh>(null);
   const entry = selection === null ? undefined : model.lookup.get(selection.path);
   const valid = selection !== null && entry !== undefined && entry.kind === selection.kind;
-  const ghost = valid && entry.kind === 'ghost' ? model.ghosts[entry.index] : undefined;
+  // A resurrected ghost stands on the ground now, as a stone: its ring lies on the ground too.
+  const { prs } = usePrSession();
+  const risen = valid && entry.kind === 'ghost' && prs.get(graveKey('ghost', selection.path))?.action === 'resurrect';
+  const ghost = valid && entry.kind === 'ghost' && !risen ? model.ghosts[entry.index] : undefined;
   const at = !valid ? undefined : entry.kind === 'file' ? model.stones[entry.index]!.layout : model.ghosts[entry.index]!.layout;
 
   useFrame(({ clock }) => {

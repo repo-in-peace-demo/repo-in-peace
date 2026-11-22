@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
 import { expect, test, type Page } from './fixtures';
+import { risenHeight } from '../src/model/pr-scene';
+import { buildSceneModel } from '../src/model/scene-model';
 
 /**
  * Bury and Resurrect in the real app (bury-and-resurrect spec, task 13). The dev server runs the PR function with fake pull requests
@@ -134,4 +136,64 @@ test('when the PR function can\'t be reached, the buttons stay disabled with the
   await select(page, 'ghost', spatialql.ghosts[1]!.path);
   await expect(panel(page).getByRole('button', { name: 'Resurrect' })).toHaveAttribute('aria-disabled', 'true');
   await expect(panel(page)).toContainText("Pull requests aren't available right now.");
+});
+
+test.describe('the scene after a pull request (this session only)', () => {
+  const legend = (page: Page) => page.getByRole('region', { name: 'Pull requests (this session)' });
+
+  async function openFake(page: Page, kind: 'file' | 'ghost', path: string, verb: 'Bury' | 'Resurrect'): Promise<void> {
+    await select(page, kind, path);
+    await panel(page).getByRole('button', { name: verb }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+    await expect(panel(page).getByRole('link', { name: /^Pull request #\d+/ })).toBeVisible();
+  }
+
+  test('a buried stone sinks and a mound rises over about 1.5 s; the legend explains it; a reload restores the stone', async ({ page }) => {
+    const stone = unused[3]!;
+    await openScene(page, 'demo.oikosledger');
+    await openFake(page, 'file', stone.path, 'Bury');
+    const early = await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path);
+    expect(early).toMatchObject({ kind: 'buried' });
+    expect((early as { sink: number }).sink).toBeLessThan(1);
+    await page.waitForTimeout(2000);
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
+    await page.evaluate(() => window.repoInPeace!.clearSelection()); // the legend shows while the details are closed
+    await expect(legend(page)).toContainText('Fresh earth with a stake');
+    await expect(legend(page)).not.toContainText('Clean stone');
+    expect(Object.values(await page.evaluate(() => window.repoInPeace!.getPullRequests()))).toEqual([expect.objectContaining({ action: 'bury' })]);
+
+    await openScene(page, 'demo.oikosledger');
+    expect(await page.evaluate(() => window.repoInPeace!.getPullRequests())).toEqual({});
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toBeNull();
+    await expect(legend(page)).toHaveCount(0);
+  });
+
+  test('a resurrected ghost settles and becomes a stone; it can still be selected there', async ({ page }) => {
+    const ghost = spatialql.ghosts[1]!;
+    await openScene(page, 'demo.spatialql');
+    await openFake(page, 'ghost', ghost.path, 'Resurrect');
+    await page.waitForTimeout(2000);
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), ghost.path)).toEqual({ kind: 'risen', settle: 1, solid: 1 });
+    await page.evaluate(() => window.repoInPeace!.clearSelection());
+    await expect(legend(page)).toContainText('Clean stone with a stake');
+
+    // Clicking the new stone selects the ghost's grave.
+    await page.evaluate((p) => window.repoInPeace!.flyTo(p), ghost.path);
+    await page.waitForTimeout(1800);
+    const model = buildSceneModel(spatialql);
+    const at = model.ghosts.find((g) => g.ghost.path === ghost.path)!.layout;
+    await page.evaluate(() => window.repoInPeace!.clearSelection());
+    const middle = (await page.evaluate(([x, y, z]) => window.repoInPeace!.projectPoint(x!, y!, z!), [at.x, risenHeight(model) / 2, at.z]))!;
+    await page.mouse.click(middle.x, middle.y);
+    expect(await page.evaluate(() => window.repoInPeace!.getSelection())).toEqual({ kind: 'ghost', path: ghost.path });
+  });
+
+  test('under reduced motion both change at once', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openScene(page, 'demo.oikosledger');
+    const stone = unused[4]!;
+    await openFake(page, 'file', stone.path, 'Bury');
+    await page.waitForTimeout(150);
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
+  });
 });

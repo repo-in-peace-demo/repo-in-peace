@@ -18,6 +18,8 @@ import { SelectionRing } from './SelectionRing';
 import { SignDriver } from './SignDriver';
 import { SignLayer } from '../ui/SignLayer';
 import { Ghosts } from './Ghosts';
+import { PrMarkers } from './PrMarkers';
+import { RisenStones } from './RisenStones';
 import { Stones } from './Stones';
 
 /** Development builds only: measures each frame for the performance overlay. Null, and not in the bundle, in production. */
@@ -54,6 +56,8 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Stones model={model} />
         <Candles model={model} />
         <Ghosts model={model} />
+        <RisenStones model={model} />
+        <PrMarkers model={model} />
         <Mist model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />

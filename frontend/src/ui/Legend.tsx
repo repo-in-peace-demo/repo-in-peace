@@ -3,13 +3,19 @@ import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
 import { useYieldsTo } from '../store/detail-side-store';
 import { clearSelection } from '../store/selection-store';
 import type { Legend as LegendModel } from '../model/legend';
+import { overridesOf, prLegendLines } from '../model/pr-scene';
+import type { SceneModel } from '../model/scene-model';
+import { usePrSession } from '../store/pr-store';
 
 /**
  * What each look means, grouped by dimension in the same groups as the stats panel, with the real thresholds of this data file, and
  * the snapshot the ages are measured from.
  * Top right. The swatches are small stand-ins for the effects. The heading button collapses the legend.
  */
-export function Legend({ legend }: { legend: LegendModel }) {
+export function Legend({ legend, lookup }: { legend: LegendModel; lookup: SceneModel['lookup'] }) {
+  // What this session's pull requests show in the scene, while any is shown (bury-and-resurrect Req 10.6).
+  const { prs } = usePrSession();
+  const prLines = prLegendLines(overridesOf({ lookup }, prs));
   const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
   // While the detail panel is on the right, the legend shows only its header bar; its own open state is kept for when it closes.
   const yielded = useYieldsTo('right');
@@ -47,6 +53,22 @@ export function Legend({ legend }: { legend: LegendModel }) {
               </ul>
             </section>
           ))}
+          {prLines.length > 0 && (
+            <section className="legend-group" aria-label="Pull requests (this session)">
+              <h3 className="legend-group-title">Pull requests (this session)</h3>
+              <ul>
+                {prLines.map((line) => (
+                  <li key={line.id}>
+                    <span className={`swatch swatch-${line.id}`} aria-hidden="true" />
+                    <div>
+                      <strong>{line.title}</strong>
+                      <span className="legend-text">{line.text}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       )}
     </section>

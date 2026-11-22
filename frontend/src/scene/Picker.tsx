@@ -12,6 +12,8 @@ import {
   type PointerSample,
 } from '../model/pointer-gesture';
 import { pickNearest, type PickTarget } from '../model/pick';
+import { overridesOf, pickTargetsWith } from '../model/pr-scene';
+import { usePrSession } from '../store/pr-store';
 import { clickAction, escapeAction, type SelectionAction } from '../model/selection-actions';
 import type { SceneModel } from '../model/scene-model';
 import { vec3 } from '../model/vec3';
@@ -50,7 +52,9 @@ export function Picker({ model }: { model: SceneModel }) {
   const pending = useRef<{ x: number; y: number } | null>(null);
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const ndc = useMemo(() => new THREE.Vector2(), []);
-  const targets = model.pickTargets;
+  // A buried stone is found at its mound, a resurrected ghost at its new stone (bury-and-resurrect Req 10.5).
+  const { prs } = usePrSession();
+  const targets = useMemo(() => pickTargetsWith(model, overridesOf(model, prs)), [model, prs]);
 
   const pickAt = useRef<(x: number, y: number) => PickTarget | undefined>(() => undefined);
   pickAt.current = (clientX, clientY) => {

@@ -210,7 +210,7 @@ function Scene({ model, source, onBack }: { model: SceneModel; source: Source; o
     <>
       <SceneCanvas model={model} />
       <StatsPanel meta={model.graveyard.meta} stats={model.stats} />
-      <Legend legend={model.legend} />
+      <Legend legend={model.legend} lookup={model.lookup} />
       <ControlsPanel onBack={onBack} />
       <SearchBox model={model} />
       <ListView model={model} />

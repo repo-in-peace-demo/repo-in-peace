@@ -12,6 +12,7 @@ import { obstruction } from './obstruction-state';
 import { makeStoneMaterial } from './stone-material';
 import { makeTombstoneGeometry } from './tombstone-geometry';
 import { noRaycast, placement } from './instances';
+import { currentOverrides, frameOf } from './pr-overrides';
 
 /**
  * The tombstones: one instanced mesh, one draw call. Each instance has its position and, for an ancient stone, its
@@ -68,6 +69,26 @@ export function Stones({ model }: { model: SceneModel }) {
   useRimHighlight(assets.highlight, model, 'file');
   // Stones in front of the grave in focus fade out of the way, and back in when the focus moves on (scene/Obstructions.tsx).
   const paths = useMemo(() => stones.map((st) => st.file.path), [stones]);
+  // Bury (bury-and-resurrect Req 10.1): a buried stone sinks below the ground with its moss, cracks and glow (all in this mesh).
+  const sunk = useRef(new Map<number, number>());
+  const turn = useMemo(() => new THREE.Quaternion(), []);
+  useFrame(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    let moved = false;
+    for (const o of currentOverrides(model)) {
+      if (o.kind !== 'buried') continue;
+      const frame = frameOf(o);
+      if (frame.kind !== 'buried' || sunk.current.get(o.index) === frame.sink) continue;
+      sunk.current.set(o.index, frame.sink);
+      const { layout, visual } = stones[o.index]!;
+      const q = leanQuaternion(visual.leanDegrees, visual.leanDirection);
+      turn.set(q.x, q.y, q.z, q.w);
+      mesh.setMatrixAt(o.index, placement(layout.x, -frame.sink * (layout.height + 0.4), layout.z, 1, 1, 1, turn));
+      moved = true;
+    }
+    if (moved) mesh.instanceMatrix.needsUpdate = true;
+  });
   useFrame(({ clock }, delta) => {
     assets.uniforms.uTime.value = animationTime(clock.elapsedTime);
     const alphas = assets.fade.array as Float32Array;

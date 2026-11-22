@@ -12,7 +12,8 @@ import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from '
  *   - the hem, cut like curly braces (`hemHeight`, repeated in GLSL below);
  *   - two eye holes on the side that faces +z, the camera's default direction;
  *   - a bright line along the cut edge, so the braces can be seen.
- * Per instance: `aPhase` (where in its bob it is) and `aHighlight` (0 nothing, 0.5 hover, 1 selected).
+ * Per instance: `aPhase` (where in its bob it is), `aHighlight` (0 nothing, 0.5 hover, 1 selected) and `aSettle` (0 floating as
+ * always; 1 come down to the ground, still and opaque, for a ghost being resurrected: bury-and-resurrect Req 10.2).
  *
  * The bob is `floatAmplitude × sin(floatSpeed × time + phase)` around the float base: the same formula as
  * `ghostBaseHeight` in model/ghost-motion.ts, which the selection ring follows (a browser test compares them). The sway is
@@ -27,6 +28,8 @@ const VERTEX = /* glsl */ `
 ${FOG_VERTEX_PARS}
 attribute float aPhase;
 attribute float aHighlight;
+attribute float aSettle;
+varying float vSettle;
 uniform float uTime;
 uniform float uBase;
 uniform float uAmplitude;
@@ -43,6 +46,8 @@ varying float vHighlight;
 void main() {
   vLocal = position;
   vHighlight = aHighlight;
+  vSettle = aSettle;
+  float drift = 1.0 - aSettle;
 
   // The lower body drifts sideways like cloth, the more the nearer the hem.
   float h = clamp(position.y / uHeight, 0.0, 1.0);
@@ -57,9 +62,9 @@ void main() {
   vec2 outward = normalize(position.xz + vec2(0.00001, 0.0));
   p.xz += outward * (uCurl * nearTip * low * low);
 
-  p.x += uSway * loose * sin(uTime * 1.3 + aPhase + position.y * 3.0 + angle * 2.0);
-  p.z += uSway * loose * cos(uTime * 1.1 + aPhase * 1.3 + position.y * 2.5 + angle * 3.0);
-  p.y += uBase + uAmplitude * sin(uSpeed * uTime + aPhase);
+  p.x += drift * uSway * loose * sin(uTime * 1.3 + aPhase + position.y * 3.0 + angle * 2.0);
+  p.z += drift * uSway * loose * cos(uTime * 1.1 + aPhase * 1.3 + position.y * 2.5 + angle * 3.0);
+  p.y += drift * (uBase + uAmplitude * sin(uSpeed * uTime + aPhase));
 
   vec4 world = modelMatrix * instanceMatrix * vec4(p, 1.0);
   vec4 viewPosition = viewMatrix * world;
@@ -85,6 +90,7 @@ varying vec3 vNormal;
 varying vec3 vViewDir;
 varying vec3 vLocal;
 varying float vHighlight;
+varying float vSettle;
 
 // The height of the hem's edge along one brace, for u from 0 to 1: the same formula as hemHeight in model/ghost-shape.ts.
 float hemHeight(float u) {
@@ -125,6 +131,8 @@ void main() {
     alpha = max(alpha, edge * 0.5);
   }
 
+  // Settling: turning opaque on the way down.
+  alpha = mix(alpha, 1.0, vSettle);
   gl_FragColor = vec4(colour, alpha * fogVisibility());
   #include <colorspace_fragment>
 }
