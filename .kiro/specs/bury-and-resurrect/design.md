@@ -317,14 +317,15 @@ For each demo's source repository (`oikos_ledger` and `spatialql`):
    git clone https://github.com/repo-in-peace-demo/oikos_ledger.git /tmp/oikos-fork && cd /tmp/oikos-fork
    git remote -v
    ```
-   **Check before pushing:** both `origin` lines must read `https://github.com/repo-in-peace-demo/oikos_ledger.git` (fetch and push). If either names any other owner (your own account, the source repository), **stop**: you would be rewriting the wrong repository. The push below also refuses by itself unless `origin` is in `repo-in-peace-demo`:
+   **Check before pushing:** both `origin` lines must read `https://github.com/repo-in-peace-demo/oikos_ledger.git` (fetch and push). If either names anything else (your own account, the source repository, **or the other demo's fork**), **stop**: you would be rewriting the wrong repository. The push below refuses by itself unless `origin` is exactly this fork and the snapshot commit is present. (Changed after setup: the first guard checked only the organisation, and a spatialql push run in the oikos clone moved the oikos fork's `main` to spatialql's snapshot.)
    ```
-   git remote get-url --push origin | grep -q '^https://github.com/repo-in-peace-demo/' \
+   [ "$(git remote get-url --push origin)" = "https://github.com/repo-in-peace-demo/oikos_ledger.git" ] \
      && git cat-file -e '58b6eeeb6aa911e66bd29827016cfc98359b83c4^{commit}' \
      && git push --force origin 58b6eeeb6aa911e66bd29827016cfc98359b83c4:refs/heads/main \
-     || echo "Stopped: origin is not the repo-in-peace-demo fork, or the snapshot commit is missing."
+     || echo "Stopped: wrong remote, or the oikos snapshot commit is missing."
    ```
-   Then the same for spatialql (`/tmp/spatialql-fork`, `c2d92f7b915abd8ddc3cf350e293d8896f317b3a`, and its base branch in place of `main`).
+   If the snapshot commit is missing (the fork was copied from a branch that no longer contains it), fetch it from the clone you analysed first: `git fetch <analysed clone> 58b6eeeb6aa911e66bd29827016cfc98359b83c4`.
+   Then the same for spatialql, in its own clone (`/tmp/spatialql-fork`), with `https://github.com/repo-in-peace-demo/spatialql.git`, `c2d92f7b915abd8ddc3cf350e293d8896f317b3a`, and its base branch in place of `main`. Check both afterwards: `git ls-remote https://github.com/repo-in-peace-demo/<fork>.git refs/heads/main` must print that fork's own snapshot SHA.
 
 ### 3. The token
 
