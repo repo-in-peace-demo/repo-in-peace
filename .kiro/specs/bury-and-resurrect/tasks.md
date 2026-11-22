@@ -20,10 +20,10 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 2: The pure server logic (`frontend/server/pr/`)
 
-- [ ] 2. Configuration and requests (`config.ts`, `request.ts`)
-  - [ ] 2.1 `readConfig`: `GITHUB_TOKEN`, `RIP_DEMOS` (validated: names, `owner/repo`, branch names), `RIP_PR_CAP`, mode. Malformed configuration is a problem that names the entry, never the token.
-  - [ ] 2.2 `parseRequest`: `graveyard`, `action`, `path` with their types and lengths; other fields ignored.
-  - [ ] 2.3 **Examples:** valid and broken `RIP_DEMOS`; bodies with missing, extra and wrong-typed fields.
+- [x] 2. Configuration and requests (`config.ts`, `request.ts`)
+  - [x] 2.1 `readConfig`: `GITHUB_TOKEN`, `RIP_DEMOS` (validated: names, `owner/repo`, branch names), `RIP_PR_CAP`, mode. Malformed configuration is a problem that names the entry, never the token.
+  - [x] 2.2 `parseRequest`: `graveyard`, `action`, `path` with their types and lengths; other fields ignored.
+  - [x] 2.3 **Examples:** valid and broken `RIP_DEMOS`; bodies with missing, extra and wrong-typed fields.
   - _Requirements: 1.1, 5.1, 7.3_
 
 - [ ] 3. The check against the data file (`check.ts`)

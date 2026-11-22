@@ -15,6 +15,7 @@ session store (pr-store) ─▶ list marker, panel link, scene overrides (sink +
 
 - **One function**, `frontend/api/pr.ts`, exporting Web-standard `GET` and `POST` handlers (Vercel's Node runtime; no dependency). It is thin: it reads the environment and calls `handlePr` in `frontend/server/pr/handler.ts`, which takes everything it needs as arguments, so tests call it directly with `Request` objects and a fake GitHub.
 - **Pure logic** lives in `frontend/server/pr/` (outside `api/`, so Vercel doesn't make each file a function): request parsing, the check against the data file, branch names, the tree change, the pull request text, the limits. Each has fast-check tests beside it.
+- **Imports:** server code imports `shared/` and `src/` by relative paths, never through the `@shared` alias, because Vercel's function bundler doesn't apply tsconfig path mappings (found while building task 2).
 - **I/O at the edge:** the GitHub client (`github.ts`, Node's `fetch`), reading the demo data file (`graveyards.ts`), and the handler.
 - **Local development:** a Vite dev plugin (`vite-plugins/api-dev.ts`) routes `/api/pr` (and the dev-only `/api/fake-pr/<n>` page) to the same `handlePr`, so `npm run dev` and the e2e tests run the real function code. `vercel dev` works too.
 - **Frontend:** a client (`ui/pr-client.ts`), a session store (`store/pr-store.ts`), a pure scene-override model (`model/pr-scene.ts`), and changes to the detail panel, list, hover label, legend and scene.
