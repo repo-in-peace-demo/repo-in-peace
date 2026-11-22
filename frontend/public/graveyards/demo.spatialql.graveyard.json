@@ -11,7 +11,8 @@
       "decayCapDays": 60,
       "hotCommits": 5,
       "hotWindowDays": 30
-    }
+    },
+    "eulogyModel": "qwen2.5:7b"
   },
   "folders": [
     {
@@ -39,7 +40,7 @@
       "decayScore": 0.0333,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn dawn breaks, and the tests of anchor settling stand watch. The layout hides, then fades in as tracking finds its place."
     },
     {
       "path": "src/anchor-settle.ts",
@@ -52,7 +53,7 @@
       "decayScore": 0.0333,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Awaits the stillness of the gaze, ensuring the layout finds its true place. Still evolving, still essential."
     },
     {
       "path": "src/assets.ts",
@@ -65,7 +66,7 @@
       "decayScore": 0.64,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Here lies assets.ts, once full of promise but now unused. Laid to rest six days ago, its contributions forgotten in the night of the code graveyard."
     },
     {
       "path": "src/band-arc.ts",
@@ -78,7 +79,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning light reveals the arc's subtle dance, its place in the band's layout preserved. It watches over the graveyard, ever vigilant."
     },
     {
       "path": "src/build-queue.test.ts",
@@ -91,7 +92,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the pending builds, ensuring they run in the right order. Still active and testing the queue's reliability."
     },
     {
       "path": "src/build-queue.ts",
@@ -117,7 +118,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Watches over the puzzle card's text sizes and width, ensuring every line fits just right. Keeps an eye on word-wrap limits and headline scales, a vigilant guardian of readability."
     },
     {
       "path": "src/challenge-debug.ts",
@@ -130,7 +131,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Live on, debugging the challenges. Your keys guide the lost, your logs track the trials."
     },
     {
       "path": "src/challenge-mode.ts",
@@ -143,7 +144,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If this page could speak, it would say: \"Challenge mode lives on, ready to puzzle and play.\""
     },
     {
       "path": "src/challenge-start.ts",
@@ -156,7 +157,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If only I could speak, I'd say, \"Still watching over puzzles each day.\""
     },
     {
       "path": "src/challenge-system.ts",
@@ -169,7 +170,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Whispering of puzzles and tiles, always at work. Last changed 4 days ago, still a vital part of the challenge mode."
     },
     {
       "path": "src/challenge-view.ts",
@@ -182,7 +183,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "If only the puzzle card could speak, it would say, \"Still in play, still a part of the game.\""
     },
     {
       "path": "src/components.ts",
@@ -195,7 +196,7 @@
       "decayScore": 0.7267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Here lies components.ts, once full of promise, now at rest."
     },
     {
       "path": "src/contact-poke.ts",
@@ -208,7 +209,7 @@
       "decayScore": 0.0533,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If I could speak, I'd say \"Poked gently at the world, staying close to the surface. Still watching, still waiting for that perfect touch.\""
     },
     {
       "path": "src/data/band-arc.test.ts",
@@ -221,7 +222,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Tests the band arc's placement and unrolling, ensuring items stay at their correct height and orientation. Keeps watch over the coordinates, never letting them stray from their proper positions."
     },
     {
       "path": "src/data/bar-labels.test.ts",
@@ -234,7 +235,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Watches over the puzzle paths and ensures labels fit snugly. Keeps the hint and next steps clear for every tile."
     },
     {
       "path": "src/data/card-fit.test.ts",
@@ -247,7 +248,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Morning light casts its glow on the puzzle card, ensuring every line fits snugly within its bounds. The session clock above keeps a watchful eye, fitting just right."
     },
     {
       "path": "src/data/compare.test.ts",
@@ -260,7 +261,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still standing tall, though time has worn you down. You've watched over the data layers for many days, ensuring they match as they should."
     },
     {
       "path": "src/data/compare.ts",
@@ -273,7 +274,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Weathered code still standing, comparing results row by row, in challenge mode’s win check, long-serving and thorough."
     },
     {
       "path": "src/data/contact-poke.test.ts",
@@ -286,7 +287,7 @@
       "decayScore": 0.0533,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Poke tests awake, mapping fingertip journeys. Keep watch over the surface interactions, straight paths and sliding rejects."
     },
     {
       "path": "src/data/copy-glyphs.test.ts",
@@ -299,7 +300,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn morning brings its test suite to life, ensuring every glyph is in place and right."
     },
     {
       "path": "src/data/copy.ts",
@@ -312,7 +313,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "In the graveyard's night, a light still flickers. Puzzle texts live on, guiding players through the dark."
     },
     {
       "path": "src/data/daily-flow.test.ts",
@@ -325,7 +326,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Keeps watch over puzzle schedules and progress, ensuring the daily challenge is always ready. Last checked in just six days ago."
     },
     {
       "path": "src/data/daily-flow.ts",
@@ -338,7 +339,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Watches over the daily puzzle's place in a session, ensuring practice progresses and challenges are met. Keeps the streak alive with each solve."
     },
     {
       "path": "src/data/daily.test.ts",
@@ -364,7 +365,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still standing tall, though time has worn you down. Days and puzzles, you keep the calendar turning."
     },
     {
       "path": "src/data/datasets.test.ts",
@@ -377,7 +378,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still watching over the graveyard, ensuring every cell and header fits just right. Last puzzle solved 13 days ago."
     },
     {
       "path": "src/data/datasets.ts",
@@ -390,7 +391,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the challenge puzzles, ensuring no wrinkle goes untested. Keeps the datasets ready for the next player's quest."
     },
     {
       "path": "src/data/desk-session.test.ts",
@@ -416,7 +417,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over transitions and tables, ensuring puzzles play on the right desks. Last seen 13 days ago, still in the game."
     },
     {
       "path": "src/data/frame-rate.test.ts",
@@ -429,7 +430,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the preferred frame rates, ensuring smooth animations and responsive interactions."
     },
     {
       "path": "src/data/hand-pointer.test.ts",
@@ -442,7 +443,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Monitors hand positions and pinch states, ensuring the pointer stays active where it counts. Keeps an eye on drifts and freezes, ready to re-arm at a moment's notice."
     },
     {
       "path": "src/data/hint-gate.test.ts",
@@ -455,7 +456,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Tests the timing and behavior of the Hint gate, ensuring it responds correctly to presses and holds. Keeps the code alive with its vigilant checks."
     },
     {
       "path": "src/data/join-result.test.ts",
@@ -468,7 +469,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn's chill nips at the edges of this weathered test, still standing firm though its days grow stale. It watches over joins and ghosts, a long-standing sentinel in the data shadows."
     },
     {
       "path": "src/data/join-result.ts",
@@ -481,7 +482,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Relationships joined and results displayed with precision. Keeps the data flowing day by day."
     },
     {
       "path": "src/data/join-sql.test.ts",
@@ -494,7 +495,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn's breeze still stirs this weathered leaf, though silent since the summer's heat."
     },
     {
       "path": "src/data/join-sql.ts",
@@ -507,7 +508,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "The SQL join keyword and build function, steadfast in its role. Weathered by time but still relied upon."
     },
     {
       "path": "src/data/join-state.test.ts",
@@ -533,7 +534,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the join interaction's states, steadfast since 16 days ago. Still pure and testable, though time has weathered its edges."
     },
     {
       "path": "src/data/join.test.ts",
@@ -559,7 +560,7 @@
       "decayScore": 0.1333,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "At dawn of another quiet day, you stood steadfast in your role, though time had worn you thin. Your methods still hold their place in the fabric of our code, awaiting the SQL engine's return."
     },
     {
       "path": "src/data/key-tints.test.ts",
@@ -572,7 +573,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn's breeze whispers through the weathered test script, still standing guard, though its days of change are few."
     },
     {
       "path": "src/data/key-tints.ts",
@@ -585,7 +586,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "A long-standing sentinel of colour, steadfast and weathered. Last changed 19 days ago."
     },
     {
       "path": "src/data/null-poke.test.ts",
@@ -598,7 +599,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the graveyard's night, this test stands watch, ensuring NULL cells are not left to stray."
     },
     {
       "path": "src/data/progress.test.ts",
@@ -611,7 +612,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning has come again, and with it, the tests of progress remain vigilant. Still active after six days, keeping watch over the graveyard's code."
     },
     {
       "path": "src/data/progress.ts",
@@ -624,7 +625,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Keeps watch over device progress, solving puzzles and tracking streaks. Vital to the game's heart, ever-changing yet always needed."
     },
     {
       "path": "src/data/puzzle-checks.test.ts",
@@ -637,7 +638,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the puzzles, ensuring they meet their targets with strict tests. Still very much alive, changing and being used."
     },
     {
       "path": "src/data/puzzle-checks.ts",
@@ -650,7 +651,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the puzzles, ensuring every state is right or a trap well set. Last changed just shy of a fortnight ago."
     },
     {
       "path": "src/data/puzzle-session.test.ts",
@@ -663,7 +664,7 @@
       "decayScore": 0.0933,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "This file stands as a weathered sentinel, testing the puzzle session's journey through hints and challenges. Though unchanged for some time, it remains integral to the codebase, ensuring each step is correctly marked on the path to victory."
     },
     {
       "path": "src/data/puzzle-session.ts",
@@ -676,7 +677,7 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the graveyard at night, this file keeps watch, tracking hints and wins in the puzzle's grasp."
     },
     {
       "path": "src/data/puzzle-text.test.ts",
@@ -689,7 +690,7 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn morning brings its tests anew, ensuring clues and puzzles are true."
     },
     {
       "path": "src/data/puzzle-text.ts",
@@ -702,7 +703,7 @@
       "decayScore": 0.0933,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Guides the puzzle's voice through columns and joins, ensuring clarity for players. Weathered but steadfast in its role."
     },
     {
       "path": "src/data/puzzles.test.ts",
@@ -715,7 +716,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the puzzles, ensuring they solve correctly and fit within their constraints. Still active, though perhaps a bit restless lately."
     },
     {
       "path": "src/data/puzzles.ts",
@@ -728,7 +729,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Challenges alive, guiding solvers through datasets. Keeps the mind sharp with every query and hint."
     },
     {
       "path": "src/data/query.test.ts",
@@ -741,7 +742,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the quiet of night, its echo still lingers. A sentinel of tests, long weathered but steadfast."
     },
     {
       "path": "src/data/query.ts",
@@ -754,7 +755,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning light breaks as the query watches over the tables, ensuring every row finds its place. Last changed on a crisp autumn day, it keeps the join engine humming."
     },
     {
       "path": "src/data/reach-hint.test.ts",
@@ -767,7 +768,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the limits and steps of reach hints, ensuring they're clear and true. Keeps a close eye on control and slab distances, never silent in its vigilance."
     },
     {
       "path": "src/data/reach-path.test.ts",
@@ -780,7 +781,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Reach paths and more, keeping the codebase clear. Still at work, not yet resting."
     },
     {
       "path": "src/data/recenter-countdown.test.ts",
@@ -793,7 +794,7 @@
       "decayScore": 0.0467,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If I could speak, I'd say, \"Still ticking, still testing, keeping an eye on yaw.\""
     },
     {
       "path": "src/data/recenter-trigger.test.ts",
@@ -806,7 +807,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over recenter logic, ensuring the headset finds its place. Last checked 11 days ago."
     },
     {
       "path": "src/data/revealed.test.ts",
@@ -819,7 +820,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over puzzle progress, ensuring solved and revealed states are tracked with precision. Still active in the code graveyard, its tests remain vigilant."
     },
     {
       "path": "src/data/sample-data.ts",
@@ -832,7 +833,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Holds the weathered placeholder for customers and orders, long-standing yet still relied upon."
     },
     {
       "path": "src/data/table-names.test.ts",
@@ -845,7 +846,7 @@
       "decayScore": 0.0867,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the puzzles, ensuring every \"the X table\" in their text matches those in the datasets. Keeps a close eye on the SQL joins, making sure aliases and names align perfectly."
     },
     {
       "path": "src/data/types.ts",
@@ -858,7 +859,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still standing tall, though the days have grown stale, your types weathered yet still in use today."
     },
     {
       "path": "src/dataset-cache.ts",
@@ -871,7 +872,7 @@
       "decayScore": 0.0533,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still watching over the graveyard, keeping datasets fresh and ready. Last updated just eight days ago."
     },
     {
       "path": "src/debug-hud.ts",
@@ -884,7 +885,7 @@
       "decayScore": 0.0467,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Morning has brought new insights, debug-hud.ts still watches, still computes."
     },
     {
       "path": "src/debug-log-sink.ts",
@@ -897,7 +898,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still watching, still buffering. Every line logged, every batch sent."
     },
     {
       "path": "src/desk-bridge.ts",
@@ -910,7 +911,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Still watching over the graveyard, ensuring desks and slabs find their place. Last updated just nine days ago."
     },
     {
       "path": "src/desk-placement.ts",
@@ -923,7 +924,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "In the graveyard's night, this slab remains vigilant, guiding desks unseen, keeping watch."
     },
     {
       "path": "src/desk-shadow.ts",
@@ -936,7 +937,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the night's quiet watch, casts soft shadows on desks, ever vigilant, ever moving. Six days' rest, then back to duty, keeping the play space bright and clear."
     },
     {
       "path": "src/dev-flags.test.ts",
@@ -949,7 +950,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If I could speak, I'd say I've weathered many a test, still standing tall where tests are cast."
     },
     {
       "path": "src/dev-flags.ts",
@@ -962,7 +963,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning has brought a fresh change to the dev-flags, keeping watch over the graveyard with its 123 lines of code. It toggles features and shifts days, ensuring the development environment stays lively."
     },
     {
       "path": "src/dev-layout.ts",
@@ -975,7 +976,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the layout, alive and ever-changing. Last laid out nine days ago."
     },
     {
       "path": "src/dev-seated.ts",
@@ -988,7 +989,7 @@
       "decayScore": 0.12,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Weathered lines still serve their post, aligning emulated views as they should."
     },
     {
       "path": "src/frame-rate.ts",
@@ -1001,7 +1002,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still watching, still working. 72 Hz and counting."
     },
     {
       "path": "src/grab-debug.ts",
@@ -1014,7 +1015,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over hands and slabs, reporting on their squeezes and pinches. Weathered but still serving its purpose, though silent for days."
     },
     {
       "path": "src/grab-feedback.ts",
@@ -1027,7 +1028,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning light reveals the slab outline still vigilant, its ring ever watchful for a palm's approach. Nine days young, it keeps close watch over the tables."
     },
     {
       "path": "src/hand-pointer-math.ts",
@@ -1040,7 +1041,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Morning has brought another day for the hand pointer's math, keeping watch over the reach and rearm of gestures in the virtual space. Its rules remain sharp, guiding the smooth transition of rays and fingers."
     },
     {
       "path": "src/hint-gate.ts",
@@ -1053,7 +1054,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over quick taps and holds, ensuring hints flow like whispers between presses. Last updated ten days ago."
     },
     {
       "path": "src/index.ts",
@@ -1066,7 +1067,7 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "A lively guardian of the scene, always registering systems and watching over the virtual realm. Last updated just shy of a fortnight ago."
     },
     {
       "path": "src/join-bridge.ts",
@@ -1079,7 +1080,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Watches over the seamless integration between join and challenge systems, keeping the bridge strong and responsive."
     },
     {
       "path": "src/join-debug.ts",
@@ -1092,7 +1093,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Morning has brought another day to the debug join module, keeping watch over the graveyard with its keyboard shortcuts and log lines. Still active, still guiding the join flow behind the scenes."
     },
     {
       "path": "src/join-system.ts",
@@ -1105,7 +1106,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Keeps watch over the join snap, turning scene observations into events and animations. Still hot and active, driving the puzzle forward with every quick press."
     },
     {
       "path": "src/join-visuals.ts",
@@ -1118,7 +1119,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still watching, still working. Last updated 11 days ago, keeping the visuals alive."
     },
     {
       "path": "src/layout-anchor.test.ts",
@@ -1131,7 +1132,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Holds the layout anchor steady, tested to ensure the desk's gaze is true. Lives on, keeping an eye on placements and heads."
     },
     {
       "path": "src/layout-anchor.ts",
@@ -1144,7 +1145,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "The session layout anchor: guiding placements with steadfast precision, never swayed by head movement. Always setting the stage for where things go, from puzzle cards to reach banners."
     },
     {
       "path": "src/move-guard.test.ts",
@@ -1157,7 +1158,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If only stones could speak, this one would say: \"Still patrolling the perimeter, ensuring no unauthorized moves slip past.\""
     },
     {
       "path": "src/move-guard.ts",
@@ -1170,7 +1171,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the slabs, always on duty."
     },
     {
       "path": "src/pair-placement.test.ts",
@@ -1183,7 +1184,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the graveyard's night, this test stands watch, guiding placement, keeping the desk in its grasp."
     },
     {
       "path": "src/pair-placement.ts",
@@ -1209,7 +1210,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "A lively guardian of the welcome page, ensuring the puzzle picker and daily flow remain vibrant. Last updated just four days ago."
     },
     {
       "path": "src/pinch.ts",
@@ -1222,7 +1223,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning has brought new fixes to the pinch tests, ensuring fingers align just right. Still very much in use, keeping an eye on those delicate hand movements."
     },
     {
       "path": "src/placement-debug.ts",
@@ -1235,7 +1236,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "A live watch, a desk's guide, logs and lines where choices reside."
     },
     {
       "path": "src/press-dip.ts",
@@ -1248,7 +1249,7 @@
       "decayScore": 0.0533,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If I could speak, I'd say, \"Still watching, still working day by day.\""
     },
     {
       "path": "src/reach-banner.ts",
@@ -1261,7 +1262,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If only I could speak, I'd say, \"Still watching over the graveyard, day by day.\""
     },
     {
       "path": "src/reach-hint.ts",
@@ -1274,7 +1275,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over player reach, showing hints when needed. Last measured just nine days ago."
     },
     {
       "path": "src/reach-path.ts",
@@ -1287,7 +1288,7 @@
       "decayScore": 0.06,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Morning light finds it awake and vigilant, guarding paths where hands may reach, ever watchful."
     },
     {
       "path": "src/recenter-countdown.ts",
@@ -1300,7 +1301,7 @@
       "decayScore": 0.0467,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keep watch and count down, dear RecenterCountdown. Though brief, your role is vital in guiding the player's gaze."
     },
     {
       "path": "src/recenter-prompt.ts",
@@ -1313,7 +1314,7 @@
       "decayScore": 0.0333,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn morning. The Recenter button's prompt rises, guiding the gaze with a gentle ring and label, ensuring focus returns to the center."
     },
     {
       "path": "src/recenter-trigger.ts",
@@ -1326,7 +1327,7 @@
       "decayScore": 0.0733,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn morning, the air crisp as the RecenterTrigger keeps watch over the graveyard, ensuring slabs find their place once more."
     },
     {
       "path": "src/scene-census.ts",
@@ -1339,7 +1340,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the scene's vital signs, counting objects and meshes, tracing UIKit roots, and reporting on GPU usage—keeping the graveyard's health in check."
     },
     {
       "path": "src/session-clock.test.ts",
@@ -1352,7 +1353,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over time, ensuring it's formatted and tracked with precision. Still ticking, still testing the passage of moments."
     },
     {
       "path": "src/session-clock.ts",
@@ -1365,7 +1366,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Still ticking, keeping the time for sessions and puzzles alike. Six days since your last rest, always ready to start anew or pause when needed."
     },
     {
       "path": "src/slab-metrics.ts",
@@ -1378,7 +1379,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over slab layouts and text sizes, ensuring every cell fits just right. Watches over the graveyard with a steady hand."
     },
     {
       "path": "src/sound.ts",
@@ -1391,7 +1392,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "In the night, echoes of the Web Audio API still linger, though their source is unseen. Every tick and snap keeps watch over the graveyard, ensuring the soundscape remains vibrant."
     },
     {
       "path": "src/table-slab-component.ts",
@@ -1430,7 +1431,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "A steadfast guardian of text sizes, ever vigilant at 0.6 meters home. Still in the thick of it."
     },
     {
       "path": "src/touch-debug.ts",
@@ -1443,7 +1444,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the inner left control, puzzle bar, and result slab's NULL cells, logging every poke and pinch. Keeps a close eye, though it never changes a thing."
     },
     {
       "path": "src/touch-probe.ts",
@@ -1456,7 +1457,7 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the touch surfaces, logging every press and pinch. Keeps a vigilant eye on the control column and result slab."
     },
     {
       "path": "src/tween.ts",
@@ -1469,7 +1470,7 @@
       "decayScore": 0.1067,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "If only frames could still see the grace of your animations, dear TweenPool. Still in service after all these days, though your updates grow few."
     },
     {
       "path": "src/uikit-dispose.ts",
@@ -1482,7 +1483,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "In the graveyard's night, this file watches over the living, ensuring UIKit documents are released gently and in order. Keeps the peace, one component at a time."
     },
     {
       "path": "src/view-comfort.ts",
@@ -1495,7 +1496,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": true,
-      "eulogy": ""
+      "eulogy": "Autumn dawn breaks, and view-comfort.ts watches over the graveyard, its angles and distances keeping the virtual world in focus. 6 days young, it still casts its gaze far and wide."
     },
     {
       "path": "src/welcome-icons.ts",
@@ -1508,7 +1509,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Watches over the welcome page's warmth and approval, ever vigilant."
     },
     {
       "path": "src/welcome-layout.ts",
@@ -1521,7 +1522,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Autumn dawn breaks over the screen, revealing the welcome page's layout still standing strong. Six days pass, and it remains a vigilant sentinel, ensuring every visitor finds their way with clarity and warmth."
     },
     {
       "path": "src/welcome-page.ts",
@@ -1534,7 +1535,7 @@
       "decayScore": 0.0267,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "A lively guardian of the entrance, showing puzzles and progress with crisp clarity. Still in the thick of things, guiding puzzle pickers through their quests."
     },
     {
       "path": "src/xr-support.test.ts",
@@ -1547,7 +1548,7 @@
       "decayScore": 0.1133,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Tests the waters of browser detection, long and weathered yet still vigilant in its duties. Last refreshed 17 days past."
     },
     {
       "path": "src/xr-support.ts",
@@ -1560,7 +1561,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "A living guardian of browser compatibility, ensuring SpatialQL finds its place in every supported corner. Last updated just six days ago."
     },
     {
       "path": "vite.config.ts",
@@ -1573,7 +1574,7 @@
       "decayScore": 0.04,
       "decayState": "fresh",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Night watches over this living sentinel, guarding logs and code with every sentinel."
     },
     {
       "path": "vitest.config.ts",
@@ -1586,7 +1587,7 @@
       "decayScore": 0.1267,
       "decayState": "stale",
       "hot": false,
-      "eulogy": ""
+      "eulogy": "Keeps watch over pure TypeScript tests, untouched yet still vigilant."
     }
   ],
   "ghosts": [
@@ -1595,14 +1596,16 @@
       "deletedInSha": "24d42e290b02dcbf6371ef735e11076aa53f8e02",
       "deletedDate": "2026-10-12T21:23:46.000Z",
       "deletedBy": "sl2902",
-      "lastExistingSha": "d1078128ce1706467a482f2e5e4ee74584311ac5"
+      "lastExistingSha": "d1078128ce1706467a482f2e5e4ee74584311ac5",
+      "eulogy": "If I could speak now, my tests would still hold true. Gone but not forgotten, surface placement logic flew."
     },
     {
       "path": "src/surface-placement.ts",
       "deletedInSha": "24d42e290b02dcbf6371ef735e11076aa53f8e02",
       "deletedDate": "2026-10-12T21:23:46.000Z",
       "deletedBy": "sl2902",
-      "lastExistingSha": "d1078128ce1706467a482f2e5e4ee74584311ac5"
+      "lastExistingSha": "d1078128ce1706467a482f2e5e4ee74584311ac5",
+      "eulogy": "surface-placement.ts, keeper of slab placements, gone but not forgotten."
     }
   ]
 }
