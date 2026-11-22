@@ -179,23 +179,23 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 18.4 Tests: examples, the words that stay, and a property that any time sentence added to a eulogy is dropped.
   - _Requirements: 3.5, 4.1_
 
-- [ ] 14. **Final checkpoint** (yours to run)
+- [x] 14. **Final checkpoint** (yours to run)
   - [x] 14.1 **Run:**
     ```
     cd analyser && npm run typecheck && npm test
     cd ../frontend && npm run typecheck && npm test && npm run e2e
     ```
   - [x] 14.2 **Run:** install Ollama, pull a model, and regenerate both demo files with eulogies, with the commands I give when task 13 is done (I write them; you run them).
-  - [ ] 14.3 **Manual check:**
+  - [x] 14.3 **Manual check:**
     - open both demo files and read a few eulogies against the tone rules: two sentences, accurate, no author names, no code;
     - the credit names the model;
     - the summary's empty count is small;
     - a second run is fast (all from the cache) and gives the same file;
     - without `--eulogies`, and with `--analysed-at` set to the committed file's `meta.analysedAt`, the file is byte-identical to the one committed before this spec (`git diff` shows nothing).
-  - 14.3 so far:
+  - Results of 14.3:
     - [x] eulogies read against the tone rules after every run (tasks 15 to 18);
     - [x] the credit names the model (the detail-panel e2e check, on the real demo data);
     - [x] empty count: 25 of 251 (16 in oikos, 9 in spatialql);
     - [x] a second run gives the same file: spatialql twice into /tmp, `cmp` same; "0 written, 118 from the cache, 4 left empty" (empty eulogies are not cached, so those 4 were asked again and rejected again);
-    - [ ] without `--eulogies`, byte-identical to the file committed before this spec (`d848b01^`).
+    - [x] without `--eulogies`, byte-identical to the file committed before this spec (`d848b01^`): oikos with `--analysed-at 2026-11-19T15:15:20.926Z`, `cmp` printed byte-identical.
   - _Requirements: all_
