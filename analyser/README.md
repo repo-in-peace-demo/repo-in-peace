@@ -177,7 +177,7 @@ A progress line (`Eulogies: 40/251 (12 from the cache)`) appears at most once a 
 
 ### The cache
 
-New eulogies are saved in `analyser/.cache/eulogies.json` (ignored by git) every 25 eulogies and at the end. A second run on the same repository asks the model only about graves whose input changed, and writes the same file byte for byte. The key is a hash of the model, the prompt version, the cleaning-rules version and everything the model is shown, so changing the model, the file or its last commit subject writes that grave again, and a new analyser version with a changed prompt or new rules writes every grave again. One cache serves every repository and model.
+New eulogies are saved in `analyser/.cache/eulogies.json` (ignored by git) every 25 eulogies and at the end. A second run on the same repository asks the model only about graves whose input changed, and about graves left empty last time (empty eulogies are not cached, so they get another try), and writes the same file byte for byte as long as the model answers the same way (with its fixed seed it does). The key is a hash of the model, the prompt version, the cleaning-rules version and everything the model is shown, so changing the model, the file or its last commit subject writes that grave again, and a new analyser version with a changed prompt or new rules writes every grave again. One cache serves every repository and model.
 
 Delete the file to start again (`rm analyser/.cache/eulogies.json`). A damaged cache is reported and replaced. The model's sampling is fixed (temperature 0.2, seed 7), but a different Ollama version or machine can still word things differently, so keep the cache if you want the same words.
 
