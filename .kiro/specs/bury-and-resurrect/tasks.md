@@ -62,12 +62,12 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 8.2 Its own tests: a tree change and commit read back as GitHub would return them.
   - _Requirements: 11_
 
-- [ ] 9. The GitHub client and opening a pull request (`github.ts`, `open-pr.ts`)
-  - [ ] 9.1 `githubClient` (headers, the API version, a 15 s timeout, `GitHubError` kinds, messages from kinds only).
-  - [ ] 9.2 `openPullRequest`, the ten steps of the design, with the base-branch refusals (Req 2.4, 3.4), the cap, and the fallbacks at the branch and the pull request.
-  - [ ] 9.3 **P3 end to end:** the fake server's resulting commit differs from the base by exactly the one path.
-  - [ ] 9.4 **P4:** the same request repeated, and 2 to 8 at once: one `POST /pulls` succeeds and every answer has the same number. A closed earlier pull request leads to a new one on a force-updated branch.
-  - [ ] 9.5 **Examples:** Bury of a file gone from the base; Resurrect onto an existing path; a ghost whose blob the fork lacks; the cap reached (existing pull requests still returned); each injected GitHub failure gives its short message.
+- [x] 9. The GitHub client and opening a pull request (`github.ts`, `open-pr.ts`)
+  - [x] 9.1 `githubClient` (headers, the API version, a 15 s timeout, `GitHubError` kinds, messages from kinds only).
+  - [x] 9.2 `openPullRequest`, the ten steps of the design, with the base-branch refusals (Req 2.4, 3.4), the cap, and the fallbacks at the branch and the pull request.
+  - [x] 9.3 **P3 end to end:** the fake server's resulting commit differs from the base by exactly the one path.
+  - [x] 9.4 **P4:** the same request repeated, and 2 to 8 at once: one `POST /pulls` succeeds and every answer has the same number. A closed earlier pull request leads to a new one on a force-updated branch.
+  - [x] 9.5 **Examples:** Bury of a file gone from the base; Resurrect onto an existing path; a ghost whose blob the fork lacks; the cap reached (existing pull requests still returned); each injected GitHub failure gives its short message.
   - _Requirements: 2, 3, 4, 6.1, 6.3_
 
 - [ ] 10. The handler and the function (`graveyards.ts`, `handler.ts`, `api/pr.ts`)
