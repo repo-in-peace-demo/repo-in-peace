@@ -26,9 +26,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 2.3 **Examples:** valid and broken `RIP_DEMOS`; bodies with missing, extra and wrong-typed fields.
   - _Requirements: 1.1, 5.1, 7.3_
 
-- [ ] 3. The check against the data file (`check.ts`)
-  - [ ] 3.1 `checkAgainstGraveyard`: Bury only on unused current files, Resurrect only on ghosts; 404 and 409 messages from the design.
-  - [ ] 3.2 **P1 (pure part):** for random graveyards and paths (from the files, the ghosts and elsewhere), exactly the eligible combinations pass.
+- [x] 3. The check against the data file (`check.ts`)
+  - [x] 3.1 `checkAgainstGraveyard`: Bury only on unused current files, Resurrect only on ghosts; 404 and 409 messages from the design.
+  - [x] 3.2 **P1 (pure part):** for random graveyards and paths (from the files, the ghosts and elsewhere), exactly the eligible combinations pass.
   - _Requirements: 2.1, 3.1, 5.2_
 
 - [ ] 4. Branch names (`branch.ts`)
