@@ -36,9 +36,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 4.2 **P2:** deterministic; always valid; distinct for distinct paths (including paths differing only in case, separators or dropped characters) and for the two actions.
   - _Requirements: 4.2_
 
-- [ ] 5. The tree change (`tree-change.ts`)
-  - [ ] 5.1 `treeEntry` (Bury: `sha: null` with the existing mode; Resurrect: the original sha and mode) and `lookupPath` over a tree walker; `applyTreeChange` for the tests.
-  - [ ] 5.2 **P3:** over random base trees, Bury removes exactly the chosen path; Resurrect adds exactly one path with the ghost's original sha and mode. Resurrect is refused when the path, or a file at any parent folder's path, exists.
+- [x] 5. The tree change (`tree-change.ts`)
+  - [x] 5.1 `treeEntry` (Bury: `sha: null` with the existing mode; Resurrect: the original sha and mode) and `lookupPath` over a tree walker; `applyTreeChange` for the tests.
+  - [x] 5.2 **P3:** over random base trees, Bury removes exactly the chosen path; Resurrect adds exactly one path with the ghost's original sha and mode. Resurrect is refused when the path, or a file at any parent folder's path, exists.
   - _Requirements: 2.2, 2.4, 3.2, 3.4, 4.1_
 
 - [ ] 6. The pull request text (`pr-text.ts`)
