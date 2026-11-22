@@ -95,7 +95,7 @@ function checkAgainstGraveyard(g: Graveyard, action: Action, path: string): Elig
 { "functions": { "api/pr.ts": { "includeFiles": "public/graveyards/*.graveyard.json" } } }
 ```
 
-The function's working directory is the project root (`frontend/`) both on Vercel and in the Vite plugin.
+The reader finds the folder from its own file (`new URL('../../', import.meta.url)`), not the working directory: on Vercel the bundle keeps the repository's layout because the function imports `../shared`, so the working directory is above `frontend/` (the first deploy answered "can't read this demo's graveyard" for this reason).
 
 ## Opening a pull request (`server/pr/open-pr.ts`, P3, P4)
 

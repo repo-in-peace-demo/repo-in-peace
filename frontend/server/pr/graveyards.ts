@@ -4,6 +4,7 @@
  */
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { validateGraveyard, type Graveyard } from '../../../shared/graveyard-schema.js';
 import { GRAVEYARD_NAME_PATTERN } from '../../src/model/graveyard-load.js';
 
@@ -16,7 +17,13 @@ export class GraveyardUnavailable extends Error {
   }
 }
 
-export function graveyardReader(root: string = process.cwd()): { read: (name: string) => Promise<Graveyard>; list: () => Promise<string[]> } {
+/**
+ * The frontend folder, from this file's own place (server/pr/graveyards.ts), not the working directory: on Vercel the function's
+ * bundle keeps the repository's layout (it imports ../shared), so the working directory is above frontend/ there.
+ */
+export const FRONTEND_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+
+export function graveyardReader(root: string = FRONTEND_ROOT): { read: (name: string) => Promise<Graveyard>; list: () => Promise<string[]> } {
   const folder = join(root, 'public', 'graveyards');
   const cache = new Map<string, Promise<Graveyard>>();
   const load = async (name: string): Promise<Graveyard> => {
