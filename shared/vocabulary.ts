@@ -34,6 +34,9 @@ export const FACT_GROUPS: readonly FactGroup[] = [
 ];
 
 /** The note that age and usage are separate dimensions. */
+/** What a used file is, the counterpart of the Unused rule: the detail panel's Usage row for a file that is not unused. */
+export const USED_RULE = 'imported by other files in the project';
+
 export const INDEPENDENCE_NOTE = "A file's age and its usage are independent: a fresh file can be unused.";
 
 /** "1 day", "21 days" (and "1 commit", "5 commits"). */
@@ -41,7 +44,7 @@ const n = (count: number, one: string, many: string): string => `${count.toLocal
 
 /**
  * The rule for a fact, from the data file's thresholds, in the same words everywhere: "under 21 days", "21–45 days", "over 45 days",
- * "nothing imports it (Knip)", "5+ commits in the 30 days before the snapshot", "deleted files". The analyser's rule: fresh under
+ * "nothing in the project imports it (Knip)", "5+ commits in the 30 days before the snapshot", "deleted files". The analyser's rule: fresh under
  * `staleAfterDays`, stale from it up to and including `ancientAfterDays`, ancient above that.
  */
 export function factRule(id: FactId, t: Thresholds): string {
@@ -53,7 +56,7 @@ export function factRule(id: FactId, t: Thresholds): string {
     case 'ancient':
       return `over ${n(t.ancientAfterDays, 'day', 'days')}`;
     case 'unused':
-      return 'nothing imports it (Knip)';
+      return 'nothing in the project imports it (Knip)';
     case 'hot':
       return `${t.hotCommits.toLocaleString('en-US')}+ ${t.hotCommits === 1 ? 'commit' : 'commits'} in the ${n(t.hotWindowDays, 'day', 'days')} before the snapshot`;
     case 'ghost':

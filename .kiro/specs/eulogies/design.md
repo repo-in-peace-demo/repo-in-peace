@@ -73,7 +73,7 @@ function fileInput(file: FileEntry, history: FileHistory, thresholds: Thresholds
 function ghostInput(ghost: RawGhost, contents: Contents, people: People): EulogyInput;
 ```
 
-- **State and flags** come from the shared vocabulary: `Stale (21–45 days)`, `Unused (nothing imports it (Knip))`, `Hot (5+ commits in the 30 days before the snapshot)`.
+- **State and flags** come from the shared vocabulary: `Stale (21–45 days)`, `Unused (nothing in the project imports it (Knip))`, `Hot (5+ commits in the 30 days before the snapshot)`.
 - **Lines and day:** `lines` is the file's lines of code, and `deletedDay` is `YYYY-MM-DD` in UTC.
 - **Subject:** passed through `redact` first.
 

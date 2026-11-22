@@ -55,7 +55,7 @@ describe('statsRows', () => {
       'under 21 days',
       '21–45 days',
       'over 45 days',
-      'nothing imports it (Knip)',
+      'nothing in the project imports it (Knip)',
       '5+ commits in the 30 days before the snapshot',
       'deleted files',
     ]);

@@ -30,7 +30,7 @@ describe('buildLegend with thresholds 21 / 45 / 5 commits in 30 days (the oikos_
     expect(textOf(legend, 'fresh')).toBe('A clean, upright stone. Last changed under 21 days before the snapshot.');
     expect(textOf(legend, 'stale')).toBe('Moss creeping up, more with age. Last changed 21–45 days before the snapshot.');
     expect(textOf(legend, 'ancient')).toBe('Leaning and heavily overgrown. Last changed over 45 days before the snapshot.');
-    expect(textOf(legend, 'unused')).toBe('Cracks and a faint red glow, and RIP carved on it. Nothing imports it (Knip).');
+    expect(textOf(legend, 'unused')).toBe('Cracks and a faint red glow, and RIP carved on it. Nothing in the project imports it (Knip).');
     expect(textOf(legend, 'hot')).toBe('A lit candle at its foot. 5+ commits in the 30 days before the snapshot.');
     expect(textOf(legend, 'ghost')).toBe("A translucent floating figure; its tag shows the deleted file's type. Deleted files.");
     expect(textOf(legend, 'floor')).toBe('A folder nested deeper.');

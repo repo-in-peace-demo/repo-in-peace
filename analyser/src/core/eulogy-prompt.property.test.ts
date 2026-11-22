@@ -33,7 +33,7 @@ const SNAPSHOT = '2026-08-18T10:00:00.000Z'; // 20 days after the files' last co
 describe('the inputs', () => {
   it('describe a stone in the one vocabulary', () => {
     const input = fileInput(file(), history('drop the old voice hook'), T, text('export {};\n'), nobody, SNAPSHOT);
-    expect(input).toMatchObject({ kind: 'file', name: 'index.ts', state: 'Stale (21–45 days)', flags: ['Unused (nothing imports it (Knip))'], lines: 2, subject: 'drop the old voice hook' });
+    expect(input).toMatchObject({ kind: 'file', name: 'index.ts', state: 'Stale (21–45 days)', flags: ['Unused (nothing in the project imports it (Knip))'], lines: 2, subject: 'drop the old voice hook' });
     expect(fileInput(file({ unused: false, hot: true, decayState: 'fresh' }), history(''), T, text(''), nobody, SNAPSHOT)).toMatchObject({ state: 'Fresh (under 21 days)', flags: ['Hot (5+ commits in the 30 days before the snapshot)'] });
   });
 
@@ -49,7 +49,7 @@ describe('the prompt', () => {
     const { system, prompt } = buildPrompt(stone);
     expect(prompt).toContain('File: index.ts');
     expect(prompt).toContain('State: Stale (21–45 days)');
-    expect(prompt).toContain('Flags: Unused (nothing imports it (Knip))');
+    expect(prompt).toContain('Flags: Unused (nothing in the project imports it (Knip))');
     expect(prompt).toContain('Last change: drop the old voice hook');
     expect(prompt).toContain('<<<\nexport const voice = 1;\n\n>>>');
     expect(system).toMatch(/two sentences/);

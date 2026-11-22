@@ -2,6 +2,7 @@
 
 Ideas kept out of the current tasks on purpose. Each needs its own small spec before it is built.
 
+- **Importer list**: analyser builds a reverse-import map (TypeScript resolution or dependency-cruiser); data file gains `importedBy`; detail panel lists importers (first few + count), each clickable to flyTo; framework-loaded files (Next.js pages, routes, layouts) say "entry point (loaded by the framework)".
 - **Bats** crossing the sky now and then (task 24b.5 in `.kiro/specs/graveyard-scene/tasks.md`): one instanced mesh of 3 to 6, a wingspan of about 3 units, flapping in the vertex shader, hidden with reduced motion.
 - **Shooting stars**: a rare streak across the upper sky, never near the moon, none with reduced motion.
 - **Tree clusters with gaps** in the forest: groves and clearings instead of an even wall, without trees ever coming inside the camera's limits (`model/camera-bounds.ts`).

@@ -15,6 +15,7 @@ export {
   FACT_GROUPS,
   FACT_NAMES,
   INDEPENDENCE_NOTE,
+  USED_RULE,
   factNameOne,
   factRule,
   factRuleSentence,
@@ -23,7 +24,7 @@ export {
   type FactId,
   type GroupId,
 } from '@shared/vocabulary';
-import { FACT_NAMES, factNameOne, factRule, type FactId } from '@shared/vocabulary';
+import { FACT_NAMES, USED_RULE, factNameOne, factRule, type FactId } from '@shared/vocabulary';
 
 /** How each fact looks in the scene, for the legend. */
 export const FACT_LOOKS: Record<FactId, string> = {
@@ -72,7 +73,7 @@ export function hotDetail(file: FileEntry, meta: RepoMeta): string {
 }
 
 /** The detail panel's Usage row. */
-export const usageDetail = (file: FileEntry, meta: RepoMeta): string => (file.unused ? `${FACT_NAMES.unused}: ${factRule('unused', meta.thresholds)}` : 'Used: something imports it');
+export const usageDetail = (file: FileEntry, meta: RepoMeta): string => (file.unused ? `${FACT_NAMES.unused}: ${factRule('unused', meta.thresholds)}` : `Used: ${USED_RULE}`);
 
 /** A deleted file's type, as on its toe tag: ".ts", or "·" for a file with no extension. */
 export const fileType = (path: string): string => ghostTagText(path);

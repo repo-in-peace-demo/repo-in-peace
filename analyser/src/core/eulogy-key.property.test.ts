@@ -16,7 +16,7 @@ const inputArb: fc.Arbitrary<EulogyInput> = fc.oneof(
     path: fc.string({ minLength: 1, maxLength: 30 }),
     name: fc.string({ minLength: 1, maxLength: 12 }),
     state: fc.constantFrom('Fresh (under 21 days)', 'Stale (21–45 days)', 'Ancient (over 45 days)'),
-    flags: fc.subarray(['Unused (nothing imports it (Knip))', 'Hot (5+ commits in the 30 days before the snapshot)']),
+    flags: fc.subarray(['Unused (nothing in the project imports it (Knip))', 'Hot (5+ commits in the 30 days before the snapshot)']),
     lines: fc.nat(5000),
     subject: fc.string({ maxLength: 40 }),
     contents: contentsArb,
