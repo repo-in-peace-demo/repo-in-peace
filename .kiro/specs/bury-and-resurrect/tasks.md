@@ -120,7 +120,7 @@ Status key: `[x]` done, `[ ]` not started.
   - _Requirements: all_
 
 - [ ] 16. **Final checkpoint** (yours to run)
-  - [ ] 16.1 **Run:**
+  - [x] 16.1 **Run:**
     ```
     cd frontend && npm run typecheck && npm test && npm run e2e
     ```
