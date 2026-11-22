@@ -79,10 +79,11 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 10.6 **Examples:** production without a token (`GET` unavailable, `POST` 503); development without a token (fake numbers counting up, the same number again for a repeat); wrong content type, too large a body, a cross-site `Origin`.
   - _Requirements: 1.2, 5, 6, 7_
 
-- [ ] 11. Local development and the reset (`vite-plugins/api-dev.ts`, `scripts/reset-demo-prs.ts`)
-  - [ ] 11.1 The dev plugin: `/api/pr` to `handlePr` in development mode (reading `frontend/.env.local` through Vite's `loadEnv`, unprefixed), and the `/api/fake-pr/<n>` page.
-  - [ ] 11.2 The reset command, with `--dry-run`, tested against the fake server: it closes only `rip/` pull requests and deletes only `rip/` branches.
+- [x] 11. Local development and the reset (`vite-plugins/api-dev.ts`, `scripts/reset-demo-prs.ts`)
+  - [x] 11.1 The dev plugin: `/api/pr` to `handlePr` in development mode (reading `frontend/.env.local` through Vite's `loadEnv`, unprefixed), and the `/api/fake-pr/<n>` page.
+  - [x] 11.2 The reset command, with `--dry-run`, tested against the fake server: it closes only `rip/` pull requests and deletes only `rip/` branches.
   - **Run (checkpoint B):** `cd frontend && npm run typecheck && npm test`, then `npm run dev` and `curl -s localhost:5173/api/pr` (should show `"fake":true`).
+  - (Added while building: `RIP_FAKE_PRS=1`, set by `playwright.config.ts` for its dev server, drops the token, so the e2e tests never open a real pull request even with a token in `.env.local`. The plugin's middleware is tested on a plain `node:http` server, since Vitest skips the plugin.)
   - _Requirements: 7.3, 8_
 
 ## Part 4: The frontend

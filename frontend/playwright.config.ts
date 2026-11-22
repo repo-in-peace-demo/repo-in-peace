@@ -29,6 +29,8 @@ export default defineConfig({
     command: `npm run dev -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
+    // Never a real pull request from a test, even with a token in .env.local: the PR function makes up pull requests.
+    env: { RIP_FAKE_PRS: '1' },
     timeout: 120_000,
   },
 });

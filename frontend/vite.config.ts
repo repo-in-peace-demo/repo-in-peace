@@ -1,13 +1,14 @@
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { apiDev } from './vite-plugins/api-dev';
 import { graveyardManifest } from './vite-plugins/graveyard-manifest';
 
 const sharedDir = fileURLToPath(new URL('../shared', import.meta.url));
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), graveyardManifest()],
+  plugins: [react(), graveyardManifest(), apiDev()],
   resolve: {
     // The schema and validator live once in shared/ and are used by the analyser and by this app.
     alias: { '@shared': sharedDir },
@@ -19,6 +20,6 @@ export default defineConfig({
   test: {
     // The logic under test is pure, so it runs in Node, not in a browser.
     environment: 'node',
-    include: ['src/**/*.test.ts', 'test/**/*.test.ts', 'server/**/*.test.ts', 'scripts/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts', 'server/**/*.test.ts', 'scripts/**/*.test.ts', 'vite-plugins/**/*.test.ts'],
   },
 });

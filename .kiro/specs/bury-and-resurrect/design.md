@@ -17,7 +17,7 @@ session store (pr-store) ─▶ list marker, panel link, scene overrides (sink +
 - **Pure logic** lives in `frontend/server/pr/` (outside `api/`, so Vercel doesn't make each file a function): request parsing, the check against the data file, branch names, the tree change, the pull request text, the limits. Each has fast-check tests beside it.
 - **Imports:** server code imports `shared/` and `src/` by relative paths, never through the `@shared` alias, because Vercel's function bundler doesn't apply tsconfig path mappings (found while building task 2).
 - **I/O at the edge:** the GitHub client (`github.ts`, Node's `fetch`), reading the demo data file (`graveyards.ts`), and the handler.
-- **Local development:** a Vite dev plugin (`vite-plugins/api-dev.ts`) routes `/api/pr` (and the dev-only `/api/fake-pr/<n>` page) to the same `handlePr`, so `npm run dev` and the e2e tests run the real function code. `vercel dev` works too.
+- **Local development:** a Vite dev plugin (`vite-plugins/api-dev.ts`) routes `/api/pr` (and the dev-only `/api/fake-pr/<n>` page) to the same `handlePr`, so `npm run dev` and the e2e tests run the real function code. `vercel dev` works too. `RIP_FAKE_PRS=1` drops the token (the Playwright config sets it), so a browser test never opens a real pull request even when `.env.local` holds a token. The dev throttle is 120 a minute, so trying the flow by hand isn't held back.
 - **Frontend:** a client (`ui/pr-client.ts`), a session store (`store/pr-store.ts`), a pure scene-override model (`model/pr-scene.ts`), and changes to the detail panel, list, hover label, legend and scene.
 
 ## Configuration (`server/pr/config.ts`)
