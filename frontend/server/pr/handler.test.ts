@@ -129,6 +129,9 @@ describe('P5: the token never leaves', () => {
       { status: 422, body: { message: `Reference already exists ${fake.token}` } },
       { status: 401, body: { message: `Bad credentials: ${fake.token}` } },
     ]) {
+      // P1 may have opened a pull request for this file already (its paths are random); an open one would be returned before any
+      // tree is made, leaving the failure unused for the next test. Closing them makes every request here reach the failing call.
+      for (const pull of fake.pulls(OWNER, 'synthetic')) pull.state = 'closed';
       fake.fail({ method: 'POST', path: /\/git\/trees$/, times: 1, ...failure });
       const r = await handlePr(post({ graveyard: NAME, action: 'bury', path: target }), d);
       expect(r.status).toBe(502);
