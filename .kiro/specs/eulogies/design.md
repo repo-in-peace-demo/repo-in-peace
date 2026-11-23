@@ -114,7 +114,7 @@ function buildPrompt(input: EulogyInput, retry: boolean): { system: string; prom
 type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
 type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 function cleanEulogy(raw: string, context: { people: People; input?: EulogyInput }): Cleaned;
-const CLEANING_VERSION = 5; // part of the cache key: raise it whenever these rules change
+const CLEANING_VERSION = 6; // part of the cache key: raise it whenever these rules change (6: seasons count as times)
 ```
 
 **Reasoning blocks go first** (P11). Everything from `<think>` or `<thinking>` (any case) to its closing tag is removed. An opening tag with no closing tag removes everything after it, which leaves nothing, so the answer is rejected as `empty`. A stray closing tag removes everything before it.

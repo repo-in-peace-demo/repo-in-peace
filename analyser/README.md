@@ -174,7 +174,7 @@ Each grave also gets one of seven ways to begin, picked from its path, so the eu
 
 ### Time-agnostic
 
-A eulogy never says how old a file is or when it changed. It is read long after the snapshot, so "last updated four days ago" would read as four days before today, and the detail panel already shows the real dates. The prompt asks for no dates or ages, and any sentence that states one anyway ("… ago", "17 days", "recently updated", "last changed…", "since time immemorial", a month's name) is dropped. If every sentence does, the eulogy is left empty.
+A eulogy never says how old a file is or when it changed. It is read long after the snapshot, so "last updated four days ago" would read as four days before today, and the detail panel already shows the real dates. The prompt asks for no dates or ages, and any sentence that states one anyway ("… ago", "17 days", "recently updated", "last changed…", "since time immemorial", a month's name, a season such as "winter's chill" or "in the spring") is dropped. If every sentence does, the eulogy is left empty.
 
 ### What gets rejected
 

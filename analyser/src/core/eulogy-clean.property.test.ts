@@ -471,12 +471,12 @@ describe('cleaning version 4', () => {
     });
   });
 
-  it('is cleaning version 5', async () => {
-    expect((await import('./eulogy-clean')).CLEANING_VERSION).toBe(5);
+  it('is cleaning version 6', async () => {
+    expect((await import('./eulogy-clean')).CLEANING_VERSION).toBe(6);
   });
 });
 
-describe('cleaning version 5: no ages or times', () => {
+describe('cleaning versions 5 and 6: no ages, times or seasons', () => {
   it('drops each sentence that states an age or a time, and keeps the others', () => {
     for (const [raw, kept] of [
       ['A lively guardian of the welcome page. Last updated just four days ago.', 'A lively guardian of the welcome page.'],
@@ -490,7 +490,7 @@ describe('cleaning version 5: no ages or times', () => {
       ['It has guarded the data for many days. It keeps the gate.', 'It keeps the gate.'],
       ['Stays busy, updated just last week. It shines.', 'It shines.'],
       ['Twenty-three days have passed since it changed. It waits.', 'It waits.'],
-      ['Autumn dawn breaks, and it watches over the graveyard. 6 days young, it still casts its gaze far.', 'Autumn dawn breaks, and it watches over the graveyard.'],
+      ['Dawn breaks, and it watches over the graveyard. 6 days young, it still casts its gaze far.', 'Dawn breaks, and it watches over the graveyard.'],
       ['At dawn of another day, you stood steadfast. Still used, though long since changed.', 'At dawn of another day, you stood steadfast.'],
       ['A flicker of light still watches over the code. Though young, it keeps vigil.', 'A flicker of light still watches over the code.'],
       ['It keeps the voice sessions, a beacon of recent activity. It smooths every turn.', 'It smooths every turn.'],
@@ -498,6 +498,13 @@ describe('cleaning version 5: no ages or times', () => {
       ['It checks the puzzles. Still active, though restless lately.', 'It checks the puzzles.'],
       ['Morning has brought a fresh change to the flags. It toggles features.', 'It toggles features.'],
       ['Autumn breeze stirs this leaf, silent since the summer\'s heat. The joins stand firm.', 'The joins stand firm.'],
+      // Seasons (review of the demos, CLEANING_VERSION 6).
+      ["Here lies recommendations.ts, last used in spring's embrace, now winter's chill claims it. It holds one line.", 'It holds one line.'],
+      ['Autumn\'s chill finds it still standing. It routes every request.', 'It routes every request.'],
+      ['It sleeps through the winter. It routes every request.', 'It routes every request.'],
+      ['In the fall it rests. It routes every request.', 'It routes every request.'],
+      ['A summer breeze passes over it. It routes every request.', 'It routes every request.'],
+      ['It was written in early spring. It routes every request.', 'It routes every request.'],
     ] as const) {
       expect(withoutTimeSentences(raw), raw).toBe(kept);
       expect(clean(raw), raw).toEqual({ ok: true, text: kept });
@@ -521,6 +528,10 @@ describe('cleaning version 5: no ages or times', () => {
       'It keeps the last word on every route.',
       'May it keep watch a while longer.',
       'It holds the first day of each week.',
+      'It tracks the rise and fall of every balance.',
+      'A spring of fresh data feeds it.',
+      'When errors fall, it catches them.',
+      'It lets the pages fall silent.',
     ]) {
       expect(statesTime(ok), ok).toBe(false);
       expect(clean(ok), ok).toEqual({ ok: true, text: ok });

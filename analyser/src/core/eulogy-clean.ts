@@ -19,7 +19,7 @@ import { EULOGY_MAX_CHARS } from './eulogy-prompt';
  *
  * Raise CLEANING_VERSION whenever these rules change: it is part of the cache key, so cached eulogies are cleaned by the new rules.
  */
-export const CLEANING_VERSION = 5;
+export const CLEANING_VERSION = 6;
 
 export type RejectReason = 'empty' | 'code' | 'url' | 'secret' | 'email' | 'author' | 'quotes' | 'long' | 'facts' | 'example' | 'prompt' | 'contents';
 export type Cleaned = { ok: true; text: string } | { ok: false; reason: RejectReason };
@@ -162,7 +162,7 @@ function withoutLeadingFileName(text: string): string {
 
 /**
  * A sentence that says how old the file is or when it changed: "17 days ago", "six days young", "last updated…", "recently updated",
- * "a fortnight", "for many days", "since time immemorial", a month's name. A eulogy is read long after the snapshot, and "four days
+ * "a fortnight", "for many days", "since time immemorial", a month's name, a season ("winter's chill", "in the spring"). A eulogy is read long after the snapshot, and "four days
  * ago" would read as four days before today; the panel shows the real dates. Such sentences are dropped, not the whole eulogy.
  */
 const TIME_PATTERNS: readonly RegExp[] = [
@@ -181,6 +181,10 @@ const TIME_PATTERNS: readonly RegExp[] = [
   /\b(recent activity|a fresh change|a new change|freshly changed|just changed)\b/i,
   /\bsince the (first|last) (frost|snow|thaw|rain)\b|\bsince the (summer|spring|winter|autumn|fall)('s)?\b/i,
   /\b(January|February|April|June|July|August|September|October|November|December)\b/,
+  // Seasons (after the review of the demos found "spring's embrace, now winter's chill" on files changed in June): winter, summer and
+  // autumn whatever their use; spring and fall only as seasons, since "a spring", "the rise and fall" and "fall silent" are not times.
+  /\b(winters?|wintry|wintertime|summers?|summertime|autumns?|autumnal)\b/i,
+  /\b(springtime|spring's|fall's)\b|\b(in|this|last|next|each|every|early|late|since|through|until|till)\s+(the\s+)?(spring|fall)\b|\b(spring|fall)\s+(rains?|frosts?|winds?|breezes?|leaves|chill|air|sun)\b/i,
 ];
 export const statesTime = (sentence: string): boolean => TIME_PATTERNS.some((p) => p.test(sentence));
 
