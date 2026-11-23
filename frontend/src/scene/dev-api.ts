@@ -2,6 +2,8 @@ import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
 import { freezeAnimation, freezeAnimationAt, isReducedMotion, resumeAnimation } from './animation-clock';
 import { prSceneDebug, type OverrideFrame } from './pr-overrides';
+import { witchDebug } from './Witch';
+import type { WitchState } from '../model/witch';
 import { getPrSession } from '../store/pr-store';
 import { engravingDebug } from './engraving-atlas';
 import { atlasDebug } from './ghost-tag-atlas';
@@ -36,6 +38,8 @@ export interface RepoInPeaceDevApi {
   getPullRequests: () => Record<string, { action: string; number: number; existing: boolean }>;
   /** Where an overridden grave is in its Bury or Resurrect animation, as last drawn; null when it has none. */
   getOverrideFrame: (path: string) => OverrideFrame | null;
+  /** The witch on her broom, where she was last drawn, or null when she is not in the sky. */
+  getWitch: () => WitchState | null;
   /** Where the camera is and what it looks at, right now. */
   getPose: () => CameraPose;
   /** The page position (in pixels) of the middle of the stone or ghost with this path, or `null` when it is behind the camera or unknown. */
@@ -93,6 +97,7 @@ export function installDevApi(
   const api: RepoInPeaceDevApi = { flyTo, resetView, getSelection, select, clearSelection, getPose, getScreenPoint, projectPoint, freezeAnimation, setAnimationTime: freezeAnimationAt, resumeAnimation, isReducedMotion, getRenderInfo, getGhostTagAtlas: () => ({ ...atlasDebug.litPixels }),
     getViewShift,
     setPose,
+    getWitch: () => (witchDebug.state ? { ...witchDebug.state } : null),
     getPullRequests: () => Object.fromEntries([...getPrSession().prs].map(([k, p]) => [k, { action: p.action, number: p.number, existing: p.existing }])),
     getOverrideFrame: (path) => prSceneDebug.frames.get(path) ?? null,
     getEngravingAtlas: () => ({ ...engravingDebug.litPixels }),
