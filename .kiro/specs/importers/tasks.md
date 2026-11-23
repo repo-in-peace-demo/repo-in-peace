@@ -25,9 +25,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 3.2 **Examples:** each rule; first-match order; Vite `src="/src/index.ts"`; `bin` as a string and an object.
   - _Requirements: 3_
 
-- [ ] 4. Disagreements (`core/disagreements.ts`)
-  - [ ] 4.1 The two lists and the report lines (at most 20 each, then a count).
-  - [ ] 4.2 **P2, P3** on random graphs with random verdicts and entry points.
+- [x] 4. Disagreements (`core/disagreements.ts`)
+  - [x] 4.1 The two lists and the report lines (at most 20 each, then a count).
+  - [x] 4.2 **P2, P3** on random graphs with random verdicts and entry points.
   - _Requirements: 5_
 
 ## Part 2: Resolution, the data file and the pipeline
