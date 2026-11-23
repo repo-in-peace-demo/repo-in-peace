@@ -13,6 +13,7 @@ import {
   diggerPose,
   diggerSpot,
   freeSpots,
+  shovelSweep,
   MOST_TOWARD_CAMERA,
   BEST_BEHIND,
   endOf,
@@ -171,7 +172,21 @@ describe('where he stands', () => {
         const toward = { x: s.x - camera.x, z: s.z - camera.z };
         const off = { x: spot.x - s.x, z: spot.z - s.z };
         const score = (off.x * toward.x + off.z * toward.z) / (Math.hypot(off.x, off.z) * Math.hypot(toward.x, toward.z));
-        expect(Math.sin(spot.yaw) * -off.x + Math.cos(spot.yaw) * -off.z).toBeCloseTo(Math.hypot(off.x, off.z));
+        // Facing the grave, or turned from it by at most 90 degrees to keep the shovel out of the stones.
+        const facingDot = (Math.sin(spot.yaw) * -off.x + Math.cos(spot.yaw) * -off.z) / Math.hypot(off.x, off.z);
+        expect(facingDot).toBeGreaterThanOrEqual(-1e-9);
+        // The shovel, in every pose by the standing stone, never enters a stone (worked out here from the layout and the lean).
+        const nearby = model.stones.filter((o) => Math.abs(o.layout.x - spot.x) < 5 && Math.abs(o.layout.z - spot.z) < 5); // the shovel reaches under 2
+        for (const p of shovelSweep(spot, spot.yaw)) {
+          for (const other of nearby) {
+            const o = other.layout;
+            const reach = o.height * Math.sin((other.visual.leanDegrees * Math.PI) / 180);
+            const lx = reach * Math.cos(other.visual.leanDirection);
+            const lz = reach * Math.sin(other.visual.leanDirection);
+            const inBase = (cx: number, cz: number) => Math.abs(p.x - cx) < STONE_W / 2 && Math.abs(p.z - cz) < STONE_D / 2;
+            expect(inBase(o.x, o.z) || inBase(o.x + lx, o.z + lz), `shovel in ${o.path}`).toBe(false);
+          }
+        }
         const free = freeSpots(model, index, camera);
         expect(free.some((f) => f.spot.x === spot.x && f.spot.z === spot.z)).toBe(true);
         const notInFront = free.filter((f) => f.score >= MOST_TOWARD_CAMERA);
@@ -186,7 +201,7 @@ describe('where he stands', () => {
     );
     // The test sees real placements, not only refusals.
     expect(placed).toBeGreaterThan(none);
-  });
+  }, 20_000);
 
   it('stands beside the grave, never between it and the camera when a side is free: seen from the right, not on its right', () => {
     const model = models[0]!;

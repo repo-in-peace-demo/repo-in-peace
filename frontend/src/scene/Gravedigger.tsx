@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { CLOD_COUNT, diggerPose, endOf, type DiggerJob } from '../model/gravedigger';
+import { CLOD_COUNT, SHOULDER, SHOVEL, BLADE_HALF_W, armsTransform, diggerPose, endOf, type DiggerJob } from '../model/gravedigger';
 import type { SceneModel } from '../model/scene-model';
 import { isReducedMotion } from './animation-clock';
 import { getDiggerJobs, getDiggerVersion, startGravediggers, subscribeDiggers } from './gravedigger-state';
@@ -27,8 +27,6 @@ const DIRT = '#2f2319';
 /** The rim light on his cloak and hat: the moonlight's pale blue. */
 const RIM = '#8ea6d6';
 
-/** The shoulders, where the arms and shovel turn, in the figure's frame (+z toward the grave). */
-const SHOULDER = new THREE.Vector3(0, 1.32, 0.04);
 const NECK_Y = 1.45;
 
 function coloured(geometry: THREE.BufferGeometry, colour: string): THREE.BufferGeometry {
@@ -70,14 +68,16 @@ function figureGeometries() {
   // The arms and shovel, about the shoulders: hands at the handle, the blade near the ground ahead of him.
   const handTop = v(0, -0.15, 0.3);
   const handLow = v(0, -0.42, 0.42);
-  const bladeTop = v(0, -0.98, 0.66);
-  const bladeTip = v(0, -1.24, 0.75);
+  // The shovel's numbers are the model's (model/gravedigger.ts), which keeps it out of the stones.
+  const bladeTop = v(SHOVEL.bladeTop.x, SHOVEL.bladeTop.y, SHOVEL.bladeTop.z);
+  const bladeTip = v(SHOVEL.bladeTip.x, SHOVEL.bladeTip.y, SHOVEL.bladeTip.z);
+  const grip = v(SHOVEL.grip.x, SHOVEL.grip.y, SHOVEL.grip.z);
   const arms = mergeGeometries([
     rod(v(0.19, 0, 0), handTop.clone().setX(0.04), 0.075, CLOAK),
     rod(v(-0.19, 0, 0), handLow.clone().setX(-0.04), 0.075, CLOAK),
-    rod(v(0, -0.02, 0.24), bladeTop, 0.035, HANDLE),
-    rod(v(-0.06, -0.02, 0.24), v(0.06, -0.02, 0.24), 0.03, HANDLE), // the grip
-    rod(bladeTop, bladeTip, 0.02, BLADE, 0.2),
+    rod(grip, bladeTop, 0.035, HANDLE),
+    rod(v(-0.06, grip.y, grip.z), v(0.06, grip.y, grip.z), 0.03, HANDLE), // the grip
+    rod(bladeTop, bladeTip, 0.02, BLADE, 2 * BLADE_HALF_W),
   ])!;
 
   const lantern = new THREE.BoxGeometry(0.07, 0.1, 0.07).translate(-0.25, 0.72, 0.07);
@@ -107,8 +107,9 @@ function Digger({ job, assets }: { job: DiggerJob; assets: ReturnType<typeof use
     head.current!.rotation.y = pose.head;
     const a = arms.current!;
     // Positive: the blade pushed down into the ground; negative: lifted, tipped forward with its load.
-    a.position.set(SHOULDER.x, SHOULDER.y - 0.3 * pose.arm, SHOULDER.z + 0.12 * Math.max(0, pose.arm));
-    a.rotation.set(pose.arm > 0 ? 0.25 * pose.arm : 0.75 * pose.arm, pose.swing, 0);
+    const at = armsTransform(pose);
+    a.position.set(at.position.x, at.position.y, at.position.z);
+    a.rotation.set(at.rotation.x, at.rotation.y, 0);
     const c = clods.current!;
     for (let i = 0; i < CLOD_COUNT; i++) {
       const at = pose.clods[i];

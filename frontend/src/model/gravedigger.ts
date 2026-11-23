@@ -189,6 +189,99 @@ export function diggerPose(job: Pick<DiggerJob, 'start' | 'outcome'>, now: numbe
   }
 }
 
+// ---- The shovel (the same numbers draw it: scene/Gravedigger.tsx) ----
+
+/** In the figure's frame: +z toward where he faces, y up, origin at his feet. The arms and shovel turn about the shoulders. */
+export const SHOULDER = { x: 0, y: 1.32, z: 0.04 } as const;
+/** The shovel in the arms' frame: the grip, where the handle meets the blade, and the blade's tip; the blade is BLADE_HALF_W to each side. */
+export const SHOVEL = { grip: { x: 0, y: -0.02, z: 0.24 }, bladeTop: { x: 0, y: -0.98, z: 0.66 }, bladeTip: { x: 0, y: -1.24, z: 0.75 } } as const;
+export const BLADE_HALF_W = 0.1;
+
+/** Where the arms group sits and how it is turned for a pose (positive arm: blade pushed down and forward). */
+export function armsTransform(pose: Pick<DiggerPose, 'arm' | 'swing'>): { position: { x: number; y: number; z: number }; rotation: { x: number; y: number } } {
+  return {
+    position: { x: SHOULDER.x, y: SHOULDER.y - 0.3 * pose.arm, z: SHOULDER.z + 0.12 * Math.max(0, pose.arm) },
+    rotation: { x: pose.arm > 0 ? 0.25 * pose.arm : 0.75 * pose.arm, y: pose.swing },
+  };
+}
+
+type P3 = { x: number; y: number; z: number };
+const rotX = (p: P3, a: number): P3 => ({ x: p.x, y: p.y * Math.cos(a) - p.z * Math.sin(a), z: p.y * Math.sin(a) + p.z * Math.cos(a) });
+const rotY = (p: P3, a: number): P3 => ({ x: p.x * Math.cos(a) + p.z * Math.sin(a), y: p.y, z: -p.x * Math.sin(a) + p.z * Math.cos(a) });
+
+/** Points along the shovel (handle and blade corners) for a pose, in the figure's frame, as three.js places them (Euler XYZ). */
+export function shovelPoints(pose: Pick<DiggerPose, 'arm' | 'swing' | 'lean'>): Array<{ x: number; z: number }> {
+  const arms = armsTransform(pose);
+  const local: P3[] = [];
+  for (let k = 0; k <= 4; k++) {
+    const t = k / 4;
+    local.push({ x: 0, y: SHOVEL.grip.y + (SHOVEL.bladeTop.y - SHOVEL.grip.y) * t, z: SHOVEL.grip.z + (SHOVEL.bladeTop.z - SHOVEL.grip.z) * t });
+  }
+  for (const side of [-1, 1]) for (const q of [SHOVEL.bladeTop, SHOVEL.bladeTip]) local.push({ x: side * BLADE_HALF_W, y: q.y, z: q.z });
+  return local.map((q) => {
+    const inArms = rotX(rotY(q, arms.rotation.y), arms.rotation.x);
+    const inTilt = rotX({ x: inArms.x + arms.position.x, y: inArms.y + arms.position.y, z: inArms.z + arms.position.z }, pose.lean);
+    return { x: inTilt.x, z: inTilt.z };
+  });
+}
+
+/** The poses he takes while the stone still stands (entering, every moment of a dig, watching it start to sink, the shrug), sampled. */
+export const POSES_BY_THE_STONE: ReadonlyArray<Pick<DiggerPose, 'arm' | 'swing' | 'lean'>> = (() => {
+  const job = { start: 0, outcome: { kind: 'failure' as const, at: 0 } };
+  const poses: Array<Pick<DiggerPose, 'arm' | 'swing' | 'lean'>> = [];
+  for (const span of phasesOf(job)) {
+    if (span.phase === 'exit') continue;
+    for (let k = 0; k <= 12; k++) poses.push(diggerPose(job, span.from + ((span.to - span.from) * k) / 12));
+  }
+  const success = { start: 0, outcome: { kind: 'success' as const, at: 0 } };
+  const watch = phasesOf(success).find((s) => s.phase === 'watch')!;
+  for (let k = 0; k <= 8; k++) poses.push(diggerPose(success, watch.from + ((watch.to - watch.from) * k) / 8));
+  return poses;
+})();
+
+/** The shovel's points over every pose by the stone, in his own frame: the same for every figure, so worked out once. */
+let sweepInFrame: Array<{ x: number; z: number }> | null = null;
+
+/** Where the shovel goes on the ground, over every pose by the stone, for a figure at `spot` turned by `yaw`. */
+export function shovelSweep(spot: { x: number; z: number }, yaw: number): Array<{ x: number; z: number }> {
+  sweepInFrame ??= POSES_BY_THE_STONE.flatMap((pose) => shovelPoints(pose));
+  const c = Math.cos(yaw);
+  const sn = Math.sin(yaw);
+  return sweepInFrame.map((p) => ({ x: spot.x + p.x * c + p.z * sn, z: spot.z - p.x * sn + p.z * c }));
+}
+
+/** The ground each stone stands on, its lean included, with a small margin: the shovel must never enter one. */
+export function stoneBoxes(model: Pick<SceneModel, 'stones'>, near: { x: number; z: number }, within = 5): Rect[] {
+  const out: Rect[] = [];
+  for (const st of model.stones) {
+    const { x, z, height } = st.layout;
+    if (Math.abs(x - near.x) > within || Math.abs(z - near.z) > within) continue;
+    const reach = height * Math.sin((st.visual.leanDegrees * Math.PI) / 180);
+    const dx = reach * Math.cos(st.visual.leanDirection);
+    const dz = reach * Math.sin(st.visual.leanDirection);
+    const m = 0.05;
+    const x0 = x - STONE_W / 2 - m;
+    const z0 = z - STONE_D / 2 - m;
+    out.push({ x: Math.min(x0, x0 + dx), z: Math.min(z0, z0 + dz), w: STONE_W + 2 * m + Math.abs(dx), d: STONE_D + 2 * m + Math.abs(dz) });
+  }
+  return out;
+}
+
+const insideRect = (r: Rect, p: { x: number; z: number }): boolean => p.x > r.x && p.x < r.x + r.w && p.z > r.z && p.z < r.z + r.d;
+
+/** The turn closest to facing the grave (in 15-degree steps, up to 90 either way) at which the shovel never enters a stone; null if none. */
+export function clearYaw(spot: { x: number; z: number }, facing: number, allBoxes: readonly Rect[]): number | null {
+  // The shovel reaches under 2 from his feet: only the stones that near can be hit.
+  const boxes = allBoxes.filter((b) => b.x < spot.x + 2.2 && b.x + b.w > spot.x - 2.2 && b.z < spot.z + 2.2 && b.z + b.d > spot.z - 2.2);
+  for (let k = 0; k <= 6; k++) {
+    for (const sign of k === 0 ? [1] : [1, -1]) {
+      const yaw = facing + (sign * k * Math.PI) / 12;
+      if (!shovelSweep(spot, yaw).some((p) => boxes.some((b) => insideRect(b, p)))) return yaw;
+    }
+  }
+  return null;
+}
+
 // ---- Where he stands ----
 
 /** He stands on a square this far from his centre on each side (body and cloak); his shovel reaches over the grave's edge. */
@@ -201,7 +294,7 @@ export const DIGGER_H = 1.9;
 export interface DiggerSpot {
   x: number;
   z: number;
-  /** Turned about y so that he faces the grave: his +z points at it. */
+  /** Turned about y: his +z points at the grave, or as near it as keeps his shovel out of every stone. */
   yaw: number;
 }
 
@@ -307,11 +400,15 @@ export function freeSpots(model: Pick<SceneModel, 'layout' | 'stones' | 'ghosts'
   const allowed = allowedAreaFor(model, index);
   const toward = { x: x - camera.x, z: z - camera.z };
   const length = Math.hypot(toward.x, toward.z) || 1;
+  const boxes = stoneBoxes(model, { x, z });
   const out: SpotChoice[] = [];
   for (const { dx, dz } of OFFSETS) {
     const foot = footprintOf({ x: x + dx, z: z + dz });
     if (!inside(allowed, foot) || obstacles.some((o) => overlapsRect(foot, o))) continue;
-    out.push({ spot: { x: x + dx, z: z + dz, yaw: Math.atan2(-dx, -dz) }, score: (dx * toward.x + dz * toward.z) / (Math.hypot(dx, dz) * length) });
+    // Facing the grave, or turned from it just enough that his shovel never passes into a stone (found on the live site).
+    const yaw = clearYaw({ x: x + dx, z: z + dz }, Math.atan2(-dx, -dz), boxes);
+    if (yaw === null) continue;
+    out.push({ spot: { x: x + dx, z: z + dz, yaw }, score: (dx * toward.x + dz * toward.z) / (Math.hypot(dx, dz) * length) });
   }
   return out;
 }
