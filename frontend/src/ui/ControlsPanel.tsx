@@ -61,6 +61,24 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
               </dl>
             </div>
           ))}
+          <div className="controls-cursors">
+            <h3>Cursor over the scene</h3>
+            <dl>
+              {[
+                ['hand-32.svg', 'Pointing hand', 'Over the scene'],
+                ['hand-over-32.svg', 'Glowing hand', 'Over a stone or ghost: click to select it'],
+                ['hand-grab-32.svg', 'Grabbing hand', 'While dragging'],
+              ].map(([file, name, when]) => (
+                <div key={file} className="controls-row">
+                  <dt>
+                    <img src={`/cursors/${file}`} alt="" />
+                    {name}
+                  </dt>
+                  <dd>{when}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </section>
       )}
       <div className="controls-buttons">

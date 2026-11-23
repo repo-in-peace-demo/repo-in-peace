@@ -1070,3 +1070,30 @@ body,
   border-radius: 4px;
   color: var(--ink-dim);
 }
+
+/* The 3D scene's cursor (scene/Picker.tsx sets data-cursor on the canvas): an original skeleton hand, at 32 px and at 64 px for
+   high-DPI screens, the hotspot at the fingertip (the middle of the fist while grabbing). Each falls back to a standard cursor if
+   its picture fails to load, or if image-set isn't supported (then the 32 px picture is used). Only the canvas: panels, buttons and
+   inputs keep their own cursors. */
+.scene canvas[data-cursor='point'] {
+  cursor: url('/cursors/hand-32.svg') 8 2, default;
+  cursor: image-set(url('/cursors/hand-32.svg') 1x, url('/cursors/hand-64.svg') 2x) 8 2, default;
+}
+
+.scene canvas[data-cursor='over'] {
+  cursor: url('/cursors/hand-over-32.svg') 8 2, pointer;
+  cursor: image-set(url('/cursors/hand-over-32.svg') 1x, url('/cursors/hand-over-64.svg') 2x) 8 2, pointer;
+}
+
+.scene canvas[data-cursor='grab'] {
+  cursor: url('/cursors/hand-grab-32.svg') 14 14, grabbing;
+  cursor: image-set(url('/cursors/hand-grab-32.svg') 1x, url('/cursors/hand-grab-64.svg') 2x) 14 14, grabbing;
+}
+
+/* The cursor's three looks in the Controls panel. */
+.controls-cursors img {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}

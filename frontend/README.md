@@ -59,6 +59,8 @@ The demo list is `graveyards/index.json`, made from the files in `public/graveya
 
 On first load the camera rises from a low shot into the overview over about 3.6 seconds; any key, click, drag or scroll ends it where it is, and with Reduce motion on the scene opens on the overview. Reset view goes straight to the overview.
 
+Over the 3D scene the cursor is a skeleton hand (`public/cursors/`, drawn by `scripts/make-cursors.mjs`, 32 and 64 px): pointing, glowing over a stone or ghost, grabbing while dragging. Panels, buttons and inputs keep the standard cursors, and the standard ones stand in if the pictures don't load. The Controls panel shows the three; the legend doesn't (it is decoration, not data).
+
 Keys typed in the search box or the list (`data-owns-keys`) never fly the camera or trigger Home, R or ?.
 
 The camera stays above the ground, at least 20° above the horizontal from its look-at point, and inside the trees round the graveyard, whatever moved it (`model/fly-controls.ts`, `clampPose`).

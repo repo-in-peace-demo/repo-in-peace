@@ -17,7 +17,8 @@ import { usePrSession } from '../store/pr-store';
 import { clickAction, escapeAction, type SelectionAction } from '../model/selection-actions';
 import type { SceneModel } from '../model/scene-model';
 import { vec3 } from '../model/vec3';
-import { clearHover, setHover, setPointer } from '../store/hover-store';
+import { clearHover, getHover, setHover, setPointer, subscribeHover } from '../store/hover-store';
+import { sceneCursor } from '../model/scene-cursor';
 import { clearSelection, select } from '../store/selection-store';
 import { flyTo, resetView } from './api';
 
@@ -67,6 +68,17 @@ export function Picker({ model }: { model: SceneModel }) {
     return pickNearest(targets, vec3(origin.x, origin.y, origin.z), vec3(direction.x, direction.y, direction.z));
   };
 
+  // The scene's cursor (model/scene-cursor.ts): a pointing hand, glowing over a stone or ghost, grabbing while dragging.
+  const syncCursor = useRef(() => {});
+  syncCursor.current = () => {
+    const next = sceneCursor(isDragging(gesture.current), getHover() !== null);
+    if (element.dataset['cursor'] !== next) element.dataset['cursor'] = next;
+  };
+  useEffect(() => {
+    syncCursor.current();
+    return subscribeHover(() => syncCursor.current());
+  }, [element]);
+
   useEffect(() => {
     const onDown = (event: PointerEvent): void => {
       setPointer(event.clientX, event.clientY);
@@ -76,6 +88,7 @@ export function Picker({ model }: { model: SceneModel }) {
     const onMove = (event: PointerEvent): void => {
       setPointer(event.clientX, event.clientY);
       gesture.current = pointerMove(gesture.current, sampleOf(event));
+      syncCursor.current();
       if (isDragging(gesture.current)) {
         pending.current = null;
         clearHover();
@@ -87,6 +100,7 @@ export function Picker({ model }: { model: SceneModel }) {
     const onUp = (event: PointerEvent): void => {
       const result = pointerUp(gesture.current, sampleOf(event));
       gesture.current = result.state;
+      syncCursor.current();
       if (!result.click) return;
       const hit = pickAt.current(event.clientX, event.clientY);
       apply(clickAction(hit));
@@ -110,6 +124,7 @@ export function Picker({ model }: { model: SceneModel }) {
 
     const onCancel = (): void => {
       gesture.current = pointerCancel();
+      syncCursor.current();
       pending.current = null;
       clearHover();
     };
