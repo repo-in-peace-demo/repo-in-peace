@@ -274,36 +274,63 @@ const OFFSETS: ReadonlyArray<{ dx: number; dz: number }> = [
   { dx: 0.55, dz: -END },
   { dx: -0.55, dz: -END },
   { dx: 0, dz: END },
+  // Farther out, for crowded rows (revised with the live-site fix: from some directions every nearer place was in front or behind).
+  { dx: SIDE + 0.45, dz: 0 },
+  { dx: -(SIDE + 0.45), dz: 0 },
+  { dx: SIDE, dz: -0.8 },
+  { dx: -SIDE, dz: -0.8 },
+  { dx: SIDE, dz: 0.8 },
+  { dx: -SIDE, dz: 0.8 },
+  { dx: 0.9, dz: -END },
+  { dx: -0.9, dz: -END },
+  { dx: 0.9, dz: END },
+  { dx: -0.9, dz: END },
 ];
-/** He never stands nearer the camera than this, as a share of the way to the camera (0 is beside the grave, seen from the camera). */
+/** He stands nearer the camera than this (as a share of the way to it; 0 is beside the grave) only when nothing else is free. */
 export const MOST_TOWARD_CAMERA = -0.25;
 /**
- * The best place is a little behind the grave and to one side, seen from the camera: straight behind it the stone hides him (found in
- * the first screenshot), and in front he would hide the stone.
+ * The best place is beside the grave, at its depth as seen from the camera, a touch behind rather than in front. Revised after the
+ * live site: at 0.4 behind, the stone could hide most of him from some angles (his hat and lantern were all that showed).
  */
-export const BEST_BEHIND = 0.4;
+export const BEST_BEHIND = 0.05;
 
-/**
- * Where he stands to bury the stone at `index`, seen from a camera at `camera` (on the ground): the free place beside the grave
- * nearest `BEST_BEHIND` behind it, so he neither hides the stone or its plaque nor is hidden by it. Null when there is none: then
- * there is no gravedigger, and the Bury shows as without him.
- */
-export function diggerSpot(model: Pick<SceneModel, 'layout' | 'stones' | 'ghosts'>, index: number, camera: { x: number; z: number }): DiggerSpot | null {
+export interface SpotChoice {
+  spot: DiggerSpot;
+  /** How far behind the grave the place is, seen from the camera: 1 straight behind, 0 beside, -1 straight in front. */
+  score: number;
+}
+
+/** The free places beside the stone at `index` (clear of every obstacle, inside its cell and aisle), each scored from `camera`. */
+export function freeSpots(model: Pick<SceneModel, 'layout' | 'stones' | 'ghosts'>, index: number, camera: { x: number; z: number }): SpotChoice[] {
   const { x, z } = model.stones[index]!.layout;
   const obstacles = obstaclesFor(model, index);
   const allowed = allowedAreaFor(model, index);
   const toward = { x: x - camera.x, z: z - camera.z };
   const length = Math.hypot(toward.x, toward.z) || 1;
-  let best: { spot: DiggerSpot; score: number; miss: number } | null = null;
+  const out: SpotChoice[] = [];
   for (const { dx, dz } of OFFSETS) {
-    const spot = { x: x + dx, z: z + dz };
-    const foot = footprintOf(spot);
+    const foot = footprintOf({ x: x + dx, z: z + dz });
     if (!inside(allowed, foot) || obstacles.some((o) => overlapsRect(foot, o))) continue;
-    // How far behind the grave this place is, from the camera: 1 straight behind it, -1 straight in front.
-    const score = (dx * toward.x + dz * toward.z) / (Math.hypot(dx, dz) * length);
-    if (score < MOST_TOWARD_CAMERA) continue;
-    const miss = Math.abs(score - BEST_BEHIND);
-    if (best === null || miss < best.miss - 1e-9 || (Math.abs(miss - best.miss) <= 1e-9 && score > best.score)) best = { spot: { ...spot, yaw: Math.atan2(-dx, -dz) }, score, miss };
+    out.push({ spot: { x: x + dx, z: z + dz, yaw: Math.atan2(-dx, -dz) }, score: (dx * toward.x + dz * toward.z) / (Math.hypot(dx, dz) * length) });
   }
-  return best?.spot ?? null;
+  return out;
+}
+
+/**
+ * Where he stands to bury the stone at `index`, seen from a camera at `camera` (on the ground): of the free places not in front of the
+ * grave, the one nearest `BEST_BEHIND` (beside it), so he neither hides the stone and its plaque nor stands hidden behind it. When
+ * every free place is in front of it, the one least in front (revised: he used to be left out then, from about 1 camera direction
+ * in 20 on oikos). Null only when no place beside the grave is free at all.
+ */
+export function diggerSpot(model: Pick<SceneModel, 'layout' | 'stones' | 'ghosts'>, index: number, camera: { x: number; z: number }): DiggerSpot | null {
+  const spots = freeSpots(model, index, camera);
+  const allowed = spots.filter((s) => s.score >= MOST_TOWARD_CAMERA);
+  if (allowed.length === 0) return spots.reduce<SpotChoice | null>((best, s) => (best === null || s.score > best.score ? s : best), null)?.spot ?? null;
+  let best = allowed[0]!;
+  for (const s of allowed.slice(1)) {
+    const miss = Math.abs(s.score - BEST_BEHIND);
+    const bestMiss = Math.abs(best.score - BEST_BEHIND);
+    if (miss < bestMiss - 1e-9 || (Math.abs(miss - bestMiss) <= 1e-9 && s.score > best.score)) best = s;
+  }
+  return best.spot;
 }

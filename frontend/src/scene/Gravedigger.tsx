@@ -24,6 +24,8 @@ const BLADE = '#7d828b';
 const LANTERN_FRAME = '#1c1712';
 const LANTERN_GLOW = '#ffb04a';
 const DIRT = '#2f2319';
+/** The rim light on his cloak and hat: the moonlight's pale blue. */
+const RIM = '#8ea6d6';
 
 /** The shoulders, where the arms and shovel turn, in the figure's frame (+z toward the grave). */
 const SHOULDER = new THREE.Vector3(0, 1.32, 0.04);
@@ -139,6 +141,17 @@ function useAssets() {
   const assets = useMemo(() => {
     const geometries = figureGeometries();
     const cloth = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, transparent: true }); // one-sided: a transparent double-sided material is drawn twice
+    // A faint moonlit rim along his edges, so the dark figure stands out from the dark ground and stones (revised after the live site,
+    // where he was hard to make out). Emissive, so it adds no light to anything else.
+    cloth.onBeforeCompile = (shader) => {
+      shader.uniforms['uRim'] = { value: new THREE.Color(RIM) };
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 uRim;')
+        .replace(
+          '#include <emissivemap_fragment>',
+          '#include <emissivemap_fragment>\n  float rimEdge = 1.0 - abs(dot(normalize(normal), normalize(vViewPosition)));\n  totalEmissiveRadiance += uRim * pow(rimEdge, 2.5) * 0.9;',
+        );
+    };
     const glow = new THREE.MeshStandardMaterial({ color: LANTERN_FRAME, emissive: LANTERN_GLOW, emissiveIntensity: 1.1, roughness: 0.8, transparent: true });
     const dirt = new THREE.MeshStandardMaterial({ color: DIRT, roughness: 1, metalness: 0, transparent: true });
     return { geometries, cloth, glow, dirt, materials: [cloth, glow, dirt] };

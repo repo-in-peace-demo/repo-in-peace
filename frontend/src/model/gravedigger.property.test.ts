@@ -12,6 +12,9 @@ import {
   PAT_S,
   diggerPose,
   diggerSpot,
+  freeSpots,
+  MOST_TOWARD_CAMERA,
+  BEST_BEHIND,
   endOf,
   footprintOf,
   phasesOf,
@@ -123,7 +126,7 @@ const overlap = (a: Rect, b: Rect): boolean => a.x < b.x + b.w - 1e-9 && b.x < a
 describe('where he stands', () => {
   const models = [1, 2, 3, 4].map((seed) => buildSceneModel(makeSyntheticGraveyard({ files: 40 + seed * 25, seed, ghosts: seed })));
 
-  it('P: never on another stone or ghost cell, a fence, a plaque, or his own grave; in the cell or the aisle beside it; never in front', () => {
+  it('P: never on another stone or ghost cell, a fence, a plaque, or his own grave; in the cell or the aisle beside it; in front only when nothing else is free', () => {
     let placed = 0;
     let none = 0;
     fc.assert(
@@ -163,11 +166,21 @@ describe('where he stands', () => {
         expect(foot.x + foot.w).toBeLessThanOrEqual(s.cell.x + s.cell.w + 0.75 + 1e-9);
         expect(foot.z).toBeGreaterThanOrEqual(s.cell.z - 0.75 - 1e-9);
         expect(foot.z + foot.d).toBeLessThanOrEqual(s.cell.z + s.cell.d + 0.75 + 1e-9);
-        // Not between the camera and the grave, and facing the grave.
+        // Facing the grave. In front of it (between it and the camera) only when every free place is; otherwise the free place
+        // nearest beside it.
         const toward = { x: s.x - camera.x, z: s.z - camera.z };
         const off = { x: spot.x - s.x, z: spot.z - s.z };
-        expect((off.x * toward.x + off.z * toward.z) / (Math.hypot(off.x, off.z) * Math.hypot(toward.x, toward.z))).toBeGreaterThanOrEqual(-0.25 - 1e-9);
+        const score = (off.x * toward.x + off.z * toward.z) / (Math.hypot(off.x, off.z) * Math.hypot(toward.x, toward.z));
         expect(Math.sin(spot.yaw) * -off.x + Math.cos(spot.yaw) * -off.z).toBeCloseTo(Math.hypot(off.x, off.z));
+        const free = freeSpots(model, index, camera);
+        expect(free.some((f) => f.spot.x === spot.x && f.spot.z === spot.z)).toBe(true);
+        const notInFront = free.filter((f) => f.score >= MOST_TOWARD_CAMERA);
+        if (notInFront.length === 0) {
+          expect(score).toBeCloseTo(Math.max(...free.map((f) => f.score)));
+        } else {
+          expect(score).toBeGreaterThanOrEqual(MOST_TOWARD_CAMERA - 1e-9);
+          expect(Math.abs(score - BEST_BEHIND)).toBeLessThanOrEqual(Math.min(...notInFront.map((f) => Math.abs(f.score - BEST_BEHIND))) + 1e-9);
+        }
       }),
       { numRuns: 400 },
     );
@@ -175,12 +188,41 @@ describe('where he stands', () => {
     expect(placed).toBeGreaterThan(none);
   });
 
-  it('chooses the side away from the camera: seen from the right, he stands to the left', () => {
+  it('stands beside the grave, never between it and the camera when a side is free: seen from the right, not on its right', () => {
     const model = models[0]!;
-    const index = model.stones.findIndex((_, i) => diggerSpot(model, i, { x: 1e4, z: model.stones[i]!.layout.z }) !== null && diggerSpot(model, i, { x: -1e4, z: model.stones[i]!.layout.z }) !== null);
-    expect(index).toBeGreaterThanOrEqual(0);
-    const s = model.stones[index]!.layout;
-    expect(diggerSpot(model, index, { x: s.x + 1e4, z: s.z })!.x).toBeLessThan(s.x);
-    expect(diggerSpot(model, index, { x: s.x - 1e4, z: s.z })!.x).toBeGreaterThan(s.x);
+    let checked = 0;
+    model.stones.forEach((st, index) => {
+      const s = st.layout;
+      for (const side of [1, -1]) {
+        const camera = { x: s.x + side * 1e4, z: s.z };
+        const free = freeSpots(model, index, camera);
+        if (!free.some((f) => f.score >= MOST_TOWARD_CAMERA)) continue;
+        const spot = diggerSpot(model, index, camera)!;
+        expect(side * (spot.x - s.x)).toBeLessThanOrEqual(1e-9); // not on the camera's side
+        checked++;
+      }
+    });
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  it('on both demos, from every camera direction, every unused stone gets a gravedigger, and he is never straight behind it', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const name of ['demo.oikosledger', 'demo.spatialql']) {
+      const model = buildSceneModel(JSON.parse(readFileSync(new URL(`../../public/graveyards/${name}.graveyard.json`, import.meta.url), 'utf8')));
+      model.stones.forEach((st, index) => {
+        if (!st.file.unused) return;
+        for (let a = 0; a < 360; a += 5) {
+          const r = (a * Math.PI) / 180;
+          const camera = { x: st.layout.x + Math.sin(r) * 40, z: st.layout.z + Math.cos(r) * 40 };
+          const spot = diggerSpot(model, index, camera);
+          expect(spot, `${name} ${st.file.path} from ${a} degrees`).not.toBeNull();
+          const off = { x: spot!.x - st.layout.x, z: spot!.z - st.layout.z };
+          const toward = { x: st.layout.x - camera.x, z: st.layout.z - camera.z };
+          const score = (off.x * toward.x + off.z * toward.z) / (Math.hypot(off.x, off.z) * Math.hypot(toward.x, toward.z));
+          // Straight behind is within 25 degrees of the camera's line through the stone (0.9): the stone would hide him there.
+          expect(score, `${name} ${st.file.path} from ${a} degrees`).toBeLessThan(0.9);
+        }
+      });
+    }
   });
 });
