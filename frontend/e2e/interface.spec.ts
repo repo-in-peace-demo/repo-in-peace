@@ -2,7 +2,8 @@ import { expect, test, type Page } from './fixtures';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
-import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary, usageDetail } from '../src/model/grave-facts';
+import { calendarDay, ghostSummary, hotDetail, stateSentence, stoneSummary } from '../src/model/grave-facts';
+import { usageView } from '../src/model/usage';
 import { buildRows, filterRows, sortRows } from '../src/model/list-rows';
 import { makeSyntheticGraveyard } from '../src/model/synthetic';
 import { buildSceneModel } from '../src/model/scene-model';
@@ -82,7 +83,8 @@ test.describe('the detail panel', () => {
     await expect(panel(page)).toContainText(stateSentence(voice, oikos.meta));
     await expect(panel(page)).toContainText(`${calendarDay(voice.lastCommitDate, oikos.meta.snapshotDate)} by ${voice.lastCommitAuthor}`);
     await expect(panel(page)).toContainText(hotDetail(voice, oikos.meta));
-    await expect(panel(page)).toContainText(usageDetail(voice, oikos.meta));
+    const usage = usageView(voice, oikos.meta, buildSceneModel(oikos));
+    await expect(panel(page)).toContainText('legacy' in usage ? usage.legacy : usage.text);
     await expect(panel(page)).toContainText(voice.decayScore.toFixed(2));
     // The demo has eulogies: the stone's own, with its model's credit (or "Words failed us" when it was left empty).
     if (voice.eulogy !== '') {

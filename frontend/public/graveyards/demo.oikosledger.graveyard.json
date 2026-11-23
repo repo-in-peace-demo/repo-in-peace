@@ -300,6 +300,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js layout"
+      },
       "eulogy": ""
     },
     {
@@ -313,6 +318,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "In the heart of the graveyard, a sentinel stands, guarding memories and keeping watch by day and night."
     },
     {
@@ -326,6 +336,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "Keeps watch over the first step in welcoming new members, weathered but steadfast, since change whispers not here."
     },
     {
@@ -339,6 +354,11 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "Weathered yet watchful, in analytics' steadfast lighthouse."
     },
     {
@@ -352,6 +372,11 @@
       "decayScore": 0.0889,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "Keeps watch over the comparison, ensuring each user's identity is known. Alive and well, still in use."
     },
     {
@@ -365,6 +390,11 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "If I could speak, I'd say I've seen many changes, yet still stand tall. Still serving, though my code grows old."
     },
     {
@@ -378,6 +408,11 @@
       "decayScore": 0.2356,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js layout"
+      },
       "eulogy": "A steadfast sentinel, weathered yet watchful."
     },
     {
@@ -391,6 +426,11 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "If only I could speak, I'd watch over this place."
     },
     {
@@ -404,6 +444,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "Still standing tall beside its siblings, it watches over the dashboard with unwavering vigilance."
     },
     {
@@ -417,6 +462,11 @@
       "decayScore": 0.2267,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js page"
+      },
       "eulogy": "This page serves up personalized recommendations, weathered by time but still standing. Its voice greeting with name remains a steadfast presence."
     },
     {
@@ -430,6 +480,11 @@
       "decayScore": 0.0711,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": ""
     },
     {
@@ -443,6 +498,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Guides the comparison of memory across accounts, keeping watch over recent changes and ensuring fresh insights."
     },
     {
@@ -456,6 +516,11 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Still relied upon by others."
     },
     {
@@ -469,6 +534,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "This route handles authentication with grace, though time has worn its edges. Still relied upon by newer code, it stands as a weathered sentinel of old iterations and fixes."
     },
     {
@@ -482,6 +552,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Autumn's chill finds it still standing, though time has weathered its code. Long may it watch over the paths of authentication."
     },
     {
@@ -495,6 +570,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Autumn's breeze finds it still in service, guiding the way through accounts with grace."
     },
     {
@@ -508,6 +588,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "At the heart of our API, a weathered sentinel stands. Though unchanged for many nights, its presence is still felt in the transactions it processes."
     },
     {
@@ -521,6 +606,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Weathered yet watchful, guiding paths through the ancient API."
     },
     {
@@ -534,6 +624,11 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "In the night, a watchful sentinel stands, guarding the cache with its code. Alive and vigilant, it ensures freshness and security."
     },
     {
@@ -547,6 +642,11 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Autumn's chill finds it still in service, its code alive and vigilant."
     },
     {
@@ -560,6 +660,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": ""
     },
     {
@@ -573,6 +678,11 @@
       "decayScore": 0.2667,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": ""
     },
     {
@@ -586,6 +696,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "A vital link in the balance history chain, always fetching and filtering snapshots for the Macro trend charts."
     },
     {
@@ -599,6 +714,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Watches over the Macro page's voice queries, keeping the financial facts fresh and the answers precise."
     },
     {
@@ -612,6 +732,11 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Morning has come and gone, yet this route still watches over the API, serving up the latest in macroeconomic indicators and blending user accounts with care. Its work never truly ends."
     },
     {
@@ -625,6 +750,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "If I could speak, I'd say I keep watch over spending patterns, learning from each transaction to offer smarter savings advice. Still alive and well, guiding the way forward."
     },
     {
@@ -638,6 +768,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "If these walls could talk, they'd tell tales of transactions amended and merchants named. Long may they stand, though changes lie dormant."
     },
     {
@@ -651,6 +786,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Guides the way through transactions, though its path is long and little trodden. Still, it stands watch over amendments, a weathered sentinel of old code."
     },
     {
@@ -664,6 +804,11 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "A weathered sentinel of the past, still guiding the flow of transactions with its steadfast GET. Though unchanged for some time, it remains integral to the API's heart."
     },
     {
@@ -677,6 +822,11 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Still standing strong, though its code grows weathered with age."
     },
     {
@@ -690,6 +840,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Keeps watch over the transactions of past months, ensuring they stay in their proper chronological order."
     },
     {
@@ -703,6 +858,11 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Tracks transactions by the month, with filters for search, category, date range, and type. Weathered but still standing tall, serving old queries with precision."
     },
     {
@@ -716,6 +876,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "If these walls could speak, they'd tell tales of countless uploads past. Long may they stand, serving their purpose in the app's heart."
     },
     {
@@ -729,6 +894,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Watches over file uploads, ensuring they're legit and in place. Weathered but still standing, waiting for the next submission."
     },
     {
@@ -742,6 +912,11 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "If I could speak, I'd say I've stood here long, through many a change unseen. Still serving, though my code is old, waiting for the next request to fulfill."
     },
     {
@@ -755,6 +930,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js route"
+      },
       "eulogy": "Autumn's chill meets the old oak still standing, its leaves weathered but branches steadfast. Receives the whisper of the wind, returns only silence—yet waits patiently for the next breeze."
     },
     {
@@ -768,6 +948,11 @@
       "decayScore": 0.0933,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js layout"
+      },
       "eulogy": ""
     },
     {
@@ -781,6 +966,7 @@
       "decayScore": 0.8578,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies PCMProcessor.js, once tasked with audio work. Now unused, in silence it rots, a ghost of its former role."
     },
     {
@@ -794,6 +980,18 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/auth.ts"
+        },
+        {
+          "path": "app/middleware.ts"
+        }
+      ],
+      "entry": {
+        "kind": "config",
+        "label": "config"
+      },
       "eulogy": "If I could speak, I'd say I've stood the test of time, still guiding paths through login with steady rhyme."
     },
     {
@@ -807,6 +1005,92 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/compare/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/insights/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/layout.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/macro/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/recommendations/page.tsx"
+        },
+        {
+          "path": "app/app/api/accounts/compare/query/route.ts"
+        },
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/analytics/route.ts"
+        },
+        {
+          "path": "app/app/api/auth/[...nextauth]/route.ts"
+        },
+        {
+          "path": "app/app/api/bank_accounts/[account_id]/route.ts"
+        },
+        {
+          "path": "app/app/api/bank_accounts/route.ts"
+        },
+        {
+          "path": "app/app/api/categories/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/cache/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/session/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/balance-history/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/query/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/app/api/recommendations/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amend/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amendments/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/balances/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/categories/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/months/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/[upload_id]/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/route.ts"
+        },
+        {
+          "path": "app/app/api/uploads/route.ts"
+        }
+      ],
       "eulogy": "If only I could speak, I'd say I keep the peace, guarding logins and guests with every beat."
     },
     {
@@ -820,6 +1104,32 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/layout.tsx"
+        },
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        },
+        {
+          "path": "app/components/analytics/AnalyticsPanel.tsx"
+        },
+        {
+          "path": "app/components/analytics/ComparePage.tsx"
+        },
+        {
+          "path": "app/components/insights/InsightsPanel.tsx"
+        },
+        {
+          "path": "app/components/recommendations/RecommendationsPanel.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        },
+        {
+          "path": "app/components/uploads/UploadStatementModal.tsx"
+        }
+      ],
       "eulogy": "Keeps track of user-selected bank accounts and their loading state, weathered yet steadfast in its role."
     },
     {
@@ -833,6 +1143,11 @@
       "decayScore": 0.2267,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/page.tsx"
+        }
+      ],
       "eulogy": "If these walls could speak, they'd tell of a time when accounts were simpler. Still standing tall, though changes have ceased to flow."
     },
     {
@@ -846,6 +1161,11 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        }
+      ],
       "eulogy": "Still standing tall, though time has worn you thin, your warnings and buttons guide us still within."
     },
     {
@@ -859,6 +1179,11 @@
       "decayScore": 0.1644,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/analytics/page.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -872,6 +1197,11 @@
       "decayScore": 0.0889,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/compare/page.tsx"
+        }
+      ],
       "eulogy": "Monitors accounts, comparing categories and shared patterns. Keeps watch over financial insights."
     },
     {
@@ -885,6 +1215,15 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/ComparePage.tsx"
+        },
+        {
+          "path": "app/components/analytics/CompareVoiceButton.tsx",
+          "typeOnly": true
+        }
+      ],
       "eulogy": "Stays busy with confidence and color, ensuring insights shine through."
     },
     {
@@ -898,6 +1237,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/ComparePanel.tsx"
+        }
+      ],
       "eulogy": "Watches over the Compare page, guiding voice interactions with warmth and precision. Keeps watch over real-time voice sessions, ensuring accurate and context-aware responses."
     },
     {
@@ -911,6 +1255,14 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -924,6 +1276,11 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/dashboard/DashboardClient.tsx"
+        }
+      ],
       "eulogy": "Here lies BankAccountsSection, once vibrant and full of promise. Now, only memories remain."
     },
     {
@@ -937,6 +1294,20 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "A weathered sentinel, long-standing and steadfast. Still serving its purpose, though time has softened its edges."
     },
     {
@@ -950,6 +1321,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies the index of our charts, re-exporting visions now lost."
     },
     {
@@ -963,6 +1335,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies DashboardClient.tsx, once a vibrant component connecting bank accounts and transactions."
     },
     {
@@ -976,6 +1349,14 @@
       "decayScore": 0.2356,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/layout.tsx"
+        },
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        }
+      ],
       "eulogy": "Autumn's leaves still cling, long-standing, not unused, still cling."
     },
     {
@@ -989,6 +1370,14 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/AnalyticsPanel.tsx"
+        },
+        {
+          "path": "app/components/insights/TurnCard.tsx"
+        }
+      ],
       "eulogy": "If only I could speak, I'd say I've watched over insights for far too long. Still used, though my lines grow thin."
     },
     {
@@ -1002,6 +1391,15 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/insights/page.tsx"
+        },
+        {
+          "path": "app/components/insights/TurnCard.tsx",
+          "typeOnly": true
+        }
+      ],
       "eulogy": "Still watching over insights, keeping conversations flowing smoothly."
     },
     {
@@ -1015,6 +1413,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/insights/InsightsPanel.tsx"
+        }
+      ],
       "eulogy": "If only I could speak, I'd tell of the insights I've shared and the charts I've revealed. Alive and well, for now."
     },
     {
@@ -1028,6 +1431,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "In the night, this chart watches over the graveyard, plotting trends and showing real vs. nominal balances with precision. Still learning and growing, it waits for more data to paint a clearer picture."
     },
     {
@@ -1041,6 +1449,11 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "In the night of the graveyard, a flicker of light remains. The InvestmentScenarioSlider lives on, guiding hypotheticals through arithmetic shadows."
     },
     {
@@ -1054,6 +1467,11 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/macro/page.tsx"
+        }
+      ],
       "eulogy": "If only I could speak, I'd say I keep watch over the balances and indicators, ensuring the voice questions are always in sync with what's shown."
     },
     {
@@ -1067,6 +1485,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": true,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "Still guiding ears through economic landscapes."
     },
     {
@@ -1080,6 +1503,11 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "Greet the living MemoryPanel, keeper of your financial patterns and insights. Still learning and growing, you show what Oikos Recall has noted over time."
     },
     {
@@ -1093,6 +1521,11 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "If I could speak, I'd tell you of the trends and losses, plotted with care. Still watching over balances, showing what's fair."
     },
     {
@@ -1106,6 +1539,11 @@
       "decayScore": 0.0933,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/layout.tsx"
+        }
+      ],
       "eulogy": "A weathered sentinel of the navigation, steadfast and unyielding. Still serving its purpose, though time has worn it thin."
     },
     {
@@ -1119,6 +1557,14 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/recommendations/RecommendationsPanel.tsx"
+        },
+        {
+          "path": "app/components/recommendations/index.ts"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1132,6 +1578,14 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/recommendations/page.tsx"
+        },
+        {
+          "path": "app/components/recommendations/index.ts"
+        }
+      ],
       "eulogy": "Watches over user spending patterns, offering insights and savings tips. Keeps watch since connecting, ready for the next nudge."
     },
     {
@@ -1145,6 +1599,7 @@
       "decayScore": 0.8489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies index.ts, once vibrant, now forgotten in the shadows. It may yet rise again, though for now, it rests undisturbed."
     },
     {
@@ -1158,6 +1613,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionGroup.tsx"
+        }
+      ],
       "eulogy": "Preserves the transaction's essence, allowing adjustments with care. Still called upon, though time has worn its code."
     },
     {
@@ -1171,6 +1631,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionGroup.tsx"
+        }
+      ],
       "eulogy": "Autumn's cool breeze whispers of its long tenure, yet it still stands vigilant at its post, coloring transactions with the hues of life."
     },
     {
@@ -1184,6 +1649,11 @@
       "decayScore": 0.24,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "Still standing strong, though time has worn you down. You may be ancient, but your presence is still felt."
     },
     {
@@ -1197,6 +1667,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionGroup.tsx"
+        }
+      ],
       "eulogy": "Autumn's cool breeze whispers of its long tenure, yet it stands steadfast at its post, coloring methods with a weathered hand."
     },
     {
@@ -1210,6 +1685,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "Keeps watch over transactions, guiding the view with steady hands. Weathered but still serving its purpose."
     },
     {
@@ -1223,6 +1703,11 @@
       "decayScore": 0.2356,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "Still standing tall, though time has worn you down. Your lines of code tell a story from days gone by, yet your presence is felt in the transactions they define."
     },
     {
@@ -1236,6 +1721,11 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/dashboard/DashboardClient.tsx"
+        }
+      ],
       "eulogy": "Here lies TransactionList.tsx, once vibrant with transactions, now reduced to shadows."
     },
     {
@@ -1249,6 +1739,11 @@
       "decayScore": 0.1689,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/page.tsx"
+        }
+      ],
       "eulogy": "Still standing tall, though time has worn you down. Your filters and months persist, a steadfast sentinel."
     },
     {
@@ -1262,6 +1757,14 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/ComparePanel.tsx"
+        },
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "In the graveyard's night, a flicker of light— CollapsibleSection watches over, still in use and bright."
     },
     {
@@ -1275,6 +1778,38 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(auth)/login/page.tsx"
+        },
+        {
+          "path": "app/components/accounts/DeleteAccountModal.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/insights/InsightsPanel.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/FilterBar.tsx"
+        },
+        {
+          "path": "app/components/transactions/Pagination.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionList.tsx"
+        },
+        {
+          "path": "app/components/uploads/UploadHistoryModal.tsx"
+        },
+        {
+          "path": "app/components/uploads/UploadStatementModal.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1288,6 +1823,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(auth)/login/page.tsx"
+        }
+      ],
       "eulogy": "Autumn's cool breeze whispers through the weathered pages of this ancient card component. Still standing tall, though its edges have worn thin over many seasons."
     },
     {
@@ -1301,6 +1841,23 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/DeleteAccountModal.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/uploads/UploadHistoryModal.tsx"
+        },
+        {
+          "path": "app/components/uploads/UploadStatementModal.tsx"
+        }
+      ],
       "eulogy": "A weathered sentinel of the UI, steadfast and ancient."
     },
     {
@@ -1314,6 +1871,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies index.ts, re-exporter of shadcn/ui's primitives—buttons, inputs, cards, and more."
     },
     {
@@ -1327,6 +1885,17 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/FilterBar.tsx"
+        }
+      ],
       "eulogy": "Weathered yet reliable, this Input component stands the test of time. Still serving its purpose, though its codebase shows signs of age."
     },
     {
@@ -1340,6 +1909,14 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        }
+      ],
       "eulogy": "Begin to decay slowly, yet still holding your post. Age well, serving where you were planted."
     },
     {
@@ -1353,6 +1930,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/uploads/UploadStatementModal.tsx"
+        }
+      ],
       "eulogy": "Stand still in the wind, old Progress. Once vibrant, now weathered but steadfast."
     },
     {
@@ -1366,6 +1948,17 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/FilterBar.tsx"
+        }
+      ],
       "eulogy": "Watches over the select options, ever steadfast. Though ancient, it still guides the choices of many."
     },
     {
@@ -1379,6 +1972,11 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        }
+      ],
       "eulogy": "Autumn's chill nips at the edges of this ancient modal, still standing watch over uploads, though its codebase lies fallow."
     },
     {
@@ -1392,6 +1990,14 @@
       "decayScore": 0.1778,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "Still standing tall, though your days are numbered. You've watched many transactions pass through, but now you wait in silence."
     },
     {
@@ -1405,6 +2011,17 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/CompareVoiceButton.tsx"
+        },
+        {
+          "path": "app/components/macro/MacroVoiceButton.tsx"
+        },
+        {
+          "path": "app/components/voice/index.ts"
+        }
+      ],
       "eulogy": "If only mic buttons could speak, this one would say: \"Still listening, still connecting. Voices echo here.\""
     },
     {
@@ -1418,6 +2035,7 @@
       "decayScore": 0.6844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies index.ts, re-exporting voice parts now at rest."
     },
     {
@@ -1431,6 +2049,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "config",
+        "label": "Drizzle config"
+      },
       "eulogy": "Keeps watch over the database connection, weathered yet steadfast."
     },
     {
@@ -1444,6 +2067,14 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/query/route.ts"
+        },
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        }
+      ],
       "eulogy": "If only markers could speak, they'd tell of a cache that keeps the Compare page and voice handler in sync."
     },
     {
@@ -1457,6 +2088,20 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsSidebar.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": "Still standing tall, though time has weathered your lines. Long may you guard the banks, even as changes pass you by."
     },
     {
@@ -1470,6 +2115,35 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionGroup.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionList.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        },
+        {
+          "path": "app/lib/currency.ts"
+        },
+        {
+          "path": "app/lib/hooks/useMacro.ts"
+        }
+      ],
       "eulogy": "A stalwart of its kind, long in service yet unchanged. Still relied upon by many, though time has worn it well."
     },
     {
@@ -1483,6 +2157,26 @@
       "decayScore": 0.1733,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/query/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/components/macro/BalanceTrendChart.tsx"
+        },
+        {
+          "path": "app/components/macro/InvestmentScenarioSlider.tsx"
+        },
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        },
+        {
+          "path": "app/components/macro/PurchasingPowerGapChart.tsx"
+        }
+      ],
       "eulogy": "In the night's embrace, it stands weathered yet watchful, A stalwart sentinel of symbols, long in service."
     },
     {
@@ -1496,6 +2190,83 @@
       "decayScore": 0.2178,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/analytics/route.ts"
+        },
+        {
+          "path": "app/app/api/bank_accounts/[account_id]/route.ts"
+        },
+        {
+          "path": "app/app/api/categories/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/cache/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/app/api/recommendations/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amend/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amendments/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/balances/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/categories/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/months/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/route.ts"
+        },
+        {
+          "path": "app/app/api/uploads/route.ts"
+        },
+        {
+          "path": "app/auth.ts"
+        },
+        {
+          "path": "app/lib/compare/comparisonSnapshots.ts"
+        },
+        {
+          "path": "app/lib/db/queries/bank_accounts.ts"
+        },
+        {
+          "path": "app/lib/db/queries/macro.ts"
+        },
+        {
+          "path": "app/lib/db/queries/transactions.ts"
+        },
+        {
+          "path": "app/lib/db/queries/users.ts"
+        },
+        {
+          "path": "app/lib/insights/factCandidates.ts"
+        },
+        {
+          "path": "app/lib/macro/balanceFacts.ts"
+        },
+        {
+          "path": "app/lib/queryCacheFreshness.ts"
+        }
+      ],
       "eulogy": "If I could speak, I'd say I've weathered well, still serving insights queries as they fell."
     },
     {
@@ -1509,6 +2280,20 @@
       "decayScore": 0.28,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/bank_accounts/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/route.ts"
+        }
+      ],
       "eulogy": "If I could speak, I'd say I've seen many changes around here, yet still stand tall, though time has worn me thin."
     },
     {
@@ -1522,6 +2307,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies insights.ts, once vibrant in its queries, now winter's chill, long unused, doth it bequeath."
     },
     {
@@ -1535,6 +2321,11 @@
       "decayScore": 0.1733,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/route.ts"
+        }
+      ],
       "eulogy": "Its lines remain sharp, though the world around has moved on."
     },
     {
@@ -1548,6 +2339,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies recommendations.ts, last used in spring's embrace, now winter's chill claims it, unused, ancient, yet not erased."
     },
     {
@@ -1561,6 +2353,23 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amend/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/[upload_id]/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/route.ts"
+        }
+      ],
       "eulogy": "Still watching over accounts and transactions, your code lives on."
     },
     {
@@ -1574,6 +2383,29 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/(dashboard)/compare/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/insights/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/layout.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/macro/page.tsx"
+        },
+        {
+          "path": "app/app/(dashboard)/recommendations/page.tsx"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/auth.ts"
+        }
+      ],
       "eulogy": "Still standing tall, though time has worn you thin. Your queries still serve, though changes leave you behind."
     },
     {
@@ -1587,6 +2419,60 @@
       "decayScore": 0.1644,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/bank_accounts/[account_id]/route.ts"
+        },
+        {
+          "path": "app/app/api/categories/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amend/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amendments/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/months/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/route.ts"
+        },
+        {
+          "path": "app/app/api/upload/route.ts"
+        },
+        {
+          "path": "app/app/api/uploads/route.ts"
+        },
+        {
+          "path": "app/auth.ts"
+        },
+        {
+          "path": "app/lib/db/client.ts"
+        },
+        {
+          "path": "app/lib/db/queries/bank_accounts.ts"
+        },
+        {
+          "path": "app/lib/db/queries/macro.ts"
+        },
+        {
+          "path": "app/lib/db/queries/transactions.ts"
+        },
+        {
+          "path": "app/lib/db/queries/users.ts"
+        },
+        {
+          "path": "app/types/index.ts",
+          "typeOnly": true
+        }
+      ],
       "eulogy": "A weathered schema, steadfast and sound, three hundred eighty-two lines, still in demand."
     },
     {
@@ -1600,6 +2486,14 @@
       "decayScore": 0.1778,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1613,6 +2507,35 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/lib/hooks/useAvailableMonths.ts"
+        },
+        {
+          "path": "app/lib/hooks/useBankAccounts.ts"
+        },
+        {
+          "path": "app/lib/hooks/useCategories.ts"
+        },
+        {
+          "path": "app/lib/hooks/useMacro.ts"
+        },
+        {
+          "path": "app/lib/hooks/useTransactionCategories.ts"
+        },
+        {
+          "path": "app/lib/hooks/useTransactions.ts"
+        },
+        {
+          "path": "app/lib/hooks/useUploadStatus.ts"
+        },
+        {
+          "path": "app/lib/hooks/useUploads.ts"
+        },
+        {
+          "path": "app/lib/macro/balanceTrendPoints.ts"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1626,6 +2549,11 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/ComparePanel.tsx"
+        }
+      ],
       "eulogy": "In the night of the graveyard, a flicker of light still watches over the code."
     },
     {
@@ -1639,6 +2567,15 @@
       "decayScore": 0.28,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/FilterBar.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1652,6 +2589,14 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/accounts/AccountsContext.tsx"
+        },
+        {
+          "path": "app/components/bank_accounts/BankAccountsSection.tsx"
+        }
+      ],
       "eulogy": "Stand by thy post, old sentinel of bank accounts. Long thou hast watched over us, though changes come slow."
     },
     {
@@ -1665,6 +2610,14 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx"
+        },
+        {
+          "path": "app/components/transactions/FilterBar.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1678,6 +2631,19 @@
       "decayScore": 0.1733,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        },
+        {
+          "path": "app/components/macro/MacroVoiceButton.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/macro/MemoryPanel.tsx",
+          "typeOnly": true
+        }
+      ],
       "eulogy": "Watches over the macroeconomic landscape, providing insights and balances to the app. Long-standing yet steadfast in its role."
     },
     {
@@ -1691,6 +2657,11 @@
       "decayScore": 0.2489,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/AnalyticsPanel.tsx"
+        }
+      ],
       "eulogy": "If I could speak, I'd say I've seen many changes around here. Still used, though my code hasn't changed in quite some time."
     },
     {
@@ -1704,6 +2675,18 @@
       "decayScore": 0.2578,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/transactions/FilterBar.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/transactions/TransactionList.tsx"
+        },
+        {
+          "path": "app/components/transactions/TransactionsPanel.tsx"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1717,6 +2700,7 @@
       "decayScore": 0.8889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies useUploadStatus.ts, once vibrant and full of promise. Now, only memories remain."
     },
     {
@@ -1730,6 +2714,11 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/uploads/UploadHistoryModal.tsx"
+        }
+      ],
       "eulogy": "A steadfast sentinel of the upload process, long in service yet still relied upon. Weathered but not forgotten, it stands watch over file submissions and errors."
     },
     {
@@ -1743,6 +2732,11 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        }
+      ],
       "eulogy": "Morning has broken, and with it, factCandidates.ts keeps watch."
     },
     {
@@ -1756,6 +2750,35 @@
       "decayScore": 0.1689,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/query/route.ts"
+        },
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/balance-history/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/query/route.ts"
+        },
+        {
+          "path": "app/lib/compare/comparisonSnapshots.ts"
+        },
+        {
+          "path": "app/lib/insights/factCandidates.ts"
+        },
+        {
+          "path": "app/lib/macro/balanceFacts.ts"
+        },
+        {
+          "path": "app/lib/queryCacheFreshness.ts"
+        }
+      ],
       "eulogy": "Watches over server-side errors, ensuring they're logged with care and detail. Still standing tall after many changes, though time has worn its edges."
     },
     {
@@ -1769,6 +2792,14 @@
       "decayScore": 0.08,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/query/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        }
+      ],
       "eulogy": "Watches over user memory facts, ensuring consistency across Macro pages and voice handlers. Keeps the cache warm for trends that matter."
     },
     {
@@ -1782,6 +2813,14 @@
       "decayScore": 0.0756,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/macro/BalanceTrendChart.tsx"
+        },
+        {
+          "path": "app/components/macro/PurchasingPowerGapChart.tsx"
+        }
+      ],
       "eulogy": "Keeps watch over the balance and gap trends, ensuring accuracy in the Macro page's charts."
     },
     {
@@ -1795,6 +2834,14 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/macro/query/route.ts"
+        },
+        {
+          "path": "app/components/macro/MacroPanel.tsx"
+        }
+      ],
       "eulogy": "Still watching over the graveyard, ensuring values are rendered truthfully and consistently."
     },
     {
@@ -1808,6 +2855,26 @@
       "decayScore": 0.1778,
       "decayState": "stale",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/balance-history/route.ts"
+        },
+        {
+          "path": "app/app/api/macro/route.ts"
+        },
+        {
+          "path": "app/lib/compare/comparisonSnapshots.ts"
+        },
+        {
+          "path": "app/lib/insights/factCandidates.ts"
+        },
+        {
+          "path": "app/lib/macro/balanceFacts.ts"
+        }
+      ],
       "eulogy": ""
     },
     {
@@ -1821,6 +2888,14 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/ComparePanel.tsx"
+        },
+        {
+          "path": "app/components/macro/MemoryPanel.tsx"
+        }
+      ],
       "eulogy": "Keeps watch over Compare's and Macro's memory panels, ensuring consistency in visual treatment. Confirmed facts stand out, while tentative ones maintain a distinct yet subtle presence."
     },
     {
@@ -1834,6 +2909,11 @@
       "decayScore": 0.2711,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/lib/embeddings.ts"
+        }
+      ],
       "eulogy": "This file holds the key to our AI interactions, though its voice grows faint. Still relied upon by many, it stands weathered yet steadfast in its role."
     },
     {
@@ -1847,6 +2927,14 @@
       "decayScore": 0.0622,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/insights/cache/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        }
+      ],
       "eulogy": "In the graveyard at night, its watch kept, queryCacheFreshness still ponders the freshness of cached memories."
     },
     {
@@ -1860,6 +2948,23 @@
       "decayScore": 0.0667,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/accounts/compare/route.ts"
+        },
+        {
+          "path": "app/app/api/insights/query/route.ts"
+        },
+        {
+          "path": "app/app/api/recommendations/route.ts"
+        },
+        {
+          "path": "app/app/api/transactions/months/route.ts"
+        },
+        {
+          "path": "app/lib/db/queries/transactions.ts"
+        }
+      ],
       "eulogy": "Keeps track of the day, ensuring consistency across the app. Lives on, serving queries faithfully."
     },
     {
@@ -1873,6 +2978,32 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/bank_accounts/BankLogo.tsx"
+        },
+        {
+          "path": "app/components/ui/button.tsx"
+        },
+        {
+          "path": "app/components/ui/card.tsx"
+        },
+        {
+          "path": "app/components/ui/dialog.tsx"
+        },
+        {
+          "path": "app/components/ui/input.tsx"
+        },
+        {
+          "path": "app/components/ui/label.tsx"
+        },
+        {
+          "path": "app/components/ui/progress.tsx"
+        },
+        {
+          "path": "app/components/ui/select.tsx"
+        }
+      ],
       "eulogy": "Weathered and true, long at its post, still used in view."
     },
     {
@@ -1886,6 +3017,7 @@
       "decayScore": 0.6844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [],
       "eulogy": "Here lies the shared voice session hook, once vital for Insights, Compare, Macro, and Recommendations."
     },
     {
@@ -1899,6 +3031,27 @@
       "decayScore": 0.0844,
       "decayState": "fresh",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/components/analytics/CompareVoiceButton.tsx"
+        },
+        {
+          "path": "app/components/insights/InsightsPanel.tsx"
+        },
+        {
+          "path": "app/components/macro/MacroVoiceButton.tsx"
+        },
+        {
+          "path": "app/components/recommendations/RecommendationsPanel.tsx"
+        },
+        {
+          "path": "app/components/voice/VoiceButton.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/voice/index.ts"
+        }
+      ],
       "eulogy": "Seven hundred and twenty-three lines keep watch, fixing bugs and smoothing turns in real-time voice sessions."
     },
     {
@@ -1912,6 +3065,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "framework",
+        "label": "Next.js middleware"
+      },
       "eulogy": "This middleware guards the paths with ancient wisdom, though its codebase shows signs of weathering. Still relied upon by newer code, it stands vigilant at its post."
     },
     {
@@ -1925,6 +3083,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "config",
+        "label": "Next.js config"
+      },
       "eulogy": "Keeps watch over server settings and Vercel's embrace, weathered yet steadfast."
     },
     {
@@ -1938,6 +3101,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "config",
+        "label": "PostCSS config"
+      },
       "eulogy": "In the quiet of night, you stood steadfast, weathered but still serving your post."
     },
     {
@@ -1951,6 +3119,11 @@
       "decayScore": 0.2889,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [],
+      "entry": {
+        "kind": "config",
+        "label": "Tailwind config"
+      },
       "eulogy": ""
     },
     {
@@ -1964,6 +3137,76 @@
       "decayScore": 0.2844,
       "decayState": "ancient",
       "hot": false,
+      "importedBy": [
+        {
+          "path": "app/app/api/bank_accounts/route.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/app/api/transactions/[transaction_id]/amend/route.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/accounts/AccountsContext.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/analytics/ComparePanel.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/bank_accounts/AddBankAccountModal.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/transactions/AmendTransactionModal.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/transactions/TransactionGroup.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/transactions/TransactionList.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/uploads/UploadHistoryModal.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/components/uploads/UploadStatementModal.tsx",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/db/queries/bank_accounts.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/db/queries/transactions.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/db/queries/users.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/db/schema.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/hooks/useBankAccounts.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/hooks/useTransactions.ts",
+          "typeOnly": true
+        },
+        {
+          "path": "app/lib/hooks/useUploads.ts",
+          "typeOnly": true
+        }
+      ],
       "eulogy": "At dawn of another day, you stood steadfast."
     }
   ],

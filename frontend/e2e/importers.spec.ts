@@ -5,8 +5,8 @@ import { stoneSummary } from '../src/model/grave-facts';
 import { expect, test, type Page } from './fixtures';
 
 /**
- * The Usage row and the hover's "imported by N" (importers spec, P5). Until the demos are regenerated with the import graph, this
- * opens a copy of the oikos demo with the two fields set by hand, through "Open a graveyard file…".
+ * The Usage row and the hover's "imported by N" (importers spec, P5). Most checks open a copy of the oikos demo with importers set by
+ * hand (seven of them, one type-only), through "Open a graveyard file…", so the counts are known; the last reads the real demo.
  */
 
 function withImporters(): { graveyard: Graveyard; hub: string; importers: string[]; dead: string; deadImporter: string } {
@@ -117,5 +117,23 @@ test.describe('the hover', () => {
     const plain = data.graveyard.files.find((f) => f.path.startsWith('app/') && f.importedBy!.length === 0 && !f.unused)!;
     await pointAt(page, plain.path);
     await expect(page.locator('.hover-summary')).toHaveText(stoneSummary(plain, data.graveyard.meta));
+  });
+});
+
+test.describe('the real oikos demo', () => {
+  test('the dead chain: DashboardClient is unused, and the two files only it imports say so, with a link to it', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    await page.waitForTimeout(800);
+    const usage = panel(page).locator('dt:text-is("Usage") + dd');
+    for (const path of ['app/components/bank_accounts/BankAccountsSection.tsx', 'app/components/transactions/TransactionList.tsx']) {
+      await selectAndWait(page, path);
+      await expect(usage.locator('.usage-text')).toHaveText('Unused: only imported by other unused files');
+      await expect(usage.locator('.usage-link')).toHaveText(['DashboardClient.tsx']);
+    }
+    await usage.getByRole('button', { name: 'DashboardClient.tsx' }).click();
+    await expect.poll(() => page.evaluate(() => window.repoInPeace!.getSelection())).toEqual({ kind: 'file', path: 'app/components/dashboard/DashboardClient.tsx' });
+    await expect(usage.locator('.usage-text')).toHaveText('Unused: nothing in the project imports it (Knip)');
   });
 });

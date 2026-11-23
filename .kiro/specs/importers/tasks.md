@@ -71,5 +71,5 @@ Status key: `[x]` done, `[ ]` not started.
 
 - [x] 11. Documentation: `analyser/README.md` (the graph, entry points, disagreements, `--eulogies-from`), `frontend/README.md` (the Usage row), `docs/kiro-notes.md`, `docs/backlog.md` (the importer list done).
 
-- [ ] 12. **Regenerate the demos** (yours to run, with the commands I give): both demos with the same flags as before (`--knip-dir app` for oikos) and `--eulogies-from` the committed demo file, so the eulogies are kept exactly. Then send me the disagreement report, and I check the diff only adds `importedBy` and `entry`.
+- [x] 12. **Regenerate the demos** (yours to run, with the commands I give): both demos with the same flags as before (`--knip-dir app` for oikos) and `--eulogies-from` the committed demo file, so the eulogies are kept exactly. Then send me the disagreement report, and I check the diff only adds `importedBy` and `entry`.
   - _Requirements: 4.3, 5_
