@@ -1,6 +1,6 @@
 # How we used Kiro
 
-Notes for the write-up: how the specs, steering and property tests shaped Repo In Peace. Kept short and factual; each spec's own `requirements.md`, `design.md` and `tasks.md` in `.kiro/specs/` holds the detail.
+Notes for the write-up: how the specs, steering, hooks, a custom agent, MCP and property tests shaped Repo In Peace. Kept short and factual; each spec's own `requirements.md`, `design.md` and `tasks.md` in `.kiro/specs/` holds the detail.
 
 ## Steering
 
@@ -20,6 +20,19 @@ Three always-on steering files (`.kiro/steering/`) set the rules every spec foll
 | `bury-and-resurrect` | Real pull requests on demo forks from the detail panel, through one serverless function, with session-only scene changes |
 | `eulogies` | A two-sentence epitaph for every grave, written at analysis time by a local model through Ollama, stored in the data file and shown in the detail panel |
 | `importers` | Who imports each file and which files are entry points, from TypeScript's parser and resolver on the snapshot; the detail panel lists the importers as links that fly to them |
+
+## Requirements → design → tasks
+
+Every spec went the same way: requirements with open questions, answered by the human; a design with its correctness properties; tasks; and each step approved before the next. After each task: a commit, the task ticked, and a short report of what was verified and what wasn't. What the steps changed, one example per spec:
+
+| Spec | Decided at | What changed |
+| --- | --- | --- |
+| `repo-analyser` | requirements | every time-based score is measured to the snapshot commit, never the clock, so the same snapshot gives the same bytes (property P2) |
+| `graveyard-scene` | design | one source for each effect (moss is age, lean is ancient, cracks are unused), checked by a property (P8) that no other field changes an effect |
+| `interface` | open questions | Bury only on unused stones, whatever their age ("cracked or ancient" would have offered to delete stable code) |
+| `eulogies` | requirements review | no schema bump: the two new fields are optional, so output without `--eulogies` stays byte-identical |
+| `bury-and-resurrect` | design | the server decides: the function checks every request against the demo's data file, so the browser can't ask for anything else |
+| `importers` | open questions | the panel's words follow Knip's verdict; the import graph only explains it, and disagreements are reported, never written into the data |
 
 ## The interface spec, step by step
 
@@ -86,9 +99,44 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 - **Tests that tested nothing.** The end-to-end property's random repositories hold only comments, so they have no imports; P4 got its own generator, with random imports in five forms written in random order.
 - **Wording met real labels.** The design's "Entry point: loaded by {label}" read as "loaded by Vite entry" with the labels the analyser actually writes, so the panel says "Entry point: Vite entry".
 
+## Hooks (`.kiro/hooks/`, wired in `.kiro/agents/rip-dev.json`)
+
+Kiro CLI reads hooks from an agent's configuration, not from files of their own, so the four scripts live in `.kiro/hooks/` and the workspace agent `rip-dev` runs them (`kiro-cli chat --agent rip-dev`). Each is a small Node script that reads the hook event on stdin.
+
+| Hook | When | What it does | Where it helped |
+| --- | --- | --- | --- |
+| `guard-commands.mjs` | before a shell command | blocks the full suites (`npm test`, `npm run e2e`, `vitest run` or `playwright test` with no file, or with only `src`), installs, builds and deploys (`vercel`, `git push`), telling the agent to give the human the command; allows `tsc --noEmit` and single test files | In this project Kiro once ran `npx vitest run src`, the whole frontend suite (1,066 tests) under another name, against the working agreement. That command is in the guard's own test list (`node .kiro/hooks/guard-commands.test.mjs`: 22 blocked, 15 allowed, all from real sessions) and is now blocked. |
+| `test-on-edit.mjs` | after a write | for a file under `frontend/src/model/`, `analyser/src/core/` or `shared/`, runs its `x.test.ts` and `x.property.test.ts` with that package's Vitest; a failure exits 1 with the failing tests | The sky director's bat property failed on its first run (a bat's lowest point at 6.58°, under the 6.6° framing treetops); that run was by hand, and this hook makes it automatic. Kiro CLI's documentation says a post-tool hook's stderr is shown to the user as a warning; it doesn't say the model receives it. |
+| `session-context.mjs` | session start | adds the branch, `git status --short`, the last 5 commit subjects and the unticked tasks of the most recently changed `tasks.md` | The importers work resumed from a summary saying task 7 was uncommitted after a cancelled call; the hook states that from git at the start, instead of trusting a summary. |
+| `data-check.mjs` | after a write | when a demo graveyard file or `shared/graveyard-schema*` changes, validates both demos with `validateGraveyard` (through the analyser's tsx) | Checked on a copy with an importer that isn't a file of the data: `files[0].importedBy[0]: "nope.ts" is not a file in the data`, exit 1. The demos pass (oikos 129 files, 16 empty eulogies; spatialql 120 files, 2 ghosts, 9 empty). |
+
+## A custom agent: `grave-reviewer`
+
+`.kiro/agents/grave-reviewer.json` has only `read`, `grep` and `glob`, so it can't change anything. Its prompt checks a graveyard file for honesty: eulogies that contradict the data (a used file mourned, a stated age or date, a wrong line count), leaked prompt text, author names, and Knip-versus-graph disagreements, quoting each finding. Run once on both demos (2 min, report in `docs/grave-review-demos.md`), it found **4 real contradictions in oikos** that every earlier check had missed: `schema.ts` called "three hundred eighty-two lines" (it has 282); two ancient files given a season ("winter's chill"), which the time-agnostic rule misses because it drops month names but not seasons; and a used modal told "your days are numbered". It found no leaked prompt text, no author names and no Knip disagreements on either demo, which matches the analyser's own report. The four are not fixed yet.
+
+## MCP: GitHub, read-only
+
+`rip-dev` configures GitHub's remote MCP server (`https://api.githubcopilot.com/mcp/`) with only the `repos` and `pull_requests` toolsets and `X-MCP-Readonly: true`, authenticated by a fine-grained token in `RIP_GITHUB_MCP_TOKEN`, separate from the PR function's token. The check it is for: list the open Repo In Peace pull requests on both forks and confirm each changes exactly one file. Before the token was set, the same question asked of GitHub's public REST API gave: **no open pull requests on either fork**; 5 closed, none merged, each changing exactly one file (oikos #1 to #3: one file removed each, the three Burys; spatialql #1 and #2: `src/data/surface-placement.test.ts` added, the same Resurrect twice, on the same deterministic branch). The run through MCP itself is still to do, once the token is in place.
+
+## Property-based testing
+
+70 numbered correctness properties across the six specs (repo-analyser 7, graveyard-scene 21, interface 16, eulogies 12, bury-and-resurrect 8, importers 6), plus those of the later additions (the gravedigger, the screaming ghost, the sky director): 384 `fc.assert` calls in all. What they caught:
+
+- **In the code:** the packer stretching 0.6% of large synthetic graveyards to 2.6 times as long as wide (below); a keyword rule taking "let it rest" for code; long file paths taken for secrets; markdown, emoji and quotes wrapping each other; a bat path dipping under the framing trees.
+- **In the tests:** the pull-request text test's own helper mis-reading a backslash inside a code span (it now scans as CommonMark does); a eulogy property older than the time-agnostic rule, failing on a random sentence "Aa ago!" (seed 375800081); and the end-to-end property's random repositories, which hold only comments, so the import graph's P4 needed its own generator.
+
+## Kiro surprised me
+
+- **The packer behind a flaky test.** A layout property failed on some runs and not others. The cause was real: an area-saving packing rule added in the scene's density pass could make 0.6% of large synthetic graveyards 2.6 times as long as wide. It is capped at 2.2 (commit `dc42ff5`; 8,400 synthetic trees at most 2.186), with the reason in the scene's design.
+- **Stones 0.2 too tall.** The stone shader moved the arch up by 0.5, the arch of a stone 1.0 wide. When stones widened to 1.4 (task 25), every stone was drawn 0.2 taller than its height. It surfaced while boxing stones for the sign-occlusion work, and the arch now follows `STONE_W` (`d657611`).
+- **The eulogy-cache trap.** Regenerating the demos for the import graph looked safe, since eulogies are cached. But the committed eulogies had been rewritten in place by later cleaning rules, so no cache key matched them, and a regeneration would have asked the model again and replaced every word. Kiro raised it in the design instead of running it; `--eulogies-from` copies them from the committed file, and the regenerated demos matched the committed ones byte for byte once the two new fields were taken out.
+- **`auth.config.ts` as an entry point.** Reading the regenerated oikos data, Kiro found the NextAuth module labelled "Entry point: config" by a catch-all `*.config` rule, though two files import it. The rule now knows only real tool configs (`339d925`), with a test that `app/auth.config.ts` is not an entry point.
+
 ## Where specs and steering caught things
 
 - **Snapshot-relative ages** (tech.md) are the reason the hover line shows calendar dates and the detail panel shows both: an age counted from the snapshot reads as "days ago" from today unless the panel says otherwise.
 - **No uploads** (the "browser only reads data files" rule) shaped Open a graveyard file: the File API only, with no request carrying the file's content.
 - **Pure logic apart from rendering** let a property test find a real layout bug while building the interface: a packing rule added during the scene's density pass could stretch 0.6% of large synthetic graveyards to 2.6 times as long as wide. It is now capped at 2.2, with the reason recorded in the scene's design.
-- **The working agreement** (the human runs the long commands) kept each step small: Kiro ran only the typecheck and the test files it touched, and every browser check and screenshot was run by the human and looked at before the next step.
+- **The working agreement** (the human runs installs, builds, deploys and the full suites) kept each step small: Kiro ran the typecheck and the test files it touched (single Vitest files, and single Playwright files with `@slow` left out), looked at its own screenshots, and gave the human the commands for the rest. The one lapse (`npx vitest run src`) is why `guard-commands` exists.
+- **Every effect means one fact** (product.md) kept decoration from being read as data: the witch, bats, shooting stars, lightning and the gravedigger are in no legend and can't be picked, and the lightning lights only its patch of sky, never the stones whose moss and cracks carry data.
+- **No rewriting** (product.md) made Resurrect reuse the original blob and mode, so a restored file is byte for byte what it was.

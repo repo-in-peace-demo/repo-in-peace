@@ -1,0 +1,33 @@
+{
+  "name": "rip-dev",
+  "description": "Repo In Peace development: the default tools plus this repo's hooks (command guard, tests on edit, session context, data check) and a read-only GitHub MCP server for the demo forks.",
+  "prompt": "You are working on Repo In Peace (see .kiro/steering/ and the specs in .kiro/specs/). Follow the steering files, in particular the working agreement in tech.md: you run the typecheck and single test files; the human runs installs, builds, deploys and the full test suites, and you give them the exact commands. The hooks in .kiro/hooks/ enforce this and run the matching tests after you edit pure logic; read their output and act on it.",
+  "tools": ["*"],
+  "allowedTools": ["read", "grep", "glob", "code", "@github"],
+  "resources": [
+    "file://.kiro/steering/*.md",
+    "file://README.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      { "command": "node \"$(git rev-parse --show-toplevel)/.kiro/hooks/session-context.mjs\"" }
+    ],
+    "preToolUse": [
+      { "matcher": "shell", "command": "node \"$(git rev-parse --show-toplevel)/.kiro/hooks/guard-commands.mjs\"" }
+    ],
+    "postToolUse": [
+      { "matcher": "write", "command": "node \"$(git rev-parse --show-toplevel)/.kiro/hooks/test-on-edit.mjs\"", "timeout_ms": 180000 },
+      { "matcher": "write", "command": "node \"$(git rev-parse --show-toplevel)/.kiro/hooks/data-check.mjs\"", "timeout_ms": 60000 }
+    ]
+  },
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${RIP_GITHUB_MCP_TOKEN}",
+        "X-MCP-Toolsets": "repos,pull_requests",
+        "X-MCP-Readonly": "true"
+      }
+    }
+  }
+}
