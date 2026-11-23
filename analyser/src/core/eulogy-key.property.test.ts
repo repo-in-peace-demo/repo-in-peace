@@ -64,7 +64,7 @@ describe('P3: the cache key', () => {
   it('uses the current prompt and cleaning versions, so a change to either writes every eulogy again', () => {
     expect(EULOGY_VERSIONS).toEqual({ prompt: PROMPT_VERSION, cleaning: CLEANING_VERSION });
     expect(PROMPT_VERSION).toBe(4);
-    expect(CLEANING_VERSION).toBe(5);
+    expect(CLEANING_VERSION).toBe(6);
   });
 
   it('is the same for the same model, prompt version and input, whatever order the fields were set in', () => {

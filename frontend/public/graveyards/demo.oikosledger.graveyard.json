@@ -1994,7 +1994,7 @@
           "path": "app/components/transactions/TransactionsPanel.tsx"
         }
       ],
-      "eulogy": "Still standing tall, though your days are numbered. You've watched many transactions pass through, but now you wait in silence."
+      "eulogy": "Still standing tall, the dialog where a bank statement CSV is uploaded. It waits for each upload to finish, and the transactions panel still opens it."
     },
     {
       "path": "app/components/voice/VoiceButton.tsx",
@@ -2304,7 +2304,7 @@
       "decayState": "ancient",
       "hot": false,
       "importedBy": [],
-      "eulogy": "Here lies insights.ts, once vibrant in its queries, now winter's chill, long unused, doth it bequeath."
+      "eulogy": "Here lies insights.ts, one line that promised queries for precomputed insights. Nothing was written beneath it, and nothing imports it."
     },
     {
       "path": "app/lib/db/queries/macro.ts",
@@ -2336,7 +2336,7 @@
       "decayState": "ancient",
       "hot": false,
       "importedBy": [],
-      "eulogy": "Here lies recommendations.ts, last used in spring's embrace, now winter's chill claims it, unused, ancient, yet not erased."
+      "eulogy": "Here lies recommendations.ts, a single comment promising queries for recommendations and their cache. The queries were never written, and nothing imports it."
     },
     {
       "path": "app/lib/db/queries/transactions.ts",
@@ -2469,7 +2469,7 @@
           "typeOnly": true
         }
       ],
-      "eulogy": "A weathered schema, steadfast and sound, three hundred eighty-two lines, still in demand."
+      "eulogy": "A weathered schema, steadfast and sound, two hundred eighty-two lines, still in demand."
     },
     {
       "path": "app/lib/embeddings.ts",
