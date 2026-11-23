@@ -542,6 +542,8 @@ test.describe('layout and access', () => {
     await openScene(page, 'demo.oikosledger');
     await page.getByRole('button', { name: /List · / }).click();
     await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    // The details stay hidden (and can't take focus) until they are placed on their side, a frame later.
+    await expect(page.getByRole('complementary', { name: 'Selected grave' })).toBeVisible();
     await page.mouse.move(640, 8);
     const seen: string[] = [];
     const problems: string[] = [];
