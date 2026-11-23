@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { FRAMING_TREE_AZIMUTHS_DEG, clearingCeilingDeg } from './horizon';
 import {
   CANOPY_TOP_DEG,
-  GAP_MAX_S,
-  GAP_MIN_S,
   MOON_ANGULAR_RADIUS_DEG,
   MOON_AT,
   PASS_S,
@@ -12,10 +10,9 @@ import {
   WITCH_HALF_SIZE_DEG,
   arcAt,
   firstPassStart,
-  passStarts,
   skyDistanceDeg,
-  witchAt,
 } from './witch';
+import { WITCH_DUE_S, WITCH_EVERY_MIN_S, passStarts, witchAt } from './sky-director';
 
 describe('the witch\'s path', () => {
   it('crosses the moon\'s disc on every pass', () => {
@@ -50,14 +47,16 @@ describe('the witch\'s path', () => {
 });
 
 describe('the witch\'s timing', () => {
-  it('first passes as the opening move settles, then every 45 to 60 seconds after a pass, the same in every run', () => {
+  // Scheduled by the sky director with the other sky events (sky-director.test.ts): 45 s apart at least, and due 50 s after her last
+  // pass, so the next one starts within the longest other event and the longest quiet gap after that.
+  it('first passes as the opening move settles, then every 45 to 69 seconds, the same in every run', () => {
     const first = firstPassStart(3.6);
     const starts = passStarts(first, 2000);
     expect(starts[0]).toBe(first);
     for (let i = 1; i < starts.length; i++) {
-      const gap = starts[i]! - starts[i - 1]! - PASS_S;
-      expect(gap).toBeGreaterThanOrEqual(GAP_MIN_S);
-      expect(gap).toBeLessThanOrEqual(GAP_MAX_S);
+      const gap = starts[i]! - starts[i - 1]!;
+      expect(gap).toBeGreaterThanOrEqual(WITCH_EVERY_MIN_S);
+      expect(gap).toBeLessThan(WITCH_DUE_S + 5 + 14);
     }
     expect(new Set(starts.slice(1).map((s, i) => Math.round(s - starts[i]!))).size).toBeGreaterThan(3); // a little variation
     expect(passStarts(first, 2000)).toEqual(starts);

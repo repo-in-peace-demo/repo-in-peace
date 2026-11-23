@@ -1,18 +1,14 @@
 import { MOON_ANGULAR_RADIUS_DEG, MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG } from './atmosphere';
-import { fnv1a32 } from './hash';
-import { mulberry32 } from './prng';
 
 /**
  * A witch on a broomstick crossing the moon now and then (an ambient sky element, like the clouds: decoration, not data). Pure: where
  * she is, in degrees on the sky, at a time in seconds. One pass glides left to right in a gentle arc that peaks across the moon's
- * disc, with a slight bob; the first starts as the opening move settles, then one every 45 to 60 seconds (seeded, so the same in every
- * run). The arc stays in the clearing above the forest under the moon and below the top of the establishing shot, so she is always
+ * disc, with a slight bob; the first starts as the opening move settles, then one every 45 to about 70 seconds, scheduled with the other sky events by
+ * model/sky-director.ts (seeded, so the same in every run). The arc stays in the clearing above the forest under the moon and below the top of the establishing shot, so she is always
  * in the sky, never over the graveyard. Reduced motion: never shown.
  */
 export const WITCH_SEED = 'repo-in-peace/witch';
 export const PASS_S = 7;
-export const GAP_MIN_S = 45;
-export const GAP_MAX_S = 60;
 /** From the moon's azimuth, how far each end of the pass is. */
 export const PASS_HALF_SPAN_DEG = 8;
 /** The arc: highest across the moon (a little above its middle), lower at both ends. */
@@ -60,24 +56,7 @@ export function arcAt(u: number): { azimuthDeg: number; elevationDeg: number } {
   };
 }
 
-/** The start times of the passes, in seconds, from `firstStart` on, up to `until`. */
-export function passStarts(firstStart: number, until: number, seed: string = WITCH_SEED): number[] {
-  const next = mulberry32(fnv1a32(seed));
-  const starts: number[] = [];
-  for (let s = firstStart; s <= until; s += PASS_S + GAP_MIN_S + (GAP_MAX_S - GAP_MIN_S) * next()) starts.push(s);
-  return starts;
-}
-
-export function witchAt(seconds: number, firstStart: number, reducedMotion: boolean, seed: string = WITCH_SEED): WitchState | null {
-  if (reducedMotion || seconds < firstStart) return null;
-  const starts = passStarts(firstStart, seconds, seed);
-  const start = starts[starts.length - 1]!;
-  const u = (seconds - start) / PASS_S;
-  if (u > 1) return null;
-  const at = arcAt(u);
-  const elapsed = seconds - start;
-  return { azimuthDeg: at.azimuthDeg, elevationDeg: at.elevationDeg + BOB_DEG * Math.sin((2 * Math.PI * elapsed) / BOB_PERIOD_S), progress: u, opacity: passOpacity(elapsed), elapsed };
-}
+/** Her passes are scheduled by the sky director (model/sky-director.ts: `witchAt`, `passStarts`), with the other sky events. */
 
 /** When the first pass starts: as the opening move settles, or just after the scene opens without one. */
 export const firstPassStart = (openingS: number): number => openingS + START_DELAY_S;

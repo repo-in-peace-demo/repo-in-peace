@@ -1,6 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { CLOUD_GLSL } from './cloud-glsl';
 import { Witch } from './Witch';
+import { SkyEvents } from './SkyEvents';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import {
@@ -239,6 +240,7 @@ export function Atmosphere({ model }: { model: SceneModel }) {
         <points geometry={assets.starGeometry} material={assets.starMaterial} renderOrder={-29} frustumCulled={false} raycast={() => undefined} />
         <mesh geometry={assets.moonGeometry} material={assets.moonMaterial} renderOrder={-28} frustumCulled={false} raycast={() => undefined} />
         <Witch />
+        <SkyEvents />
       </group>
     </>
   );
