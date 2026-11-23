@@ -1,4 +1,4 @@
-import { realpath, stat } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { validateGraveyard, type Graveyard, type Thresholds } from '../../shared/graveyard-schema';
 import { AssembleError, assembleGraveyard } from './core/assemble';
@@ -17,6 +17,7 @@ import { buildEdges, importedByOf } from './core/import-graph';
 import { findImports, type ImportRef } from './core/imports';
 import { snapshotResolver } from './io/resolve';
 import { cutContents, type Contents } from './core/eulogy-contents';
+import { copyEulogies } from './core/eulogy-copy';
 import { fileInput, ghostInput } from './core/eulogy-input';
 import { runEulogies, type EulogyClient, type EulogyJob } from './core/eulogy-run';
 import type { HistoryResult } from './core/history';
@@ -50,7 +51,12 @@ export interface PipelineOptions {
   thresholds?: Thresholds;
   /** Eulogies by a local model (eulogies spec). Absent: none are written, and the output is unchanged. */
   eulogies?: EulogyOptions;
-  /** Base for relative `outPath`, `knipConfigPath` and the eulogy cache path. */
+  /**
+   * An earlier data file of the same repository to copy every grave's eulogy from, by path, with no model and no cache (importers spec,
+   * task 8). Not with `eulogies`.
+   */
+  eulogiesFrom?: string;
+  /** Base for relative `outPath`, `knipConfigPath`, `eulogiesFrom` and the eulogy cache path. */
   cwd: string;
 }
 
@@ -87,6 +93,12 @@ export async function runPipeline(
   if (knipConfigPath !== undefined && !(await isFile(knipConfigPath))) {
     throw new AnalyserError(`Knip config file "${options.knipConfigPath}" does not exist`);
   }
+
+  if (options.eulogies !== undefined && options.eulogiesFrom !== undefined) {
+    throw new AnalyserError('--eulogies and --eulogies-from both set the eulogies. Use one of them.');
+  }
+  // Read now, so a bad file fails before any slow work, and before the output (which may be the same file) is written.
+  const earlier = options.eulogiesFrom === undefined ? undefined : await readEarlierEulogies(resolve(options.cwd, options.eulogiesFrom), options.eulogiesFrom);
 
   const repo = await assertUsableRepo(resolve(options.cwd, options.repoPath));
 
@@ -201,6 +213,29 @@ export async function runPipeline(
     throw new AnalyserError(
       `The analyser built data that fails its own schema check. This is a bug in the analyser:\n  ${validation.errors.join('\n  ')}`,
     );
+  }
+
+  if (earlier !== undefined) {
+    if (earlier.meta.name !== graveyard.meta.name) {
+      throw new AnalyserError(
+        `--eulogies-from ${options.eulogiesFrom} is the graveyard of "${earlier.meta.name}", not of "${graveyard.meta.name}". ` +
+          'Eulogies are copied only from an earlier data file of the same repository.',
+      );
+    }
+    const copied = copyEulogies(graveyard, earlier);
+    const graves = copied.graveyard.files.length + copied.graveyard.ghosts.length;
+    log(`Eulogies copied from ${options.eulogiesFrom} (${earlier.meta.eulogyModel}): ${graves - copied.missing.length} of ${graves} graves`);
+    if (copied.missing.length > 0) {
+      log(`Not in ${options.eulogiesFrom}, so left empty (${copied.missing.length}):`);
+      for (const path of copied.missing.slice(0, 20)) log(`  ${path}`);
+      if (copied.missing.length > 20) log(`  ... and ${copied.missing.length - 20} more`);
+    }
+    const checked = validateGraveyard(copied.graveyard);
+    if (!checked.ok) {
+      throw new AnalyserError(`The analyser built eulogies that fail the schema check. This is a bug in the analyser:\n  ${checked.errors.join('\n  ')}`);
+    }
+    await writeFileAtomic(outPath, toJson(copied.graveyard));
+    return { outPath, graveyard: copied.graveyard };
   }
 
   if (options.eulogies === undefined || eulogyCachePath === undefined) {
@@ -351,6 +386,32 @@ async function addEulogies(
     files: graveyard.files.map((file) => ({ ...file, eulogy: eulogyOf(file.path) })),
     ghosts: graveyard.ghosts.map((ghost) => ({ ...ghost, eulogy: eulogyOf(ghost.path) })),
   };
+}
+
+/** The data file --eulogies-from names: it must exist, be a valid data file, and have eulogies. */
+async function readEarlierEulogies(path: string, asGiven: string): Promise<Graveyard> {
+  let text: string;
+  try {
+    text = await readFile(path, 'utf8');
+  } catch {
+    throw new AnalyserError(`--eulogies-from ${asGiven}: there is no readable file at "${path}".`);
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new AnalyserError(`--eulogies-from ${asGiven} is not JSON, so it is not a graveyard data file.`);
+  }
+  const validation = validateGraveyard(data);
+  if (!validation.ok) {
+    const shown = validation.errors.slice(0, 5);
+    throw new AnalyserError(`--eulogies-from ${asGiven} is not a valid graveyard data file:\n  ${shown.join('\n  ')}${validation.errors.length > 5 ? `\n  ... and ${validation.errors.length - 5} more` : ''}`);
+  }
+  const graveyard = data as Graveyard;
+  if (graveyard.meta.eulogyModel === undefined) {
+    throw new AnalyserError(`--eulogies-from ${asGiven} has no eulogies (it was written without --eulogies), so there is nothing to copy.`);
+  }
+  return graveyard;
 }
 
 async function isFile(path: string): Promise<boolean> {

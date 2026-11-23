@@ -278,3 +278,25 @@ describe('P8: the eulogy flags', () => {
     for (const flag of ['--eulogies', '--eulogy-model', '--ollama-url', '--eulogy-concurrency', '--eulogy-cache']) expect(USAGE).toContain(flag);
   });
 });
+
+describe('--eulogies-from (importers spec, task 8)', () => {
+  it('is kept as given, and is absent when not given', () => {
+    const r = parseCliArgs(['repo', '--eulogies-from', 'old/g.json'], () => '2026-01-01T00:00:00.000Z');
+    expect(r).toMatchObject({ kind: 'run', options: { eulogiesFrom: 'old/g.json' } });
+    expect(r.kind === 'run' && 'eulogies' in r.options).toBe(false);
+    const plain = parseCliArgs(['repo'], () => '2026-01-01T00:00:00.000Z');
+    expect(plain.kind === 'run' && 'eulogiesFrom' in plain.options).toBe(false);
+  });
+
+  it('is refused with --eulogies, and without a file', () => {
+    expect(parseCliArgs(['repo', '--eulogies-from', 'g.json', '--eulogies', '--eulogy-model', 'm'], () => 'x')).toEqual({
+      kind: 'usage-error',
+      message: '--eulogies and --eulogies-from both set the eulogies. Use one of them.',
+    });
+    expect(parseCliArgs(['repo', '--eulogies-from='], () => 'x')).toEqual({ kind: 'usage-error', message: '--eulogies-from needs a graveyard file.' });
+  });
+
+  it('is in the usage text', () => {
+    expect(USAGE).toContain('--eulogies-from <file>');
+  });
+});

@@ -50,9 +50,9 @@ Status key: `[x]` done, `[ ]` not started.
   - **Run (checkpoint A):** `cd analyser && npm install && npm run typecheck && npm test`
   - _Requirements: 1 to 5_
 
-- [ ] 8. `--eulogies-from <file>` (`cli-args.ts`, `pipeline.ts`)
-  - [ ] 8.1 Copies each grave's eulogy (files and ghosts, by path) and `meta.eulogyModel` from an earlier data file of the same repository, no model, no cache; graves not found get `""` and are listed. Refused with `--eulogies`, with a file of another repository, or a file that doesn't validate.
-  - [ ] 8.2 **Examples:** copies exactly; lists what it couldn't fill; the refusals.
+- [x] 8. `--eulogies-from <file>` (`cli-args.ts`, `pipeline.ts`)
+  - [x] 8.1 Copies each grave's eulogy (files and ghosts, by path) and `meta.eulogyModel` from an earlier data file of the same repository, no model, no cache; graves not found get `""` and are listed. Refused with `--eulogies`, with a file of another repository, or a file that doesn't validate.
+  - [x] 8.2 **Examples:** copies exactly; lists what it couldn't fill; the refusals.
   - _Requirements: 4.3_
 
 ## Part 3: The frontend

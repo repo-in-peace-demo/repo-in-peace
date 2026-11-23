@@ -4,6 +4,7 @@
  *   analyse <repo-path> [--out <file>] [--analysed-at <ISO timestamp>] [--knip-config <file>] [--knip-dir <folder>]...
  *           [--stale-after <days>] [--ancient-after <days>] [--hot-commits <n>] [--hot-window <days>]
  *           [--eulogies --eulogy-model <name> [--ollama-url <url>] [--eulogy-concurrency <n>] [--eulogy-cache <file>]]
+ *           [--eulogies-from <file>]
  */
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -23,6 +24,8 @@ export interface CliOptions {
   thresholds?: Thresholds;
   /** Eulogies by a local model. Absent without --eulogies: the output is then exactly what it was without them. */
   eulogies?: EulogyOptions;
+  /** An earlier data file of the same repository to copy the eulogies from. Never with `eulogies`. */
+  eulogiesFrom?: string;
 }
 
 export interface EulogyOptions {
@@ -87,6 +90,10 @@ Eulogies (a short epitaph for every grave, written by a model on this machine):
   --eulogy-cache <file>     The cache of eulogies, so a second run asks the model
                             only about what changed. Default
                             analyser/.cache/eulogies.json. Must be outside the clone.
+  --eulogies-from <file>    Copy every grave's eulogy, by path, from an earlier
+                            graveyard file of the same repository, with no model.
+                            Graves it doesn't have get none, and are listed. Not
+                            with --eulogies.
 
   -h, --help                Show this help.
 `;
@@ -142,6 +149,7 @@ export function parseCliArgs(argv: readonly string[], now: () => string): Parsed
         'ollama-url': { type: 'string' },
         'eulogy-concurrency': { type: 'string' },
         'eulogy-cache': { type: 'string' },
+        'eulogies-from': { type: 'string' },
         help: { type: 'boolean', short: 'h' },
       },
     });
@@ -201,8 +209,15 @@ export function parseCliArgs(argv: readonly string[], now: () => string): Parsed
   const eulogies = parseEulogyFlags(values);
   if (eulogies !== undefined && 'message' in eulogies) return { kind: 'usage-error', message: eulogies.message };
 
+  const eulogiesFrom = values['eulogies-from'];
+  if (eulogiesFrom !== undefined) {
+    if (values.eulogies === true) return { kind: 'usage-error', message: '--eulogies and --eulogies-from both set the eulogies. Use one of them.' };
+    if (eulogiesFrom.trim() === '') return { kind: 'usage-error', message: '--eulogies-from needs a graveyard file.' };
+  }
+
   const options: CliOptions = { repoPath: positionals[0], analysedAt };
   if (eulogies !== undefined) options.eulogies = eulogies;
+  if (eulogiesFrom !== undefined) options.eulogiesFrom = eulogiesFrom;
   if (thresholds !== undefined) options.thresholds = thresholds;
   if (knipDirs !== undefined) options.knipDirs = knipDirs;
   if (values.out !== undefined) options.outPath = values.out;

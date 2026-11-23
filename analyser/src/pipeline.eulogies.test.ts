@@ -237,3 +237,93 @@ describe('failures, end to end', () => {
     expect(r.stderr).toContain('Error: nope');
   });
 });
+
+describe('--eulogies-from (importers spec, task 8)', () => {
+  /** An earlier data file of this repository with eulogies, made by a run with the fake model; `edit` changes it first. */
+  async function earlierFile(edit: (g: Graveyard) => void = () => {}): Promise<{ path: string; g: Graveyard }> {
+    const model = fakeModel((path) => epitaphFor(path));
+    const first = await run(eulogyFlags(join(tempDir(), 'c.json')), { ...knip(), checkOllama: okCheck(), eulogyClient: () => model.client });
+    expect(first.code).toBe(0);
+    const g = JSON.parse(readFileSync(first.out, 'utf8')) as Graveyard;
+    edit(g);
+    const path = join(tempDir(), 'earlier.graveyard.json');
+    writeFileSync(path, toJson(g));
+    return { path, g };
+  }
+  const noModel = () => ({
+    ...knip(),
+    checkOllama: vi.fn(async () => { throw new Error('Ollama was asked'); }),
+    eulogyClient: () => { throw new Error('a model was made'); },
+  });
+
+  it('copies every eulogy and the model exactly, with no model and no cache: the same bytes as the earlier file', async () => {
+    const earlier = await earlierFile((g) => {
+      // Hand-edited eulogies, which no cache key could give back.
+      g.files[0]!.eulogy = 'Edited by hand. Kept word for word.';
+      g.ghosts[0]!.eulogy = 'A ghost, edited by hand.';
+    });
+    const deps = noModel();
+    const { code, out, stderr } = await run(['--eulogies-from', earlier.path], deps);
+    expect(stderr).not.toMatch(/Error/);
+    expect(code).toBe(0);
+    expect(readFileSync(out, 'utf8')).toBe(readFileSync(earlier.path, 'utf8'));
+    expect(deps.checkOllama).not.toHaveBeenCalled();
+    expect(stderr).toContain(`Eulogies copied from ${earlier.path} (fake:1b): 11 of 11 graves`);
+    expect(stderr).not.toContain('left empty');
+  });
+
+  it('gives "" to the graves the earlier file does not have, and lists them', async () => {
+    const earlier = await earlierFile((g) => {
+      g.files = g.files.filter((f) => f.path !== 'src/f3.ts');
+      g.ghosts = [];
+    });
+    expect(validateGraveyard(earlier.g)).toEqual({ ok: true });
+    const { code, out, stderr } = await run(['--eulogies-from', earlier.path], noModel());
+    expect(code).toBe(0);
+    const g = JSON.parse(readFileSync(out, 'utf8')) as Graveyard;
+    expect(g.meta.eulogyModel).toBe('fake:1b');
+    expect(g.files.find((f) => f.path === 'src/f3.ts')!.eulogy).toBe('');
+    expect(g.files.find((f) => f.path === 'src/f4.ts')!.eulogy).toBe(epitaphFor('src/f4.ts'));
+    expect(g.ghosts).toEqual([expect.objectContaining({ path: 'src/old.ts', eulogy: '' })]);
+    expect(stderr).toContain('9 of 11 graves');
+    expect(stderr).toContain(`Not in ${earlier.path}, so left empty (2):\n  src/f3.ts (file)\n  src/old.ts (ghost)\n`);
+  });
+
+  it('may read the file it then overwrites', async () => {
+    const earlier = await earlierFile();
+    const before = readFileSync(earlier.path, 'utf8');
+    const cwd = tempDir();
+    const env: CliEnv = { stderr: () => {}, cwd, now: () => '2030-01-01T00:00:00.000Z' };
+    const code = await main([repo.dir, '--out', earlier.path, '--analysed-at', ANALYSED_AT, '--eulogies-from', earlier.path], env, noModel() as never);
+    expect(code).toBe(0);
+    expect(readFileSync(earlier.path, 'utf8')).toBe(before);
+  });
+
+  it('refuses a file of another repository, one that does not validate, one with no eulogies, and a missing one, before Knip runs', async () => {
+    const other = await earlierFile((g) => { g.meta.name = 'someone-else'; });
+    const noEulogies = await earlierFile((g) => {
+      delete g.meta.eulogyModel;
+      for (const ghost of g.ghosts) delete ghost.eulogy;
+    });
+    const invalid = join(tempDir(), 'invalid.json');
+    writeFileSync(invalid, '{"meta":{}}');
+    const notJson = join(tempDir(), 'not.json');
+    writeFileSync(notJson, 'graves');
+    const cases: Array<[string, RegExp, boolean]> = [
+      [other.path, /is the graveyard of "someone-else", not of "/, true],
+      [invalid, /is not a valid graveyard data file:\n {2}\S/, false],
+      [notJson, /is not JSON/, false],
+      [noEulogies.path, /has no eulogies \(it was written without --eulogies\), so there is nothing to copy/, false],
+      [join(tempDir(), 'nowhere.json'), /there is no readable file at/, false],
+    ];
+    for (const [file, message, knipRuns] of cases) {
+      const deps = noModel();
+      const { code, out, stderr } = await run(['--eulogies-from', file], deps);
+      expect(code, file).toBe(1);
+      expect(stderr).toMatch(message);
+      expect(existsSync(out)).toBe(false);
+      // The name is known only once the data is built; every other check comes before any slow work.
+      expect(deps.runKnip.mock.calls.length > 0, file).toBe(knipRuns);
+    }
+  });
+});
