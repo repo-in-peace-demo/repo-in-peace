@@ -36,6 +36,9 @@ export function toJson(graveyard: Graveyard): string {
       decayScore: f.decayScore,
       decayState: f.decayState,
       hot: f.hot,
+      // The import graph (importers spec): after hot, before the eulogy; importedBy whenever it was built, entry only when there is one.
+      ...(f.importedBy === undefined ? {} : { importedBy: f.importedBy.map((i) => (i.typeOnly ? { path: i.path, typeOnly: true as const } : { path: i.path })) }),
+      ...(f.entry === undefined ? {} : { entry: { kind: f.entry.kind, label: f.entry.label } }),
       eulogy: f.eulogy,
     })),
     ghosts: ghosts.map((g) => ({

@@ -314,4 +314,37 @@ describe('validateGraveyard', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors).toHaveLength(50);
   });
+
+  describe('importedBy and entry (importers spec)', () => {
+    const withFields = () => {
+      const g = validGraveyard();
+      g.files[0]!.importedBy = [{ path: 'index.ts' }];
+      g.files[1]!.importedBy = [];
+      g.files[1]!.entry = { kind: 'framework', label: 'Next.js route' };
+      return g;
+    };
+    it('accepts them, and a file without them', () => {
+      expect(validateGraveyard(withFields())).toEqual({ ok: true });
+      expect(validateGraveyard(validGraveyard())).toEqual({ ok: true });
+      const typeOnly = withFields();
+      typeOnly.files[0]!.importedBy = [{ path: 'index.ts', typeOnly: true }];
+      expect(validateGraveyard(typeOnly)).toEqual({ ok: true });
+    });
+
+    it.each([
+      ['an importer that is not a file', (g: Graveyard) => (g.files[0]!.importedBy = [{ path: 'nope.ts' }]), /is not a file in the data/],
+      ['a file importing itself', (g: Graveyard) => (g.files[0]!.importedBy = [{ path: g.files[0]!.path }]), /can't import itself/],
+      ['an unsorted list', (g: Graveyard) => (g.files[1]!.importedBy = [{ path: 'src/lib/old.ts' }, { path: 'src/lib/old.ts' }]), /sorted by path, without repeats/],
+      ['typeOnly false', (g: Graveyard) => (g.files[0]!.importedBy = [{ path: 'index.ts', typeOnly: false as unknown as true }]), /typeOnly must be true/],
+      ['not an array', (g: Graveyard) => (g.files[0]!.importedBy = 'index.ts' as never), /importedBy must be an array/],
+      ['an unknown entry kind', (g: Graveyard) => (g.files[0]!.entry = { kind: 'plugin' as never, label: 'x' }), /entry must be/],
+      ['an empty entry label', (g: Graveyard) => (g.files[0]!.entry = { kind: 'test', label: '' }), /entry must be/],
+    ])('refuses %s', (_label, change, message) => {
+      const g = withFields();
+      change(g);
+      const r = validateGraveyard(g);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(message);
+    });
+  });
 });

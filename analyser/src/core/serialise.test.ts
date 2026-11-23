@@ -146,5 +146,21 @@ describe('toJson', () => {
       expect(toJson(reverseKeys(g) as Graveyard)).toBe(out);
     });
   });
+
+  describe('the import graph fields (importers spec)', () => {
+    it('writes importedBy and entry after hot and before the eulogy, in a fixed order, and nothing when they are absent', () => {
+      const plain = toJson(sample());
+      expect(plain).not.toContain('importedBy');
+      const g = sample();
+      g.files[0]!.importedBy = [{ path: 'b.ts', typeOnly: true }, { path: 'c.ts' }];
+      g.files[0]!.entry = { kind: 'framework', label: 'Next.js page' };
+      const out = toJson(g);
+      const fileBlock = out.slice(out.indexOf('"files"'), out.indexOf('"ghosts"'));
+      const keys = [...fileBlock.matchAll(/^ {6}"(\w+)":/gm)].map((m) => m[1]);
+      expect(keys.slice(keys.indexOf('hot'), keys.indexOf('eulogy') + 1)).toEqual(['hot', 'importedBy', 'entry', 'eulogy']);
+      expect(JSON.parse(out).files[0].importedBy).toEqual([{ path: 'b.ts', typeOnly: true }, { path: 'c.ts' }]);
+      expect(toJson(reverseKeys(g) as Graveyard)).toBe(out);
+    });
+  });
 });
 

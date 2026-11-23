@@ -72,8 +72,29 @@ export interface FileEntry {
   decayState: DecayState;
   /** Many commits in the 30 days before the snapshot. */
   hot: boolean;
+  /**
+   * The analysed files that import this one, sorted by path; `typeOnly` when every import from that file is type-only (importers
+   * spec). Present (possibly empty) when the analyser built the import graph; absent in older files.
+   */
+  importedBy?: ImporterEntry[];
+  /** Set when a framework or tool loads this file rather than an import: Next.js routes, Vite entries, configs, tests. */
+  entry?: EntryPoint;
   /** Always "" from the analyser. A later step fills it. */
   eulogy: string;
+}
+
+export interface ImporterEntry {
+  path: string;
+  typeOnly?: true;
+}
+
+export type EntryKind = 'framework' | 'config' | 'test' | 'package';
+export const ENTRY_KINDS: readonly EntryKind[] = ['framework', 'config', 'test', 'package'];
+
+export interface EntryPoint {
+  kind: EntryKind;
+  /** A short label: "Next.js route", "Vite entry", "test". */
+  label: string;
 }
 
 export interface Ghost {
@@ -213,6 +234,16 @@ function checkFolders(folders: unknown, fail: Fail): Set<string> {
 }
 
 /** Returns the set of file paths found. */
+/** Strict "a before b" by Unicode code point, the analyser's order (core/sort.ts), not UTF-16 units. */
+function codePointLess(a: string, b: string): boolean {
+  const x = Array.from(a);
+  const y = Array.from(b);
+  for (let i = 0; i < Math.min(x.length, y.length); i++) {
+    if (x[i] !== y[i]) return x[i]!.codePointAt(0)! < y[i]!.codePointAt(0)!;
+  }
+  return x.length < y.length;
+}
+
 function checkFiles(files: unknown, folderPaths: Set<string>, fail: Fail): Set<string> {
   const paths = new Set<string>();
   if (!Array.isArray(files)) {
@@ -255,7 +286,31 @@ function checkFiles(files: unknown, folderPaths: Set<string>, fail: Fail): Set<s
     }
 
     if (typeof file['hot'] !== 'boolean') fail(`${at}.hot must be a boolean`);
+    if ('entry' in file) {
+      const e = file['entry'];
+      if (!isRecord(e) || !ENTRY_KINDS.some((k) => k === e['kind']) || !isNonEmptyString(e['label'])) {
+        fail(`${at}.entry must be { kind: ${ENTRY_KINDS.join(' | ')}, label: a non-empty string }`);
+      }
+    }
     if (typeof file['eulogy'] !== 'string') fail(`${at}.eulogy must be a string`);
+  });
+
+  // importedBy names other files, so it is checked once every path is known.
+  files.forEach((file: unknown, i) => {
+    if (!isRecord(file) || !('importedBy' in file)) return;
+    const at = `files[${i}].importedBy`;
+    const list = file['importedBy'];
+    if (!Array.isArray(list)) return fail(`${at} must be an array`);
+    let previous: string | undefined;
+    list.forEach((entry: unknown, j) => {
+      if (!isRecord(entry) || !isNonEmptyString(entry['path'])) return fail(`${at}[${j}] must be { path, typeOnly? }`);
+      const path = entry['path'];
+      if (!paths.has(path)) fail(`${at}[${j}]: "${path}" is not a file in the data`);
+      if (path === file['path']) fail(`${at}[${j}]: a file can't import itself`);
+      if (previous !== undefined && !codePointLess(previous, path)) fail(`${at} must be sorted by path, without repeats`);
+      if ('typeOnly' in entry && entry['typeOnly'] !== true) fail(`${at}[${j}].typeOnly must be true when present`);
+      previous = path;
+    });
   });
 
   return paths;

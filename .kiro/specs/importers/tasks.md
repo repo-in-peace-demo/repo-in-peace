@@ -37,9 +37,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 5.2 **Examples** on built git repositories: `paths`, `baseUrl`, `extends`, folder `index.ts`, `.js` to `.ts`, a package, a `.d.ts`; an uncommitted change doesn't change the graph.
   - _Requirements: 2_
 
-- [ ] 6. Schema and serialiser (`shared/graveyard-schema.ts`, `core/serialise.ts`)
-  - [ ] 6.1 `importedBy` and `entry`, optional, validated; written after `hot`.
-  - [ ] 6.2 **Examples:** valid and invalid fields; older files load.
+- [x] 6. Schema and serialiser (`shared/graveyard-schema.ts`, `core/serialise.ts`)
+  - [x] 6.1 `importedBy` and `entry`, optional, validated; written after `hot`.
+  - [x] 6.2 **Examples:** valid and invalid fields; older files load.
   - _Requirements: 4.1, 4.2_
 
 - [ ] 7. The pipeline (`pipeline.ts`, `core/assemble.ts`)
