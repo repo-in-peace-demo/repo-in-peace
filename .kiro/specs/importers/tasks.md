@@ -32,9 +32,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 2: Resolution, the data file and the pipeline
 
-- [ ] 5. The resolver (`io/resolve.ts`)
-  - [ ] 5.1 Nearest tsconfig or jsconfig, parsed once, `extends` from the tree or `node_modules`; a host on the snapshot tree; `package` / `outside` / `missing`.
-  - [ ] 5.2 **Examples** on built git repositories: `paths`, `baseUrl`, `extends`, folder `index.ts`, `.js` to `.ts`, a package, a `.d.ts`; an uncommitted change doesn't change the graph.
+- [x] 5. The resolver (`io/resolve.ts`)
+  - [x] 5.1 Nearest tsconfig or jsconfig, parsed once, `extends` from the tree or `node_modules`; a host on the snapshot tree; `package` / `outside` / `missing`.
+  - [x] 5.2 **Examples** on built git repositories: `paths`, `baseUrl`, `extends`, folder `index.ts`, `.js` to `.ts`, a package, a `.d.ts`; an uncommitted change doesn't change the graph.
   - _Requirements: 2_
 
 - [ ] 6. Schema and serialiser (`shared/graveyard-schema.ts`, `core/serialise.ts`)
