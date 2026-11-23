@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { realpath, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { validateGraveyard, type Graveyard, type Thresholds } from '../../shared/graveyard-schema';
 import { AssembleError, assembleGraveyard } from './core/assemble';
@@ -11,12 +11,17 @@ import { toJson } from './core/serialise';
 import type { EulogyOptions } from './cli-args';
 import { DEFAULT_THRESHOLDS } from './core/thresholds';
 import { AnalyserError } from './errors';
+import { disagreementReport, disagreements } from './core/disagreements';
+import { entryPointOf, htmlScriptsOf, packageEntriesOf } from './core/entry-points';
+import { buildEdges, importedByOf } from './core/import-graph';
+import { findImports, type ImportRef } from './core/imports';
+import { snapshotResolver } from './io/resolve';
 import { cutContents, type Contents } from './core/eulogy-contents';
 import { fileInput, ghostInput } from './core/eulogy-input';
 import { runEulogies, type EulogyClient, type EulogyJob } from './core/eulogy-run';
 import type { HistoryResult } from './core/history';
 import { readEulogyCache, writeEulogyCache, eulogiesOf } from './io/eulogy-cache';
-import { assertUsableRepo, listTree, mapBlobs, readLog, resolveBlobNames, resolveSnapshot, type TreeFile } from './io/git';
+import { assertUsableRepo, changedTrackedPaths, listTree, mapBlobs, readLog, resolveBlobNames, resolveSnapshot, type TreeFile } from './io/git';
 import { checkOllama, ollamaClient } from './io/ollama';
 import { GitLogParseError, parseGitLog } from './io/git-log-parse';
 import { readKnipResult, runKnipProcess, type KnipProcessResult, type KnipRunOptions } from './io/knip';
@@ -125,7 +130,9 @@ export async function runPipeline(
   const sourceFiles = tree.filter((file) => isTrackedSourcePath(file.path));
   log(`Found ${sourceFiles.length} source files`);
 
-  const linesByBlob = await mapBlobs(repo.root, sourceFiles.map((f) => f.blobSha), countNonBlankLines);
+  // One read of every source file: its line count, and its text for the import graph (importers spec).
+  const byBlob = await mapBlobs(repo.root, sourceFiles.map((f) => f.blobSha), (c) => ({ lines: countNonBlankLines(c), text: new TextDecoder().decode(c) }));
+  const linesByBlob = new Map([...byBlob].map(([sha, v]) => [sha, v.lines]));
 
   const packageJsonPaths = new Set(knipDirs.map((dir) => (dir === '' ? 'package.json' : `${dir}/package.json`)));
   const packageJsonBlobs = new Map<string, string>(
@@ -181,6 +188,14 @@ export async function runPipeline(
     }),
   );
 
+  // The import graph (importers spec): who imports each file, and which files a framework or tool loads.
+  const graph = await importGraph(repo.root, tree, sourceFiles, byBlob, log);
+  graveyard.files = graveyard.files.map((f) => {
+    const entry = graph.entries.get(f.path);
+    return { ...f, importedBy: graph.importedBy.get(f.path) ?? [], ...(entry ? { entry } : {}) };
+  });
+  for (const line of disagreementReport(disagreements(graveyard.files.map((f) => ({ path: f.path, unused: f.unused, entry: f.entry !== undefined })), graph.importedBy))) log(line);
+
   const validation = validateGraveyard(graveyard);
   if (!validation.ok) {
     throw new AnalyserError(
@@ -209,6 +224,59 @@ export async function runPipeline(
   }
   await writeFileAtomic(outPath, toJson(withEulogies));
   return { outPath, graveyard: withEulogies };
+}
+
+/** Config and entry files the import graph reads: tsconfigs, jsconfigs, package.json files and index.html files. */
+const GRAPH_TEXT_FILE = /(^|\/)(tsconfig[^/]*\.json|jsconfig\.json|package\.json|index\.html)$/;
+
+/**
+ * The import graph (importers spec, design "Overview"): each source file's imports from its snapshot text, resolved with TypeScript's
+ * resolution on the snapshot tree, reversed into importedBy; entry points from the file names, index.html and package.json; and a
+ * warning when the working tree differs from the snapshot, since Knip read the working tree.
+ */
+async function importGraph(
+  root: string,
+  tree: readonly TreeFile[],
+  sourceFiles: readonly TreeFile[],
+  byBlob: ReadonlyMap<string, { text: string }>,
+  log: (message: string) => void,
+) {
+  const textFiles = tree.filter((f) => GRAPH_TEXT_FILE.test(f.path) && !f.path.split('/').includes('node_modules'));
+  const textByBlob = await mapBlobs(root, textFiles.map((f) => f.blobSha), (c) => new TextDecoder().decode(c));
+  const texts = new Map(textFiles.map((f) => [f.path, textByBlob.get(f.blobSha) ?? '']));
+  const analysed = new Set(sourceFiles.map((f) => f.path));
+
+  const imports = new Map<string, ImportRef[]>();
+  let nonLiteral = 0;
+  for (const f of sourceFiles) {
+    const found = findImports(f.path, byBlob.get(f.blobSha)?.text ?? '');
+    imports.set(f.path, found.refs);
+    nonLiteral += found.nonLiteral;
+  }
+  const resolve = snapshotResolver({ root: await realpath(root), tracked: new Set(tree.map((f) => f.path)), texts, analysed });
+  const { edges, ignored } = buildEdges(imports, resolve);
+  const importedBy = importedByOf(edges, [...analysed]);
+
+  const htmlScripts = new Set([...texts].filter(([p]) => p.endsWith('index.html')).flatMap(([p, t]) => htmlScriptsOf(p, t)));
+  const packageEntries = new Set([...texts].filter(([p]) => p.endsWith('package.json')).flatMap(([p, t]) => packageEntriesOf(p, t)));
+  const entries = new Map<string, { kind: 'framework' | 'config' | 'test' | 'package'; label: string }>();
+  for (const path of analysed) {
+    const entry = entryPointOf(path, { htmlScripts, packageEntries });
+    if (entry) entries.set(path, entry);
+  }
+
+  log(
+    `Import graph: ${edges.length} imports among ${analysed.size} files; ${ignored.package} to packages, ${ignored.outside} outside the ` +
+      `analysed files, ${ignored.missing} unresolved, ${nonLiteral} non-literal; ${entries.size} entry points.`,
+  );
+  const changed = (await changedTrackedPaths(root)).filter((p) => analysed.has(p));
+  if (changed.length > 0) {
+    log(
+      `Warning: ${changed.length} analysed files differ in the working tree from the snapshot (${changed.slice(0, 5).join(', ')}` +
+        `${changed.length > 5 ? ', …' : ''}). The import graph reads the snapshot; Knip read the working tree.`,
+    );
+  }
+  return { importedBy, entries };
 }
 
 /**

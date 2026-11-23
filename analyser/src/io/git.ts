@@ -187,6 +187,25 @@ export function mapBlobs<T>(
   });
 }
 
+/**
+ * Tracked paths whose working-tree or index copy differs from HEAD (`git status --porcelain -z`, untracked files left out). Read-only:
+ * GIT_OPTIONAL_LOCKS=0 keeps git from refreshing the index. For the importers spec's warning that Knip read other versions.
+ */
+export async function changedTrackedPaths(repo: string): Promise<string[]> {
+  const result = await execGit(repo, ['status', '--porcelain', '-z', '--untracked-files=no']);
+  if (result.notInstalled) throw new AnalyserError(NOT_INSTALLED);
+  if (!result.ok) return [];
+  const out: string[] = [];
+  const parts = result.stdout.split('\0');
+  for (let i = 0; i < parts.length; i++) {
+    const entry = parts[i]!;
+    if (entry.length < 4) continue;
+    out.push(entry.slice(3));
+    if (entry[0] === 'R' || entry[0] === 'C') i++; // a rename or copy is followed by its old path
+  }
+  return out;
+}
+
 /** How many `<commit>:<path>` names go to one `git rev-parse`, to stay well under the argument length limit. */
 const REV_PARSE_CHUNK = 200;
 

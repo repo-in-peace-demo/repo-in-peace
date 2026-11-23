@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fc from 'fast-check';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { validateGraveyard, type Ghost, type Graveyard, type Thresholds } from '../../shared/graveyard-schema';
 import {
@@ -18,6 +18,7 @@ import { makeRepo } from '../test/make-repo';
 import { MS_PER_DAY } from './core/decay';
 import { countNonBlankLines, isTrackedSourcePath } from './core/files';
 import { toJson } from './core/serialise';
+import { DEFAULT_THRESHOLDS } from './core/thresholds';
 import { compareCodePoint } from './core/sort';
 import type { KnipProcessResult } from './io/knip';
 import { runPipeline, type PipelineDeps } from './pipeline';
@@ -217,4 +218,70 @@ describe('end to end on random real repositories', () => {
     expect(seen.sideBranches).toBeGreaterThan(0);
     expect(seen.reAdds).toBeGreaterThan(0);
   });
+});
+
+// Importers spec P4 end to end: random imports between files, written in a random order. Two runs give the same bytes,
+// and every file's importedBy is exactly the generated imports reversed (type only when every import of the pair is).
+describe('the import graph on random real repositories', () => {
+  const POOL = ['index.ts', 'src/a.ts', 'src/b.tsx', 'src/lib/c.ts', 'src/lib/deep/e.ts', 'lib/d.ts'] as const;
+  const STYLES = ['static', 'type', 'reexport', 'dynamic', 'require'] as const;
+  const importArb = fc.record({ from: fc.nat(POOL.length - 1), to: fc.nat(POOL.length - 1), style: fc.constantFrom(...STYLES) });
+
+  const specifier = (from: string, to: string): string => {
+    const rel = posix.relative(posix.dirname(from), to.replace(/\.tsx?$/, ''));
+    return rel.startsWith('.') ? rel : `./${rel}`;
+  };
+  const line = (style: (typeof STYLES)[number], spec: string, i: number): string =>
+    style === 'static' ? `import * as m${i} from '${spec}';\nvoid m${i};\n`
+    : style === 'type' ? `import type * as t${i} from '${spec}';\nexport type T${i} = typeof t${i};\n`
+    : style === 'reexport' ? `export * from '${spec}';\n`
+    : style === 'dynamic' ? `void import('${spec}');\n`
+    : `require('${spec}');\n`;
+
+  it(
+    'P4: the same bytes on a rerun, and importedBy is the generated imports reversed',
+    async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.array(importArb, { maxLength: 14 }), fc.func(fc.integer()), async (imports, order) => {
+          const texts = new Map<string, string>(POOL.map((p) => [p, `export const id = '${p}';\n`]));
+          imports.forEach(({ from, to, style }, i) => {
+            const f = POOL[from]!;
+            texts.set(f, texts.get(f)! + line(style, specifier(f, POOL[to]!), i));
+          });
+          const ops = [...texts, ['package.json', '{"name":"g"}\n'] as const].map(([path, content]) => ({ op: 'write' as const, path, content }));
+          ops.sort((x, y) => order(x.path) - order(y.path));
+          const built = makeRepo([{ kind: 'commit', message: 'graph', author: 'Ann', date: '2026-02-01T10:00:00+00:00', ops }]);
+          const outDir = mkdtempSync(join(tmpdir(), 'rip-e2e-graph-'));
+          try {
+            const first = await analyse(built.dir, join(outDir, 'a.json'), [], DEFAULT_THRESHOLDS);
+            const second = await analyse(built.dir, join(outDir, 'b.json'), [], DEFAULT_THRESHOLDS);
+            expect(second).toBe(first);
+            const g = JSON.parse(first) as Graveyard;
+            expect(validateGraveyard(g)).toEqual({ ok: true });
+
+            // The model: importer -> target -> every import is type only.
+            const pairs = new Map<string, boolean>();
+            for (const { from, to, style } of imports) {
+              if (from === to) continue;
+              const key = `${POOL[to]}\u0000${POOL[from]}`;
+              pairs.set(key, (pairs.get(key) ?? true) && style === 'type');
+            }
+            for (const file of g.files) {
+              const expected = [...pairs]
+                .filter(([k]) => k.split('\u0000')[0] === file.path)
+                .map(([k, typeOnly]) => ({ path: k.split('\u0000')[1]!, ...(typeOnly ? { typeOnly: true as const } : {}) }))
+                .sort((x, y) => compareCodePoint(x.path, y.path));
+              expect(file.importedBy).toEqual(expected);
+            }
+            return true;
+          } finally {
+            built.cleanup();
+            rmSync(outDir, { recursive: true, force: true });
+          }
+        }),
+        { numRuns: 20 },
+      );
+    },
+    240_000,
+  );
 });

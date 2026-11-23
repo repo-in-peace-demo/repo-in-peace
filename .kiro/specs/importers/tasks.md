@@ -42,11 +42,11 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 6.2 **Examples:** valid and invalid fields; older files load.
   - _Requirements: 4.1, 4.2_
 
-- [ ] 7. The pipeline (`pipeline.ts`, `core/assemble.ts`)
-  - [ ] 7.1 One batch for lines and imports; a batch for configs, `package.json` and `index.html`; the graph, entry points, disagreements and the working-tree warning; the fields on every file.
-  - [ ] 7.2 The golden file regenerated deliberately, with the check that removing the two fields gives the previous one byte for byte.
-  - [ ] 7.3 **P4 end to end** in the e2e property test; **P6** (`fileInput` ignores the new fields).
-  - [ ] 7.4 `typescript` moved to `dependencies` (Decision 1).
+- [x] 7. The pipeline (`pipeline.ts`, `core/assemble.ts`)
+  - [x] 7.1 One batch for lines and imports; a batch for configs, `package.json` and `index.html`; the graph, entry points, disagreements and the working-tree warning; the fields on every file.
+  - [x] 7.2 The golden file kept as it was, checked byte for byte with the two fields removed; a second golden file, `test/golden/with-importers.json`, holds the whole output (`GOLDEN_WRITE=1` rewrites it on purpose).
+  - [x] 7.3 **P4 end to end** in the e2e property test; **P6** (`fileInput` ignores the new fields).
+  - [x] 7.4 `typescript` moved to `dependencies` (Decision 1).
   - **Run (checkpoint A):** `cd analyser && npm install && npm run typecheck && npm test`
   - _Requirements: 1 to 5_
 

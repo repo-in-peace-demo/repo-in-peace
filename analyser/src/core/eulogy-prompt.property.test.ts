@@ -37,6 +37,20 @@ describe('the inputs', () => {
     expect(fileInput(file({ unused: false, hot: true, decayState: 'fresh' }), history(''), T, text(''), nobody, SNAPSHOT)).toMatchObject({ state: 'Fresh (under 21 days)', flags: ['Hot (5+ commits in the 30 days before the snapshot)'] });
   });
 
+  // Importers spec P6: the import graph is not a fact the eulogy is told, so the prompt (and the cache key) stay the same.
+  it('P6: for any importedBy and entry, the input and the prompt are those of the file without them', () => {
+    const importer = fc.record({ path: fc.string({ minLength: 1, maxLength: 20 }), typeOnly: fc.constantFrom(undefined, true as const) }, { requiredKeys: ['path'] });
+    const entry = fc.record({ kind: fc.constantFrom('framework' as const, 'package' as const, 'config' as const, 'test' as const), label: fc.string({ minLength: 1, maxLength: 20 }) });
+    fc.assert(
+      fc.property(fc.array(importer, { maxLength: 6 }), fc.option(entry, { nil: undefined }), (importedBy, e) => {
+        const plain = fileInput(file(), history('x'), T, text('x'), nobody, SNAPSHOT);
+        const withGraph = fileInput({ ...file(), importedBy, ...(e ? { entry: e } : {}) }, history('x'), T, text('x'), nobody, SNAPSHOT);
+        expect(withGraph).toEqual(plain);
+        expect(buildPrompt(withGraph)).toEqual(buildPrompt(plain));
+      }),
+    );
+  });
+
   it('describe a ghost with its UTC day of deletion', () => {
     expect(ghostInput(ghost('remove surface placement'), text('x'), nobody)).toMatchObject({ kind: 'ghost', name: 'surface-placement.ts', deletedDay: '2026-10-12', subject: 'remove surface placement' });
   });

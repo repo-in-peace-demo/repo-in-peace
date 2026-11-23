@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "name": "REPO",
+    "snapshotSha": "a049e5484aef639c0f701b34dba246322deac4b3",
+    "snapshotDate": "2026-02-20T10:00:00.000Z",
+    "analysedAt": "2026-03-02T09:30:00.000Z",
+    "schemaVersion": 2,
+    "thresholds": {
+      "staleAfterDays": 90,
+      "ancientAfterDays": 360,
+      "decayCapDays": 720,
+      "hotCommits": 5,
+      "hotWindowDays": 30
+    }
+  },
+  "folders": [
+    {
+      "path": "",
+      "parent": null
+    },
+    {
+      "path": "src",
+      "parent": ""
+    }
+  ],
+  "files": [
+    {
+      "path": "src/a.ts",
+      "folder": "src",
+      "linesOfCode": 2,
+      "lastCommitDate": "2026-02-20T09:00:00.000Z",
+      "lastCommitAuthor": "Cy",
+      "recentCommits": 5,
+      "unused": false,
+      "decayScore": 0,
+      "decayState": "fresh",
+      "hot": true,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/at360.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-02-25T10:00:00.000Z",
+      "lastCommitAuthor": "Eve",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2,
+      "decayState": "stale",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/at361.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-02-24T10:00:00.000Z",
+      "lastCommitAuthor": "Eve",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.2006,
+      "decayState": "ancient",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/at89.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-11-23T10:00:00.000Z",
+      "lastCommitAuthor": "Fay",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.0494,
+      "decayState": "fresh",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/at90.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-11-22T10:00:00.000Z",
+      "lastCommitAuthor": "Fay",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.65,
+      "decayState": "stale",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/mid.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-09-25T10:00:00.000Z",
+      "lastCommitAuthor": "Di",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.6822,
+      "decayState": "stale",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/mid2.ts",
+      "folder": "src",
+      "linesOfCode": 2,
+      "lastCommitDate": "2025-09-25T10:00:00.000Z",
+      "lastCommitAuthor": "Di",
+      "recentCommits": 0,
+      "unused": false,
+      "decayScore": 0.0822,
+      "decayState": "stale",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/moved.ts",
+      "folder": "src",
+      "linesOfCode": 3,
+      "lastCommitDate": "2026-02-20T10:00:00.000Z",
+      "lastCommitAuthor": "Di",
+      "recentCommits": 1,
+      "unused": false,
+      "decayScore": 0,
+      "decayState": "fresh",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    },
+    {
+      "path": "src/old.ts",
+      "folder": "src",
+      "linesOfCode": 1,
+      "lastCommitDate": "2025-01-01T10:00:00.000Z",
+      "lastCommitAuthor": "Ann",
+      "recentCommits": 0,
+      "unused": true,
+      "decayScore": 0.8306,
+      "decayState": "ancient",
+      "hot": false,
+      "importedBy": [],
+      "eulogy": ""
+    }
+  ],
+  "ghosts": [
+    {
+      "path": "ghost.ts",
+      "deletedInSha": "baacbb54e2c38f9dd83589f8f828d67d9f5e3319",
+      "deletedDate": "2025-06-01T10:00:00.000Z",
+      "deletedBy": "Bob",
+      "lastExistingSha": "acd8265accd9faa5591f643e562c97861175487a"
+    }
+  ]
+}

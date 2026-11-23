@@ -560,11 +560,27 @@ describe('P6: with the default thresholds the output is what the analyser wrote 
     delete meta['thresholds'];
     meta['schemaVersion'] = 1;
     meta['name'] = 'REPO';
+    // The import graph's fields came later (importers spec): without them, the output is still the golden file byte for byte.
+    for (const f of g.files as unknown as Array<Record<string, unknown>>) {
+      delete f['importedBy'];
+      delete f['entry'];
+    }
     return `${JSON.stringify(g, null, 2)}\n`;
   };
 
   it('is byte for byte the golden file, once the new metadata fields are taken out', async () => {
     expect(asVersion1((await run()).text)).toBe(golden);
+  });
+
+  // The whole output, the import graph included, against a second golden file made on purpose: GOLDEN_WRITE=1 writes it.
+  it('is byte for byte the golden file with the import graph (importers spec)', async () => {
+    const path = fileURLToPath(new URL('../test/golden/with-importers.json', import.meta.url));
+    const g = JSON.parse((await run()).text) as Graveyard;
+    g.meta.name = 'REPO';
+    const text = `${JSON.stringify(g, null, 2)}\n`;
+    if (process.env['GOLDEN_WRITE'] === '1') writeFileSync(path, text);
+    expect(text).toBe(readFileSync(path, 'utf8'));
+    expect(g.files.every((f) => Array.isArray(f.importedBy))).toBe(true);
   });
 
   it('is the same when the default values are passed explicitly', async () => {
@@ -680,5 +696,65 @@ describe('custom decay thresholds through the whole pipeline', () => {
   it('logs the thresholds when they are not the defaults', async () => {
     const { logs } = await analyseWith(thresholdsFrom({ staleAfterDays: 30, ancientAfterDays: 200, hotCommits: 3, hotWindowDays: 14 }));
     expect(logs).toContain('Decay thresholds: stale after 30 days, ancient after 200, hot at 3 commits in 14 days');
+  });
+});
+
+// ---- The import graph (importers spec) ----
+
+describe('the import graph, end to end', () => {
+  const w = (path: string, content: string) => ({ op: 'write' as const, path, content });
+  const repo = build([
+    {
+      kind: 'commit',
+      message: 'one',
+      author: 'Ann',
+      date: '2026-01-01T10:00:00+00:00',
+      ops: [
+        w('package.json', '{"name":"g","knip":{}}\n'),
+        w('tsconfig.json', JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['./src/*'] }, moduleResolution: 'bundler', module: 'esnext' } })),
+        w('index.html', '<script type="module" src="/src/main.ts"></script>\n'),
+        w('src/main.ts', "import { db } from '@/lib/db';\nimport type { T } from './types';\nexport const run = (t: T) => db + t;\n"),
+        w('src/lib/db.ts', 'export const db = 1;\n'),
+        w('src/types.ts', 'export type T = number;\n'),
+        w('src/dead/section.ts', "import { card } from './card';\nexport const section = card;\n"),
+        w('src/dead/card.ts', 'export const card = 1;\n'),
+        w('src/live-dead.ts', "export const x = 1;\n"),
+        w('src/uses-live-dead.ts', "import { x } from './live-dead';\nexport const y = x;\n"),
+        w('src/lib/db.test.ts', "import { db } from './db';\nexport const t = db;\n"),
+        w('vite.config.ts', 'export default {};\n'),
+      ],
+    },
+  ]);
+
+  it('writes importedBy and entry on every file, and reports where Knip and the graph disagree', async () => {
+    const out = tempDir();
+    // Knip says: the dead chain is unused, and so is live-dead.ts (wrongly: uses-live-dead.ts imports it, and is used).
+    const h = harness(knipOk('src/dead/section.ts', 'src/dead/card.ts', 'src/live-dead.ts'));
+    const { graveyard } = await runPipeline(optionsFor(repo, out), h.deps);
+    const by = (p: string) => graveyard.files.find((f) => f.path === p)!;
+    expect(by('src/lib/db.ts').importedBy).toEqual([{ path: 'src/lib/db.test.ts' }, { path: 'src/main.ts' }]);
+    expect(by('src/types.ts').importedBy).toEqual([{ path: 'src/main.ts', typeOnly: true }]);
+    expect(by('src/dead/card.ts').importedBy).toEqual([{ path: 'src/dead/section.ts' }]);
+    expect(by('src/main.ts')).toMatchObject({ importedBy: [], entry: { kind: 'framework', label: 'Vite entry' } });
+    expect(by('src/lib/db.test.ts').entry).toEqual({ kind: 'test', label: 'test' });
+    expect(by('vite.config.ts').entry).toEqual({ kind: 'config', label: 'Vite config' });
+    expect(by('src/lib/db.ts').entry).toBeUndefined();
+    expect(h.logs.some((l) => /^Import graph: 5 imports among 9 files; 0 to packages, 0 outside the analysed files, 0 unresolved, 0 non-literal; 3 entry points\.$/.test(l))).toBe(true);
+    expect(h.logs).toContain('  src/live-dead.ts is unused (Knip), but imported by src/uses-live-dead.ts, which is used');
+    expect(h.logs).toContain("Used files nothing imports and that aren't entry points (1): src/uses-live-dead.ts");
+    // The data follows Knip: the stone stays unused.
+    expect(by('src/live-dead.ts').unused).toBe(true);
+  });
+
+  it('warns when the working tree differs from the snapshot, and keeps reading the snapshot', async () => {
+    writeFileSync(join(repo.dir, 'src', 'lib', 'db.ts'), "import './changed';\nexport const db = 2;\n");
+    try {
+      const h = harness(knipOk());
+      const { graveyard } = await runPipeline(optionsFor(repo, tempDir()), h.deps);
+      expect(h.logs.some((l) => /^Warning: 1 analysed files differ in the working tree from the snapshot \(src\/lib\/db\.ts\)/.test(l))).toBe(true);
+      expect(graveyard.files.find((f) => f.path === 'src/lib/db.ts')!.importedBy).toEqual([{ path: 'src/lib/db.test.ts' }, { path: 'src/main.ts' }]);
+    } finally {
+      execFileSync('git', ['-C', repo.dir, 'checkout', '-q', '--', 'src/lib/db.ts']);
+    }
   });
 });
