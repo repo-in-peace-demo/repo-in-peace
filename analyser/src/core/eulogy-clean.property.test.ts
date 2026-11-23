@@ -64,15 +64,24 @@ describe('P1: the format', () => {
     expect(clean(`The keeper ${'waited and '.repeat(30)}waited.`)).toEqual({ ok: false, reason: 'long' });
   });
 
+  // The words are random, so a sentence can state a time ("Aa ago!", seed 375800081): the time-agnostic rule drops it first, and the
+  // eulogy is whole sentences of what is left.
   it('whatever the length, an accepted eulogy is whole sentences of the answer, never cut inside one', () => {
     const sentence = fc.stringMatching(/^[A-Z][a-z]{1,8}( [a-z]{1,8}){0,30}[.!?]$/);
     fc.assert(
       fc.property(fc.array(sentence, { minLength: 1, maxLength: 4 }), (sentences) => {
+        const kept = sentences.filter((s) => !statesTime(s));
         const r = clean(sentences.join(' '));
-        if (!r.ok) return r.reason === 'long' && Array.from(sentences[0]!).length > EULOGY_MAX_CHARS;
-        return r.text === sentences.slice(0, sentencesOf(r.text).length).join(' ');
+        if (kept.length === 0) return !r.ok && r.reason === 'empty';
+        if (!r.ok) return r.reason === 'long' && Array.from(kept[0]!).length > EULOGY_MAX_CHARS;
+        return r.text === kept.slice(0, sentencesOf(r.text).length).join(' ');
       }),
     );
+  });
+
+  it('drops a sentence that states a time before keeping whole sentences (the counterexample above)', () => {
+    expect(clean('Aa ago! Aa.')).toEqual({ ok: true, text: 'Aa.' });
+    expect(clean('Aa ago!')).toEqual({ ok: false, reason: 'empty' });
   });
 
   it('ends an answer that has no closing stop with one', () => {
