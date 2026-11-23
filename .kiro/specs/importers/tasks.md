@@ -57,9 +57,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 3: The frontend
 
-- [ ] 9. Usage (`model/usage.ts`)
-  - [ ] 9.1 `usageView` with the wording table; the first 5 importers and the rest.
-  - [ ] 9.2 **Examples:** every row of the table, older files.
+- [x] 9. Usage (`model/usage.ts`)
+  - [x] 9.1 `usageView` with the wording table; the first 5 importers and the rest.
+  - [x] 9.2 **Examples:** every row of the table, older files.
   - _Requirements: 6.1, 6.2_
 
 - [ ] 10. The panel and the hover (`ui/DetailPanel.tsx`, `ui/HoverLabel.tsx`, `index.css`)
