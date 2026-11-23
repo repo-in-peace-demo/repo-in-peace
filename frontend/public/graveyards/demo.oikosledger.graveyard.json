@@ -988,10 +988,6 @@
           "path": "app/middleware.ts"
         }
       ],
-      "entry": {
-        "kind": "config",
-        "label": "config"
-      },
       "eulogy": "If I could speak, I'd say I've stood the test of time, still guiding paths through login with steady rhyme."
     },
     {
