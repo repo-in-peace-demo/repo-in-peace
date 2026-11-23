@@ -424,6 +424,34 @@ test.describe('layout and access', () => {
     });
   }
 
+  for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }, { width: 900, height: 700 }]) {
+    test(`at ${size.width} × ${size.height}: the details never appear over an open legend or stats panel, even for a moment, on either side`, async ({ page }) => {
+      await openScene(page, 'demo.oikosledger', size);
+      await page.mouse.move(size.width / 2, 5);
+      const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
+      const inView = points.filter((x) => x.at && x.at.x > 0 && x.at.x < size.width && x.at.y > 0 && x.at.y < size.height) as Array<{ p: string; at: { x: number; y: number } }>;
+      const leftItem = inView.reduce((a, b) => (b.at.x < a.at.x ? b : a));
+      const rightItem = inView.reduce((a, b) => (b.at.x > a.at.x ? b : a));
+      for (const [label, item] of [['on the left (details on the right)', leftItem], ['on the right (details on the left)', rightItem]] as const) {
+        // The legend first, then the stats panel (they don't overlap each other), then a grave chosen as the list and search do:
+        // selected and flown to, so the details appear while the camera is still moving.
+        await openPanel(page, 'legend');
+        await openPanel(page, 'stats');
+        await page.evaluate((p) => {
+          window.repoInPeace!.select({ kind: 'file', path: p });
+          window.repoInPeace!.flyTo(p);
+        }, item.p);
+        await page.locator('.detail').waitFor({ state: 'visible' });
+        // The first moment the details are on the page: one look, no waiting for things to settle.
+        expect(await firstOverlap(page), `a grave ${label}, the moment the details appear`).toBe('');
+        await page.waitForTimeout(400);
+        expect(await firstOverlap(page), `a grave ${label}, during the flight`).toBe('');
+        await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
+        await page.waitForTimeout(1600); // the flight has landed
+      }
+    });
+  }
+
   test('the list shows its rows from the top when it opens again after the details closed it', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.locator('.list .panel-toggle').click();
