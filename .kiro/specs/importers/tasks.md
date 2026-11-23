@@ -10,9 +10,9 @@ Status key: `[x]` done, `[ ]` not started.
 
 ## Part 1: The analyser's graph (pure)
 
-- [ ] 1. Finding imports (`core/imports.ts`)
-  - [ ] 1.1 `findImports` with TypeScript's parser: static, re-export, `import = require`, `import()`, `require()`; type-only; non-literal counted.
-  - [ ] 1.2 **Examples:** every form; type-only variants; comments and strings ignored; JS, JSX, TSX, MJS, CJS.
+- [x] 1. Finding imports (`core/imports.ts`)
+  - [x] 1.1 `findImports` with TypeScript's parser: static, re-export, `import = require`, `import()`, `require()`, and `typeof import('…')` in types (type-only); type-only; non-literal counted.
+  - [x] 1.2 **Examples:** every form; type-only variants; comments and strings ignored; JS, JSX, TSX, MJS, CJS.
   - _Requirements: 1_
 
 - [ ] 2. The graph (`core/import-graph.ts`)
