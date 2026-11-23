@@ -108,6 +108,7 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 14.5 Screenshot tests `bury mound` and `resurrect stone` (close up, after the change).
   - **Run:** `npx playwright test e2e/pull-requests.spec.ts`, then `SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts -g "bury mound|resurrect stone"`. I check the pictures by eye.
   - (Checked by eye twice. The first pictures showed the ghost's toe tag floating in front of the new stone (camera-facing cards ignore an instance's scale, so hidden instances are now moved below the ground, for the tag, the pool and a buried candle's glow), a mound too dark to read as earth, and a stake too small to read; all three fixed in `cb9dd62`.)
+  - [x] 14.6 After review: the round mound became a fresh grave (a long, low heap of dark, lumpy soil lengthwise in the cell, sloped sides and ends, clods of the soil's colour) with a wooden stake at its head and a wooden plaque "PR #N"; everything inside the layout cell (tested). From the default view it stays as it is (the owner's choice): the change shows close up, and the list, hover and panel name the pull request.
   - _Requirements: 10_
 
 ## Part 5: Documentation and going live

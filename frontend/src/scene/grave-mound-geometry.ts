@@ -18,7 +18,7 @@ const noise = (x: number, z: number, salt: number): number => {
 };
 const smoothNoise = (x: number, z: number): number => 0.55 * Math.sin(x * 11.3 + z * 4.1) * Math.cos(z * 9.7 - x * 3.3) + 0.45 * noise(Math.round(x * 14), Math.round(z * 14), 1);
 
-function shade(geometry: THREE.BufferGeometry, salt: number): void {
+function shade(geometry: THREE.BufferGeometry, salt: number, lift = 1): void {
   const position = geometry.getAttribute('position');
   const colors = new Float32Array(position.count * 3);
   const c = new THREE.Color();
@@ -26,33 +26,37 @@ function shade(geometry: THREE.BufferGeometry, salt: number): void {
     // Lighter on top (catching the moonlight), darker at the foot; noisy, so the soil looks turned.
     const top = Math.min(1, position.getY(i) / MOUND_H);
     const k = 0.6 + 0.35 * top + 0.35 * (0.5 + 0.5 * noise(position.getX(i), position.getZ(i), salt + position.getY(i) * 3));
-    c.copy(SOIL).multiplyScalar(k);
+    c.copy(SOIL).multiplyScalar(k * lift);
     colors.set([c.r, c.g, c.b], i * 3);
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
 export function makeGraveMoundGeometry(): THREE.BufferGeometry {
-  // The heap: a box with a fine top, its top vertices raised to a flat-topped profile with sloping edges, then lumped.
-  const heap = new THREE.BoxGeometry(2 * MOUND_HALF_W, 1, 2 * MOUND_HALF_D, 10, 1, 18).toNonIndexed();
-  heap.translate(0, 0.5, 0);
+  // The heap: a grid over the grave's footprint, raised to a heaped profile that meets the ground at every edge, so its long sides
+  // and its ends slope like piled earth (third review: the first version stood on near-vertical walls and read as a box).
+  const heap = new THREE.PlaneGeometry(2 * MOUND_HALF_W, 2 * MOUND_HALF_D, 16, 24);
+  heap.rotateX(-Math.PI / 2);
   const p = heap.getAttribute('position');
+  const SIDE = 0.45; // the share of each half-width given to the slope; the rest is the rounded crest
+  const END = 0.3;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);
     const z = p.getZ(i);
-    if (p.getY(i) < 0.5) {
-      p.setY(i, 0);
-      continue;
-    }
-    const ex = Math.min(1, Math.abs(x) / MOUND_HALF_W);
-    const ez = Math.min(1, Math.abs(z) / MOUND_HALF_D);
-    // 1 across the middle, falling to about 0.2 at the long sides and the ends: a low rectangular heap, not a dome.
-    const profile = (1 - Math.pow(ex, 3)) * (1 - Math.pow(ez, 5));
-    const h = MOUND_H * (0.2 + 0.8 * profile) + 0.03 * smoothNoise(x, z) * (0.4 + profile);
-    p.setXYZ(i, x * (1 - 0.12 * (h / MOUND_H)), Math.max(0.01, h), z * (1 - 0.05 * (h / MOUND_H)));
+    const ex = Math.abs(x) / MOUND_HALF_W;
+    const ez = Math.abs(z) / MOUND_HALF_D;
+    const across = ex < 1 - SIDE ? 1 : 0.5 + 0.5 * Math.cos((Math.PI * (ex - (1 - SIDE))) / SIDE);
+    const along = ez < 1 - END ? 1 : 0.5 + 0.5 * Math.cos((Math.PI * (ez - (1 - END))) / END);
+    const crown = 1 - 0.18 * ex * ex; // a little higher along the middle line
+    const profile = across * along * crown;
+    const h = MOUND_H * profile + 0.035 * smoothNoise(x, z) * profile;
+    p.setY(i, Math.max(0, h));
   }
-  heap.computeVertexNormals();
-  shade(heap, 2);
+  heap.deleteAttribute('uv');
+  const heapFaces = heap.toNonIndexed(); // the clods are not indexed, and merging needs all alike
+  heap.dispose();
+  heapFaces.computeVertexNormals();
+  shade(heapFaces, 2);
 
   // A few clods: small rough lumps on the heap and at its foot.
   const spots: Array<[number, number, number, number]> = [
@@ -68,13 +72,15 @@ export function makeGraveMoundGeometry(): THREE.BufferGeometry {
   const clods = spots.map(([x, z, r, salt]) => {
     const g = new THREE.DodecahedronGeometry(r, 0);
     g.scale(1 + 0.3 * noise(x, z, salt), 0.7, 1 - 0.2 * noise(z, x, salt));
-    const onHeap = Math.abs(x) < MOUND_HALF_W * 0.85 && Math.abs(z) < MOUND_HALF_D * 0.85;
-    g.translate(x, onHeap ? MOUND_H * 0.95 + r * 0.3 : r * 0.4, z);
-    shade(g, salt);
+    const onHeap = Math.abs(x) < MOUND_HALF_W * 0.6 && Math.abs(z) < MOUND_HALF_D * 0.7;
+    g.translate(x, onHeap ? MOUND_H * 0.9 + r * 0.3 : r * 0.4, z);
+    g.deleteAttribute('uv');
+    // The soil's own colour, a little lighter: lumps of the same earth catching the light (third review: they read as black dots).
+    shade(g, salt, 1.25);
     return g;
   });
 
-  const merged = mergeGeometries([heap, ...clods], false)!;
-  for (const g of [heap, ...clods]) g.dispose();
+  const merged = mergeGeometries([heapFaces, ...clods], false)!;
+  for (const g of [heapFaces, ...clods]) g.dispose();
   return merged;
 }
