@@ -20,9 +20,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 2.2 **P1** and **P4 (pure)** on random graphs.
   - _Requirements: 2.4, 4.1_
 
-- [ ] 3. Entry points (`core/entry-points.ts`)
-  - [ ] 3.1 `entryPointOf` in the design's order; `htmlScripts` and `packageEntries` from `index.html` and `package.json` texts.
-  - [ ] 3.2 **Examples:** each rule; first-match order; Vite `src="/src/index.ts"`; `bin` as a string and an object.
+- [x] 3. Entry points (`core/entry-points.ts`)
+  - [x] 3.1 `entryPointOf` in the design's order; `htmlScripts` and `packageEntries` from `index.html` and `package.json` texts.
+  - [x] 3.2 **Examples:** each rule; first-match order; Vite `src="/src/index.ts"`; `bin` as a string and an object.
   - _Requirements: 3_
 
 - [ ] 4. Disagreements (`core/disagreements.ts`)
