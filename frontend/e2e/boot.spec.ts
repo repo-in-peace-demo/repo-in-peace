@@ -198,3 +198,12 @@ test('the marker is on the first demo at first, moves with Up and Down and with 
   await page.keyboard.press('Enter'); // the marked one opens
   await expect(page).toHaveURL(/\?graveyard=demo\.oikosledger$/);
 });
+
+test('under Open a graveyard file, a hint links to the README section on analysing your own repo', async ({ page }) => {
+  await page.goto('/');
+  await skipTyping(page);
+  const link = page.getByRole('link', { name: 'Analyse your own repo' });
+  await expect(link).toHaveAttribute('href', 'https://github.com/sl2902/repo-in-peace#analyse-your-own-repo');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(boot(page)).toContainText('No file yet? Analyse your own repo.');
+});

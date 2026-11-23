@@ -5,6 +5,9 @@ import type { Manifest } from '../model/manifest';
 import { fetchManifest } from './fetch-manifest';
 import { useTyping } from './useTyping';
 
+/** How to make a graveyard file of your own repository (the main README's section). */
+export const ANALYSE_YOUR_OWN_URL = 'https://github.com/sl2902/repo-in-peace#analyse-your-own-repo';
+
 interface BootScreenProps {
   baseUrl: string;
   /** A local file that could not be opened, shown under the choices. */
@@ -169,6 +172,13 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
             />
           </label>
           <p className="terminal-dim terminal-hint">or drop a .graveyard.json anywhere here. It is read in this browser and never uploaded.</p>
+          <p className="terminal-dim terminal-hint">
+            No file yet?{' '}
+            <a href={ANALYSE_YOUR_OWN_URL} target="_blank" rel="noopener noreferrer">
+              Analyse your own repo
+            </a>
+            .
+          </p>
           {notice && (
             <div className="terminal-notice" role="alert" tabIndex={-1} ref={noticeRef}>
               <p>{notice.title}</p>

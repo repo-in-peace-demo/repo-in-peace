@@ -2,6 +2,8 @@
 
 Ideas kept out of the current tasks on purpose. Each needs its own small spec before it is built.
 
+- **npx entry point for the analyser**: `npx repo-in-peace analyse <clone>` without cloning this repository (a published package with a `bin`).
+- **GitHub Action that generates the graveyard file in CI**: run the analyser on each push to the default branch and publish the `.graveyard.json` as an artifact (or to Pages), so the graveyard stays current.
 - **Pull requests from your own account** (bury-and-resurrect, out of scope): sign in with GitHub to open Bury and Resurrect pull requests on your own repositories instead of the demo forks.
 - **After a merge**: updating the graveyard when a Bury or Resurrect pull request is merged (today the scene change lasts for the session only, and a reload shows the data file).
 - **Several files in one pull request**: bury a whole folder of unused files, or resurrect a deleted folder, as one change.
