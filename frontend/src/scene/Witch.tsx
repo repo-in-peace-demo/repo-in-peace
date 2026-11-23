@@ -6,6 +6,8 @@ import { OPENING_DURATION_MS } from '../model/framing';
 import { playsOpening } from '../model/opening-move';
 import { WITCH_HALF_SIZE_DEG, firstPassStart, witchAt, type WitchState } from '../model/witch';
 import { animationTime, isReducedMotion } from './animation-clock';
+import { CLOUD_GLSL } from './cloud-glsl';
+import { MOON_DIRECTION } from '../model/atmosphere';
 import { prefersReducedMotion } from './reduced-motion';
 
 /**
@@ -21,8 +23,12 @@ const VERTEX = /* glsl */ `
 uniform vec3 uCentre;
 uniform float uHalfSize;
 varying vec2 vP;
+varying vec3 vDirection; // this corner's direction on the sky, for the clouds in front of her
 void main() {
   vP = position.xy; // -1 to 1, x to the right on screen
+  vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+  vec3 up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+  vDirection = normalize(normalize(uCentre) + (right * position.x + up * position.y) * uHalfSize);
   vec4 clip = projectionMatrix * viewMatrix * modelMatrix * vec4(uCentre, 1.0);
   clip.xy += position.xy * uHalfSize * vec2(projectionMatrix[0][0], projectionMatrix[1][1]) * clip.w;
   gl_Position = clip;
@@ -31,7 +37,12 @@ void main() {
 
 const FRAGMENT = /* glsl */ `
 uniform float uTime;
+uniform float uSkyTime; // the sky's clock, so the clouds over her are the clouds drawn
+uniform float uOpacity;
+uniform vec3 uMoonDirection;
 varying vec2 vP;
+varying vec3 vDirection;
+${CLOUD_GLSL}
 float segment(vec2 p, vec2 a, vec2 b, float r) {
   vec2 pa = p - a, ba = b - a;
   float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
@@ -76,6 +87,9 @@ void main() {
   d = min(d, triangle(p, vec2(-0.02, 0.0), c2, c1));
   float edge = fwidth(d) + 0.004;
   float alpha = 1.0 - smoothstep(-edge, edge, d);
+  // As if through clouds: she fades in and out, and the drifting clouds in front of her cover her, more the more she has faded.
+  float cover = cloudCover(cloudField(normalize(vDirection), uSkyTime)) * cloudAround(normalize(vDirection), uMoonDirection);
+  alpha *= uOpacity * (1.0 - cover * (0.45 + 0.5 * (1.0 - uOpacity)));
   if (alpha < 0.01) discard;
   gl_FragColor = vec4(0.025, 0.03, 0.045, alpha * 0.96);
 }
@@ -85,7 +99,14 @@ export function Witch() {
   const mesh = useRef<THREE.Mesh>(null);
   const assets = useMemo(() => {
     const material = new THREE.ShaderMaterial({
-      uniforms: { uCentre: { value: new THREE.Vector3() }, uHalfSize: { value: Math.tan((WITCH_HALF_SIZE_DEG * Math.PI) / 180) }, uTime: { value: 0 } },
+      uniforms: {
+        uCentre: { value: new THREE.Vector3() },
+        uHalfSize: { value: Math.tan((WITCH_HALF_SIZE_DEG * Math.PI) / 180) },
+        uTime: { value: 0 },
+        uSkyTime: { value: 0 },
+        uOpacity: { value: 0 },
+        uMoonDirection: { value: new THREE.Vector3(MOON_DIRECTION.x, MOON_DIRECTION.y, MOON_DIRECTION.z) },
+      },
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
       transparent: true,
@@ -120,6 +141,8 @@ export function Witch() {
     const d = skyDirection(state.azimuthDeg, state.elevationDeg);
     assets.material.uniforms.uCentre!.value.set(d.x, d.y, d.z).multiplyScalar(SKY_RADIUS * 0.94);
     assets.material.uniforms.uTime!.value = t;
+    assets.material.uniforms.uSkyTime!.value = t; // the sky uses the same animation time
+    assets.material.uniforms.uOpacity!.value = state.opacity;
   });
 
   return <mesh ref={mesh} geometry={assets.geometry} material={assets.material} renderOrder={-27} frustumCulled={false} raycast={() => undefined} visible={false} />;

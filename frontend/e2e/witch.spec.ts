@@ -2,7 +2,7 @@ import { test as plain } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG, skyDirection } from '../src/model/atmosphere';
-import { PASS_S, START_DELAY_S } from '../src/model/witch';
+import { FADE_S, PASS_S, START_DELAY_S } from '../src/model/witch';
 import { expect, test, type Page } from './fixtures';
 
 /**
@@ -56,6 +56,36 @@ for (const name of ['demo.oikosledger', 'demo.spatialql']) {
   }
 }
 
+test('she fades in and out smoothly: no jump to zero between frames, and gone only once faded', async ({ page }) => {
+  await open(page, 'demo.oikosledger', { width: 1280, height: 720 });
+  // Sample every animation frame in the page for the whole first pass and a little after.
+  const samples = await page.evaluate(
+    (ms) =>
+      new Promise<Array<{ t: number; o: number }>>((done) => {
+        const out: Array<{ t: number; o: number }> = [];
+        const start = performance.now();
+        const step = (): void => {
+          out.push({ t: performance.now(), o: window.repoInPeace!.getWitch()?.opacity ?? 0 });
+          if (performance.now() - start < ms) requestAnimationFrame(step);
+          else done(out);
+        };
+        requestAnimationFrame(step);
+      }),
+    (PASS_S + 2) * 1000,
+  );
+  expect(Math.max(...samples.map((s) => s.o)), 'she was there').toBeGreaterThan(0.99);
+  // However long a frame takes (software rendering is slow), the fade never changes faster than its smoothstep allows: at most
+  // 1.5 / FADE_S per second (1.0), plus a margin for the scene's frame and this sampler being out of step.
+  const tooFast = samples.slice(1).flatMap((s, i) => {
+    const before = samples[i]!;
+    const allowed = ((1.5 / FADE_S) * (s.t - before.t)) / 1000 + 0.08;
+    return Math.abs(s.o - before.o) > allowed ? [`${before.o.toFixed(2)} -> ${s.o.toFixed(2)} in ${(s.t - before.t).toFixed(0)} ms`] : [];
+  });
+  expect(tooFast, 'no jump faster than the fade').toEqual([]);
+  const seen = samples.filter((s) => s.o > 0);
+  expect(seen[seen.length - 1]!.o, 'faded almost to nothing before she went').toBeLessThan(0.3);
+});
+
 test('under reduced motion she never appears', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, 'demo.oikosledger', { width: 1280, height: 720 });
@@ -85,9 +115,11 @@ test('screenshot: mid-pass against the moon', async ({ page }) => {
   for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
     await open(page, 'demo.oikosledger', size);
     await page.waitForTimeout(800);
-    await page.evaluate((t) => window.repoInPeace!.setAnimationTime(t), START_DELAY_S + PASS_S / 2);
-    await page.mouse.move(size.width / 2, 5);
-    await page.waitForTimeout(400);
-    await page.screenshot({ path: `${OUT}witch-${size.width}x${size.height}.png` });
+    for (const [label, t] of [['', START_DELAY_S + PASS_S / 2], ['-fading-in', START_DELAY_S + 0.9]] as const) {
+      await page.evaluate((x) => window.repoInPeace!.setAnimationTime(x), t);
+      await page.mouse.move(size.width / 2, 5);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${OUT}witch${label}-${size.width}x${size.height}.png` });
+    }
   }
 });

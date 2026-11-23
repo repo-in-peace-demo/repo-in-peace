@@ -24,6 +24,8 @@ export const BOB_PERIOD_S = 1.6;
 export const WITCH_HALF_SIZE_DEG = 1.5;
 /** After the opening move ends (or the scene opens without one), she starts this much later. */
 export const START_DELAY_S = 0.6;
+/** She fades in over the first and out over the last FADE_S of each pass, as if passing through clouds. */
+export const FADE_S = 1.5;
 
 /** The highest any treetop reaches (the canopy's base, swell and jitter, and the 2° the clearing allows): she stays above it. */
 export const CANOPY_TOP_DEG = 5.95;
@@ -35,7 +37,17 @@ export interface WitchState {
   elevationDeg: number;
   /** 0 to 1 through the pass. */
   progress: number;
+  /** 0 to 1: faded in at the start, out at the end (smoothly: never a jump). */
+  opacity: number;
 }
+
+const smooth = (t: number): number => {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+};
+
+/** Her opacity `elapsed` seconds into a pass: 0 at both ends, 1 between the fades. */
+export const passOpacity = (elapsed: number): number => Math.min(smooth(elapsed / FADE_S), smooth((PASS_S - elapsed) / FADE_S));
 
 /** Where pass `u` (0 to 1) is, without the bob. */
 export function arcAt(u: number): { azimuthDeg: number; elevationDeg: number } {
@@ -61,7 +73,8 @@ export function witchAt(seconds: number, firstStart: number, reducedMotion: bool
   const u = (seconds - start) / PASS_S;
   if (u > 1) return null;
   const at = arcAt(u);
-  return { azimuthDeg: at.azimuthDeg, elevationDeg: at.elevationDeg + BOB_DEG * Math.sin((2 * Math.PI * (seconds - start)) / BOB_PERIOD_S), progress: u };
+  const elapsed = seconds - start;
+  return { azimuthDeg: at.azimuthDeg, elevationDeg: at.elevationDeg + BOB_DEG * Math.sin((2 * Math.PI * elapsed) / BOB_PERIOD_S), progress: u, opacity: passOpacity(elapsed) };
 }
 
 /** When the first pass starts: as the opening move settles, or just after the scene opens without one. */

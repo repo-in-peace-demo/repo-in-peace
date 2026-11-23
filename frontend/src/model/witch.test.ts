@@ -71,3 +71,29 @@ describe('the witch\'s timing', () => {
     fc.assert(fc.property(fc.double({ min: 0, max: 10_000, noNaN: true }), (t) => witchAt(t, first, true) === null));
   });
 });
+
+import { FADE_S, passOpacity } from './witch';
+describe('her fade', () => {
+  it('fades in over the first 1.5 s and out over the last 1.5 s, fully there between', () => {
+    expect(passOpacity(0)).toBe(0);
+    expect(passOpacity(FADE_S)).toBe(1);
+    expect(passOpacity(PASS_S / 2)).toBe(1);
+    expect(passOpacity(PASS_S - FADE_S)).toBe(1);
+    expect(passOpacity(PASS_S)).toBe(0);
+  });
+
+  it('changes smoothly frame to frame through a whole pass and across its ends: no jump to zero', () => {
+    const first = firstPassStart(0);
+    const frame = 1 / 60;
+    let previous = 0; // before the pass she is not drawn: opacity 0
+    let steepest = 0;
+    for (let t = first - 1; t <= first + PASS_S + 1; t += frame) {
+      const o = witchAt(t, first, false)?.opacity ?? 0;
+      steepest = Math.max(steepest, Math.abs(o - previous));
+      previous = o;
+    }
+    // A smoothstep over 1.5 s changes at most 1.5 / 1.5 s per second: 1/60 of that per frame, with a little margin.
+    expect(steepest).toBeLessThan((1.5 / FADE_S) * frame * 1.05);
+    fc.assert(fc.property(fc.double({ min: 0, max: PASS_S, noNaN: true }), (e) => passOpacity(e) >= 0 && passOpacity(e) <= 1));
+  });
+});
