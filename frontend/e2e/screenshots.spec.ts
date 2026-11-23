@@ -330,6 +330,8 @@ test.describe('screenshots to judge by eye', () => {
       await panel.getByRole('button', { name: 'Open pull request' }).click();
       await panel.getByRole('link', { name: /^Pull request #\d+/ }).waitFor();
       await page.waitForTimeout(2200);
+      // After a Bury, the gravedigger has planted the stake and gone.
+      await page.waitForFunction(() => window.repoInPeace!.getGravediggers().every((d) => d.phase === 'gone'), undefined, { timeout: 10_000 });
       // Close up: the camera a few units in front of the grave and above it, looking at its middle (with the panel closed).
       const at = buildSceneModel(g).lookup.get(path)!;
       const slot = kind === 'file' ? buildSceneModel(g).stones[at.index]!.layout : buildSceneModel(g).ghosts[at.index]!.layout;

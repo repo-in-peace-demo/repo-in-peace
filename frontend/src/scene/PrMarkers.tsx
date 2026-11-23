@@ -94,21 +94,24 @@ export function PrMarkers({ model }: { model: SceneModel }) {
     }
   }, [assets]);
 
-  const drawn = useRef(new Map<number, number>());
+  const drawn = useRef(new Map<number, { heap: number; shown: number }>());
   useFrame(() => {
     let moved = false;
     for (const o of currentOverrides(model)) {
       const slot = slotOfOverride(o);
       if (slot === undefined) continue;
       const frame = frameOf(o);
-      const shown = frame.kind === 'buried' ? frame.mound : frame.solid;
-      if (drawn.current.get(slot) === shown) continue;
-      drawn.current.set(slot, shown);
+      const heap = frame.kind === 'buried' ? frame.mound : frame.solid;
+      // The stake rises with the mound, or when the gravedigger plants it.
+      const shown = frame.kind === 'buried' ? frame.stake : frame.solid;
+      const was = drawn.current.get(slot);
+      if (was !== undefined && was.heap === heap && was.shown === shown) continue;
+      drawn.current.set(slot, { heap, shown });
       moved = true;
       if (o.kind === 'buried') {
         const { x, z } = slotOf(o, model);
         // Below the ground until it rises (a flattened heap would show as a patch on the grass while the stone sinks).
-        mounds.current?.setMatrixAt(slot, placement(x, shown > 0 ? 0 : -1000, z, 1, Math.max(0.001, shown), 1));
+        mounds.current?.setMatrixAt(slot, placement(x, heap > 0 ? 0 : -1000, z, 1, Math.max(0.001, heap), 1));
       }
       const foot = stakeSpot(o, model);
       const s = shown > 0 ? 1 : 0;

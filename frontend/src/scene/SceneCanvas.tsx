@@ -18,6 +18,7 @@ import { SelectionRing } from './SelectionRing';
 import { SignDriver } from './SignDriver';
 import { SignLayer } from '../ui/SignLayer';
 import { Ghosts } from './Ghosts';
+import { Gravediggers } from './Gravedigger';
 import { PrMarkers } from './PrMarkers';
 import { RisenStones } from './RisenStones';
 import { overridesOf } from '../model/pr-scene';
@@ -59,6 +60,7 @@ export function SceneCanvas({ model }: { model: SceneModel }) {
         <Candles model={model} />
         <Ghosts model={model} />
         <PrOverrideMeshes model={model} />
+        <Gravediggers model={model} />
         <Mist model={model} />
         <SelectionRing model={model} />
         <Picker model={model} />

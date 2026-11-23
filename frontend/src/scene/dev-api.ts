@@ -1,5 +1,6 @@
 import type { CameraPose } from '../model/camera-pose';
 import { clearSelection, getSelection, select } from '../store/selection-store';
+import { diggersNow } from './gravedigger-state';
 import { freezeAnimation, freezeAnimationAt, isReducedMotion, resumeAnimation } from './animation-clock';
 import { prSceneDebug, type OverrideFrame } from './pr-overrides';
 import { witchDebug } from './Witch';
@@ -38,6 +39,8 @@ export interface RepoInPeaceDevApi {
   getPullRequests: () => Record<string, { action: string; number: number; existing: boolean }>;
   /** Where an overridden grave is in its Bury or Resurrect animation, as last drawn; null when it has none. */
   getOverrideFrame: (path: string) => OverrideFrame | null;
+  /** Every gravedigger of this scene (one per Bury), with his phase now and where he stands; kept after he has gone ("gone"). */
+  getGravediggers: () => Array<{ path: string; phase: string; opacity: number; x: number; z: number; yaw: number }>;
   /** The witch on her broom, where she was last drawn, or null when she is not in the sky. */
   getWitch: () => WitchState | null;
   /** Where the camera is and what it looks at, right now. */
@@ -98,6 +101,7 @@ export function installDevApi(
     getViewShift,
     setPose,
     getWitch: () => (witchDebug.state ? { ...witchDebug.state } : null),
+    getGravediggers: () => diggersNow(),
     getPullRequests: () => Object.fromEntries([...getPrSession().prs].map(([k, p]) => [k, { action: p.action, number: p.number, existing: p.existing }])),
     getOverrideFrame: (path) => prSceneDebug.frames.get(path) ?? null,
     getEngravingAtlas: () => ({ ...engravingDebug.litPixels }),

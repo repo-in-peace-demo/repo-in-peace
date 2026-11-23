@@ -47,7 +47,7 @@ describe('overridesOf', () => {
 describe('the animation frames', () => {
   it('end at once under reduced motion', () => {
     fc.assert(fc.property(fc.double({ min: -1e6, max: 1e6, noNaN: true }), (now) => {
-      expect(buryFrame(0, now, true)).toEqual({ sink: 1, mound: 1 });
+      expect(buryFrame(0, now, true)).toEqual({ sink: 1, mound: 1, stake: 1 });
       expect(riseFrame(0, now, true)).toEqual({ settle: 1, solid: 1 });
     }));
   });
@@ -65,12 +65,18 @@ describe('the animation frames', () => {
         expect(r2.solid).toBeGreaterThanOrEqual(r1.solid);
       }),
     );
-    expect(buryFrame(1000, 1000, false)).toEqual({ sink: 0, mound: 0 });
-    expect(buryFrame(0, SINK_S * 1000, false)).toEqual({ sink: 1, mound: 1 });
+    expect(buryFrame(1000, 1000, false)).toEqual({ sink: 0, mound: 0, stake: 0 });
+    expect(buryFrame(0, SINK_S * 1000, false)).toEqual({ sink: 1, mound: 1, stake: 1 });
     expect(buryFrame(0, MOUND_START_S * 1000 - 1, false).mound).toBe(0);
     expect(riseFrame(0, SETTLE_S * 1000, false)).toEqual({ settle: 1, solid: 0 });
     expect(riseFrame(0, 1600, false)).toEqual({ settle: 1, solid: 1 });
-    expect(buryFrame(5000, 0, false)).toEqual({ sink: 0, mound: 0 }); // a clock before the start is the start
+    expect(buryFrame(5000, 0, false)).toEqual({ sink: 0, mound: 0, stake: 0 }); // a clock before the start is the start
+    // With a gravedigger the stake waits for him: none with the full mound, then it rises over its own time.
+    const later = { at: 2.4, duration: 0.3 };
+    expect(buryFrame(0, SINK_S * 1000, false, later)).toEqual({ sink: 1, mound: 1, stake: 0 });
+    expect(buryFrame(0, 2550, false, later).stake).toBeCloseTo(0.5);
+    expect(buryFrame(0, 3000, false, later).stake).toBe(1);
+    expect(buryFrame(0, 0, true, later)).toEqual({ sink: 1, mound: 1, stake: 1 });
   });
 });
 

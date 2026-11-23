@@ -13,14 +13,17 @@ import type { SceneModel } from './scene-model';
  */
 
 export type GraveOverride =
-  | { kind: 'buried'; path: string; index: number; number: number; startedAt: number }
+  /** `stakeAt`: with a gravedigger, the stake rises when he plants it, this many seconds after `startedAt`; else with the mound. */
+  | { kind: 'buried'; path: string; index: number; number: number; startedAt: number; stakeAt?: { at: number; duration: number } }
   | { kind: 'risen'; path: string; index: number; number: number; startedAt: number };
 
 export interface BuryFrame {
   /** 0 standing, 1 under the ground. */
   sink: number;
-  /** 0 no mound, 1 the full mound and stake. */
+  /** 0 no mound, 1 the full mound. */
   mound: number;
+  /** 0 no stake, 1 the full stake and its plaque. */
+  stake: number;
 }
 export interface RiseFrame {
   /** 0 floating as before, 1 on the ground and opaque. */
@@ -68,10 +71,11 @@ export function overridesOf(model: Pick<SceneModel, 'lookup'>, prs: ReadonlyMap<
   return out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 }
 
-export function buryFrame(startedAt: number, nowMs: number, reducedMotion: boolean): BuryFrame {
-  if (reducedMotion) return { sink: 1, mound: 1 };
+export function buryFrame(startedAt: number, nowMs: number, reducedMotion: boolean, stakeAt?: { at: number; duration: number }): BuryFrame {
+  if (reducedMotion) return { sink: 1, mound: 1, stake: 1 };
   const t = Math.max(0, nowMs - startedAt) / 1000;
-  return { sink: easeIn(clamp01(t / SINK_S)), mound: clamp01((t - MOUND_START_S) / MOUND_S) };
+  const mound = clamp01((t - MOUND_START_S) / MOUND_S);
+  return { sink: easeIn(clamp01(t / SINK_S)), mound, stake: stakeAt === undefined ? mound : clamp01((t - stakeAt.at) / stakeAt.duration) };
 }
 
 export function riseFrame(startedAt: number, nowMs: number, reducedMotion: boolean): RiseFrame {

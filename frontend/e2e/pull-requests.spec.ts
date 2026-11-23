@@ -166,8 +166,9 @@ test.describe('the scene after a pull request (this session only)', () => {
     const early = await frameWhenDrawn(page, stone.path);
     expect(early).toMatchObject({ kind: 'buried' });
     expect((early as { mound: number }).mound).toBeLessThan(1); // still on its way: the mound comes at the end
-    await page.waitForTimeout(2000);
-    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
+    // The gravedigger stops digging, the stone sinks, he pats the mound and plants the stake, and goes (e2e/gravedigger.spec.ts).
+    await expect.poll(() => page.evaluate(() => window.repoInPeace!.getGravediggers().map((d) => d.phase)), { timeout: 10_000 }).toEqual(['gone']);
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1, stake: 1 });
     await page.evaluate(() => window.repoInPeace!.clearSelection()); // the legend shows while the details are closed
     await openLegend(page);
     await expect(legend(page)).toContainText('Fresh grave with a stake');
@@ -208,7 +209,7 @@ test.describe('the scene after a pull request (this session only)', () => {
     await openScene(page, 'demo.oikosledger');
     const stone = unused[4]!;
     await openFake(page, 'file', stone.path, 'Bury');
-    expect(await frameWhenDrawn(page, stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 }); // the first frame drawn is the end
+    expect(await frameWhenDrawn(page, stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1, stake: 1 }); // the first frame drawn is the end
   });
 });
 
