@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from './fixtures';
 
@@ -66,4 +66,41 @@ test('screenshot: the cursors, large, on the night sky and on the moon', async (
   await page.setContent(`<body style="margin:0;background:#111"><div>${cell('#0b1020')}</div><div>${cell('#c4d2e6')}</div></body>`);
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}cursors.png` });
+});
+
+test('screenshot: the cursors at actual size over a mossy and a fresh stone, at 1x and 2x', async ({ browser }) => {
+  test.skip(!process.env['SCREENSHOTS'], 'screenshots only with SCREENSHOTS=1');
+  mkdirSync(OUT, { recursive: true });
+  const g = JSON.parse(readFileSync(fileURLToPath(new URL('../public/graveyards/demo.oikosledger.graveyard.json', import.meta.url)), 'utf8')) as { files: Array<{ path: string; decayState: string; unused: boolean }> };
+  const mossy = g.files.find((f) => f.decayState === 'ancient' && !f.unused)!.path;
+  const fresh = g.files.find((f) => f.decayState === 'fresh' && !f.unused)!.path;
+  for (const scale of [1, 2]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: scale });
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__repoInPeaceNoOpening = true;
+      window.__repoInPeaceNoDigHold = true;
+    });
+    await page.goto('/?graveyard=demo.oikosledger');
+    await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+    const crops: string[] = [];
+    for (const path of [mossy, fresh]) {
+      await page.evaluate((p) => window.repoInPeace!.flyTo(p), path);
+      await page.waitForTimeout(1900);
+      const at = (await page.evaluate((p) => window.repoInPeace!.getScreenPoint(p), path))!;
+      await page.mouse.move(5, 715); // the real cursor out of the way
+      const shot = await page.screenshot({ clip: { x: at.x - 60, y: at.y - 60, width: 120, height: 120 } });
+      crops.push(shot.toString('base64'));
+    }
+    // The crops at their real size (120 CSS px), each with the three hands on the stone's face, as the browser would draw them.
+    const size = scale === 1 ? 32 : 64;
+    const cell = (crop: string) =>
+      ['hand', 'hand-over', 'hand-grab']
+        .map((n) => `<div style="position:relative;width:120px;height:120px;display:inline-block;margin:4px;background:url(data:image/png;base64,${crop}) 0 0/120px 120px"><img src="/cursors/${n}-${size}.svg" style="position:absolute;left:52px;top:44px;width:32px;height:32px"></div>`)
+        .join('');
+    await page.setContent(`<body style="margin:0;background:#111"><div>${crops.map(cell).join('')}</div></body>`);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${OUT}cursors-on-stones-${scale}x.png`, clip: { x: 0, y: 0, width: 780, height: 136 } });
+    await context.close();
+  }
 });
