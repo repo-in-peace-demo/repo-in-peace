@@ -34,11 +34,22 @@ describe('entryPointOf', () => {
     expect(label('app/tailwind.config.ts')).toBe('Tailwind config');
     expect(label('app/postcss.config.mjs')).toBe('PostCSS config');
     expect(label('app/drizzle.config.ts')).toBe('Drizzle config');
-    expect(label('jest.config.js')).toBe('config');
+    expect(label('jest.config.js')).toBe('Jest config');
+    expect(label('knip.ts')).toBe('Knip config');
+    expect(label('.eslintrc.cjs')).toBe('ESLint config');
+    expect(label('prettier.config.mjs')).toBe('Prettier config');
+    expect(label('babel.config.js')).toBe('Babel config');
+    expect(label('app/playwright.config.ts')).toBe('Playwright config');
     expect(entryPointOf('src/data/join.test.ts', none)).toEqual({ kind: 'test', label: 'test' });
     expect(label('src/__tests__/x.ts')).toBe('test');
     expect(label('src/x.spec.tsx')).toBe('test');
     expect(label('src/configure.ts')).toBeUndefined();
+  });
+
+  it('knows only the configs of known tools: a module merely named *.config is not an entry point', () => {
+    expect(entryPointOf('app/auth.config.ts', none)).toBeUndefined();
+    expect(label('src/site.config.ts')).toBeUndefined();
+    expect(label('src/knip-helpers.ts')).toBeUndefined();
   });
 
   it('takes the first rule that matches: a test under app/ is a test, a config named page is a page', () => {

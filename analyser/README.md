@@ -80,7 +80,7 @@ Every file in the data has `importedBy`: the files in the graveyard that import 
 
 - **What counts as an import:** static imports and re-exports, `import x = require()`, `import()` and `require()` with a string literal. TypeScript's own parser reads them, and TypeScript's resolver (installed with the analyser) finds the file, with the nearest `tsconfig.json` or `jsconfig.json` (its `paths`, `baseUrl` and `extends`), or Bundler resolution with JS allowed when there is none. A specifier built at run time (`import(name)`) is counted but not followed.
 - **Read from the snapshot**, like everything else: the files and configs are those of the commit, not the working tree. `node_modules` is read from disk, so a package is told apart from a missing file. If analysed files have uncommitted changes, the analyser warns and still reads the snapshot.
-- **Not counted:** imports of packages, of files outside the graveyard (build output, declaration files, other file types) and of files that don't exist. The summary line counts each kind, for example `Import graph: 412 imports among 129 files; 230 to packages, 18 outside the analysed files, 0 unresolved, 0 non-literal; 31 entry points.`
+- **Not counted:** imports of packages, of tracked files outside the graveyard (build output, declaration files, stylesheets and other file types) and of files that don't exist (or that TypeScript can't place, such as Vite's `virtual:` modules or a stylesheet through an alias). The summary line counts each kind, for example `Import graph: 412 imports among 129 files; 230 to packages, 18 outside the analysed files, 0 unresolved, 0 non-literal; 31 entry points.`
 - **Barrels are not flattened:** a file imported through an `index.ts` that re-exports it is imported by that `index.ts`.
 
 **Entry points**, the first rule that matches:
@@ -93,7 +93,9 @@ Every file in the data has `importedBy`: the files in the graveyard that import 
 | framework | `middleware` at the root, one folder down, or under `src` | Next.js middleware |
 | framework | a `<script type="module" src>` in an `index.html` | Vite entry |
 | package | a `package.json`'s `main` or `bin` | package entry |
-| config | `vite.config`, `next.config`, `tailwind.config` and other `*.config` files, ESLint, Prettier and Babel rc files | Vite config, …, config |
+| config | the configs of known tools, by name: Vite, Vitest, Next.js, Tailwind, PostCSS, Drizzle, ESLint, Prettier, Jest, Playwright, Knip, Babel, webpack, Rollup, tsup, Astro, Nuxt, Svelte, Remix, Cypress, Stylelint, commitlint and lint-staged (`vite.config.ts`, `.eslintrc.cjs`, `knip.ts`, …), and the Vitest and Jest setup files | Vite config, ESLint config, … |
+
+Any other file named `*.config` (`auth.config.ts`) is ordinary code: it is used if something imports it.
 
 **Where Knip and the graph disagree.** The data always follows Knip: `unused` is Knip's verdict. The analyser lists, 20 of each at most, the unused files that a used file imports, and the used files that nothing imports and that aren't entry points. These usually mean a dynamic or framework load the graph can't see, or a Knip config that misses an entry. Nothing changes in the data because of them.
 

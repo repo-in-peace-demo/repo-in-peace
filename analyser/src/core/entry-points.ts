@@ -31,16 +31,43 @@ const NEXT_APP: Record<string, string> = {
   default: 'Next.js default',
 };
 
-const CONFIG_LABELS: Array<[RegExp, string]> = [
-  [/^vite\.config$/, 'Vite config'],
-  [/^vitest\.config$/, 'Vitest config'],
-  [/^next\.config$/, 'Next.js config'],
-  [/^tailwind\.config$/, 'Tailwind config'],
-  [/^postcss\.config$/, 'PostCSS config'],
-  [/^drizzle\.config$/, 'Drizzle config'],
-  [/^playwright\.config$/, 'Playwright config'],
-  [/^eslint\.config$/, 'ESLint config'],
-];
+/**
+ * Config files of known tools, by the file's name without its extension. Only these: a file merely named `*.config` (`auth.config.ts`,
+ * a NextAuth module that other files import) is ordinary code.
+ */
+const CONFIG_LABELS: ReadonlyMap<string, string> = new Map([
+  ['vite.config', 'Vite config'],
+  ['vitest.config', 'Vitest config'],
+  ['vitest.workspace', 'Vitest config'],
+  ['vitest.setup', 'Vitest setup'],
+  ['next.config', 'Next.js config'],
+  ['tailwind.config', 'Tailwind config'],
+  ['postcss.config', 'PostCSS config'],
+  ['drizzle.config', 'Drizzle config'],
+  ['eslint.config', 'ESLint config'],
+  ['.eslintrc', 'ESLint config'],
+  ['prettier.config', 'Prettier config'],
+  ['.prettierrc', 'Prettier config'],
+  ['jest.config', 'Jest config'],
+  ['jest.setup', 'Jest setup'],
+  ['playwright.config', 'Playwright config'],
+  ['knip', 'Knip config'],
+  ['knip.config', 'Knip config'],
+  ['babel.config', 'Babel config'],
+  ['.babelrc', 'Babel config'],
+  ['webpack.config', 'webpack config'],
+  ['rollup.config', 'Rollup config'],
+  ['tsup.config', 'tsup config'],
+  ['astro.config', 'Astro config'],
+  ['nuxt.config', 'Nuxt config'],
+  ['svelte.config', 'Svelte config'],
+  ['remix.config', 'Remix config'],
+  ['cypress.config', 'Cypress config'],
+  ['stylelint.config', 'Stylelint config'],
+  ['commitlint.config', 'commitlint config'],
+  ['lint-staged.config', 'lint-staged config'],
+  ['.lintstagedrc', 'lint-staged config'],
+]);
 
 export function entryPointOf(path: string, context: EntryContext): EntryPoint | undefined {
   const base = baseOf(path);
@@ -62,9 +89,8 @@ export function entryPointOf(path: string, context: EntryContext): EntryPoint | 
   if (context.htmlScripts.has(path)) return { kind: 'framework', label: 'Vite entry' };
   if (context.packageEntries.has(path)) return { kind: 'package', label: 'package entry' };
 
-  for (const [pattern, label] of CONFIG_LABELS) if (pattern.test(stem)) return { kind: 'config', label };
-  if (/\.config$/.test(stem) || /^\.(eslintrc|prettierrc|babelrc|lintstagedrc)$/.test(stem)) return { kind: 'config', label: 'config' };
-  return undefined;
+  const config = CONFIG_LABELS.get(stem);
+  return config === undefined ? undefined : { kind: 'config', label: config };
 }
 
 /** A path from `ref` as written in a file in `folder` (a leading `/` meaning the folder itself, as Vite reads index.html). */

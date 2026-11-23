@@ -26,6 +26,7 @@ async function setUp() {
         w('app/lib/util/index.ts', 'export const u = 1;\n'),
         w('app/lib/types.d.ts', 'export type T = 1;\n'),
         w('app/page.tsx', 'export default 1;\n'),
+        w('app/globals.css', 'body {}\n'),
         w('web/jsconfig.json', JSON.stringify({ compilerOptions: { baseUrl: 'src' } })),
         w('web/src/main.js', 'export const m = 1;\n'),
         w('web/src/helpers/a.js', 'export const a = 1;\n'),
@@ -72,6 +73,9 @@ describe('snapshotResolver', () => {
     expect(resolve('app/page.tsx', 'path')).toEqual({ ignored: 'package' });
     expect(resolve('app/page.tsx', './lib/types')).toEqual({ ignored: 'outside' });
     expect(resolve('app/page.tsx', './nope')).toEqual({ ignored: 'missing' });
+    expect(resolve('app/page.tsx', './globals.css'), 'a tracked stylesheet').toEqual({ ignored: 'outside' });
+    expect(resolve('app/lib/db.ts', '../globals.css')).toEqual({ ignored: 'outside' });
+    expect(resolve('app/page.tsx', './nope.css'), 'an untracked one').toEqual({ ignored: 'missing' });
     expect(resolve('app/page.tsx', 'not-installed')).toEqual({ ignored: 'missing' });
   });
 

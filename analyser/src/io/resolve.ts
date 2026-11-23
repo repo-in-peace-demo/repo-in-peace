@@ -117,6 +117,12 @@ export function snapshotResolver(files: SnapshotFiles): (from: string, specifier
       }
       if (specifier.startsWith('node:') || BUILTINS.has(name)) return { ignored: 'package' }; // Node's own modules
     }
+    // A relative import TypeScript can't resolve that names a tracked file (a stylesheet, an image, JSON without resolveJsonModule):
+    // the file exists, it just isn't one the graveyard shows.
+    if (specifier.startsWith('.')) {
+      const target = posix.normalize(posix.join(dir, specifier));
+      if (!target.startsWith('../') && files.tracked.has(target)) return { ignored: 'outside' };
+    }
     return { ignored: 'missing' };
   };
 }
