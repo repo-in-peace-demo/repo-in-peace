@@ -169,7 +169,7 @@ test.describe('the scene after a pull request (this session only)', () => {
     expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 });
     await page.evaluate(() => window.repoInPeace!.clearSelection()); // the legend shows while the details are closed
     await openLegend(page);
-    await expect(legend(page)).toContainText('Fresh earth with a stake');
+    await expect(legend(page)).toContainText('Fresh grave with a stake');
     await expect(legend(page)).not.toContainText('Clean stone');
     expect(Object.values(await page.evaluate(() => window.repoInPeace!.getPullRequests()))).toEqual([expect.objectContaining({ action: 'bury' })]);
 

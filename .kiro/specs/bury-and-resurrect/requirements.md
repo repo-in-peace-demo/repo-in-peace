@@ -79,7 +79,7 @@ The work splits like the rest of the project: the request checks, branch names, 
 
 ### 10. The scene, for the session
 
-1. **Bury:** after a successful Bury, the stone SHALL sink into the ground over about 1.5 seconds, leaving a small mound of fresh earth with a tiny marker showing the pull request number.
+1. **Bury:** after a successful Bury, the stone SHALL sink into the ground over about 1.5 seconds, leaving a fresh grave (a long, low heap of dark, lumpy soil, lengthwise in its cell) with a small wooden stake and plaque reading "PR #N".
 2. **Resurrect:** after a successful Resurrect, the ghost SHALL settle to the ground and become a clean, upright stone (the fresh look) with a small marker showing the pull request number.
 3. UNDER reduced motion, both SHALL change at once, with no movement.
 4. THESE changes SHALL last for the session only. A reload SHALL show the graveyard as its data file says. The layout SHALL not move: the mound takes the stone's place, and the new stone the ghost's.

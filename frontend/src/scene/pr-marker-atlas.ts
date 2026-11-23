@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
 /**
- * The glyphs of the pull request stakes (bury-and-resurrect Decision 9): the digits 0 to 9 and "#", each in one cell of a single
+ * The glyphs of the pull request plaques (bury-and-resurrect Decision 9): the digits 0 to 9, "#", "P", "R" and a space, each in one cell of a single
  * texture drawn once on a canvas, like the ghosts' toe-tag atlas. A stake's number is composed from these cells, so no texture is made
- * per number. Cell i holds digit i; cell 10 holds "#" (HASH_GLYPH in model/pr-scene.ts).
+ * per number. Cell i holds digit i; then "#", "P", "R", space (HASH_GLYPH, P_GLYPH, R_GLYPH, SPACE_GLYPH in model/pr-scene.ts).
  */
-export const GLYPHS = '0123456789#';
+export const GLYPHS = '0123456789#PR ';
 export const GLYPH_CELL_W = 48;
 export const GLYPH_CELL_H = 64;
 

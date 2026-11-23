@@ -1,25 +1,26 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { MAX_GLYPHS, MOUND_H, MOUND_HALF_D, MOUND_HALF_W, PLATE_H, PLATE_W, STAKE_H, markerGlyphs, slotOf, stakeSpot, type GraveOverride } from '../model/pr-scene';
+import { MAX_GLYPHS, PLATE_H, PLATE_W, STAKE_H, markerGlyphs, slotOf, stakeSpot, type GraveOverride } from '../model/pr-scene';
+import { makeGraveMoundGeometry } from './grave-mound-geometry';
 import type { SceneModel } from '../model/scene-model';
 import { noRaycast, placement } from './instances';
 import { GLYPHS, makeMarkerAtlas } from './pr-marker-atlas';
 import { currentOverrides, frameOf } from './pr-overrides';
 
 /**
- * What a session's pull requests leave in the scene (bury-and-resurrect Req 10.1, 10.2, 10.6): a mound of fresh earth where a buried
- * stone stood, and a small wooden stake with a white plate showing the pull request number, at the mound and at a resurrected stone.
+ * What a session's pull requests leave in the scene (bury-and-resurrect Req 10.1, 10.2, 10.6): a fresh grave where a buried stone stood
+ * (grave-mound-geometry.ts), and a small wooden stake with a wooden plaque reading "PR #N", pushed into the grave's head, or in front
+ * of a resurrected stone. Everything stays inside the stone's layout cell (`marksExtent`).
  * Four instanced meshes (mounds, posts, plates, glyphs) with room for every unused stone and every ghost, all hidden until needed; only
  * the overridden instances are written, each frame while they rise.
  */
-const POST_W = 0.07;
-const GLYPH_W = 0.12;
-const GLYPH_H = 0.2;
-// After the first screenshot: a darker earth read as a hole under the moonlight; this reads as turned soil against the grass.
-const EARTH = '#86613f';
-const WOOD = '#9a7146';
-const PAINT = '#f1ece0';
+const POST_W = 0.06;
+const GLYPH_W = 0.07;
+const GLYPH_H = 0.13;
+/** Revised after review: wood tones for the stake and the plaque (the plate was grey-blue under the moonlight), burnt-in letters. */
+const STAKE_WOOD = '#6b4a2c';
+const PLAQUE_WOOD = '#a47a4c';
 
 const GLYPH_VERTEX = /* glsl */ `
 attribute float aGlyph;
@@ -35,7 +36,7 @@ uniform sampler2D uAtlas;
 varying vec2 vUv;
 void main() {
   if (texture2D(uAtlas, vUv).a < 0.35) discard;
-  gl_FragColor = vec4(0.13, 0.09, 0.06, 1.0);
+  gl_FragColor = vec4(0.12, 0.07, 0.035, 1.0);
 }
 `;
 
@@ -54,9 +55,9 @@ export function PrMarkers({ model }: { model: SceneModel }) {
   const slotOfOverride = (o: GraveOverride): number | undefined => (o.kind === 'buried' ? slots.ofStone.get(o.index) : slots.unusedCount + o.index);
 
   const assets = useMemo(() => {
-    const mound = new THREE.SphereGeometry(1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2); // a dome, scaled flat to the mound
+    const mound = makeGraveMoundGeometry();
     const post = new THREE.BoxGeometry(POST_W, 1, POST_W).translate(0, 0.5, 0);
-    const plate = new THREE.BoxGeometry(PLATE_W, PLATE_H, 0.03);
+    const plate = new THREE.BoxGeometry(PLATE_W, PLATE_H, 0.035);
     const glyph = new THREE.PlaneGeometry(GLYPH_W, GLYPH_H);
     const cells = new THREE.InstancedBufferAttribute(new Float32Array(slots.total * MAX_GLYPHS), 1);
     cells.setUsage(THREE.DynamicDrawUsage);
@@ -69,9 +70,9 @@ export function PrMarkers({ model }: { model: SceneModel }) {
       glyph,
       cells,
       atlas,
-      earth: new THREE.MeshStandardMaterial({ color: EARTH, roughness: 1, metalness: 0 }),
-      wood: new THREE.MeshStandardMaterial({ color: WOOD, roughness: 0.95, metalness: 0 }),
-      paint: new THREE.MeshStandardMaterial({ color: PAINT, roughness: 0.8, metalness: 0 }),
+      earth: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, flatShading: true }),
+      wood: new THREE.MeshStandardMaterial({ color: STAKE_WOOD, roughness: 0.95, metalness: 0 }),
+      paint: new THREE.MeshStandardMaterial({ color: PLAQUE_WOOD, roughness: 0.9, metalness: 0 }),
       ink: new THREE.ShaderMaterial({ vertexShader: GLYPH_VERTEX, fragmentShader: GLYPH_FRAGMENT, uniforms: { uAtlas: { value: atlas }, uCells: { value: GLYPHS.length } } }),
     };
   }, [slots]);
@@ -105,7 +106,8 @@ export function PrMarkers({ model }: { model: SceneModel }) {
       moved = true;
       if (o.kind === 'buried') {
         const { x, z } = slotOf(o, model);
-        mounds.current?.setMatrixAt(slot, placement(x, 0, z, MOUND_HALF_W, MOUND_H * shown, MOUND_HALF_D));
+        // Below the ground until it rises (a flattened heap would show as a patch on the grass while the stone sinks).
+        mounds.current?.setMatrixAt(slot, placement(x, shown > 0 ? 0 : -1000, z, 1, Math.max(0.001, shown), 1));
       }
       const foot = stakeSpot(o, model);
       const s = shown > 0 ? 1 : 0;

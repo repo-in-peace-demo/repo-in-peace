@@ -321,9 +321,9 @@ body,
 .swatch-hot { background: #f0c24b; border-radius: 50% 50% 2px 2px; }
 .swatch-ghost { background: linear-gradient(to bottom, rgba(143, 232, 240, 0.85), rgba(143, 232, 240, 0.1)); border-color: rgba(143, 232, 240, 0.7); border-radius: 50% 50% 2px 2px; box-shadow: 0 0 6px rgba(143, 232, 240, 0.6); }
 .swatch-floor { background: #1f2d26; border-radius: 2px; border-color: rgba(255, 255, 255, 0.4); }
-/* Bury and Resurrect, this session: fresh earth with a stake; a clean stone with a stake. */
-.swatch-pr-buried { background: #4b3524; border-radius: 6px 6px 2px 2px; border-color: #ddd6c6; }
-.swatch-pr-risen { background: #9aa0aa; border-color: #ddd6c6; }
+/* Bury and Resurrect, this session: a fresh grave with a stake; a clean stone with a stake. */
+.swatch-pr-buried { background: #3a291b; width: 0.55rem; border-radius: 2px; border-color: #a47a4c; } /* a long, low heap of dark soil */
+.swatch-pr-risen { background: #9aa0aa; border-color: #a47a4c; }
 
 /* The hover label follows the pointer (moved with a transform from HoverLabel) and lets clicks through. */
 .hover-label {

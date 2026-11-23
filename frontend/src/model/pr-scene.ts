@@ -1,4 +1,4 @@
-import { MIN_STONE_H, STONE_D, STONE_W } from './layout-constants';
+import { CELL_D, CELL_W, MIN_STONE_H, STONE_D, STONE_W } from './layout-constants';
 import { PICK_PADDING, type PickTarget } from './pick';
 import type { SceneModel } from './scene-model';
 
@@ -6,7 +6,8 @@ import type { SceneModel } from './scene-model';
  * How the scene shows the session's pull requests (bury-and-resurrect Req 10). Pure: the renderers ask it, per frame, where each
  * overridden grave is in its animation and where hover and click find it now. Overrides change only the drawing of their own grave;
  * the layout never moves (Req 10.4).
- *  - Bury: the stone sinks over 1.5 s (ease-in), then a mound of fresh earth with a stake rises in its place.
+ *  - Bury: the stone sinks over 1.5 s (ease-in), then a fresh grave rises in its place: a long, low heap of dark soil lying lengthwise
+ *    (front to back) in the stone's cell, with a wooden stake at its head carrying a plaque "PR #N".
  *  - Resurrect: the ghost settles to the ground over 1.2 s and turns opaque, then a clean upright stone with a stake replaces it.
  * Under reduced motion both are at their end at once (Req 10.3).
  */
@@ -34,15 +35,19 @@ export const MOUND_S = 0.3;
 export const SETTLE_S = 1.2;
 export const SOLID_S = 0.3;
 
-/** The mound: about the stone's width, a grave's length, a low dome. */
-export const MOUND_HALF_W = 0.62;
-export const MOUND_HALF_D = 0.7;
-export const MOUND_H = 0.3;
-/** The stake with its number plate. */
-export const STAKE_H = 0.95; // after the first screenshot: at 0.62 with a 0.46 plate the number could not be read close up
-export const PLATE_W = 0.72;
-export const PLATE_H = 0.3;
-export const MAX_GLYPHS = 5;
+/**
+ * The fresh grave: narrower than the stone was wide, as long as the cell is deep (a grave lies lengthwise, front to back, where the
+ * stone stood), and low. Changed after review: the first mound was a round brown dome.
+ */
+export const MOUND_HALF_W = 0.42;
+export const MOUND_HALF_D = 0.74;
+export const MOUND_H = 0.22;
+/** The stake, pushed into the head (the back, -z) of the grave, and its plaque, facing the front (+z), so it reads over the heap. */
+export const STAKE_H = 0.72;
+export const PLATE_W = 0.62;
+export const PLATE_H = 0.2;
+/** "PR #" and up to four digits. */
+export const MAX_GLYPHS = 8;
 
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));
 const easeIn = (t: number): number => t * t * t;
@@ -90,7 +95,7 @@ export function slotOf(o: GraveOverride, model: Pick<SceneModel, 'stones' | 'gho
 /** The foot of the stake, on the ground in front of the grave (the side that faces +z, as the engraving and the ghosts' eyes do). */
 export function stakeSpot(o: GraveOverride, model: Pick<SceneModel, 'stones' | 'ghosts'>): { x: number; z: number } {
   const { x, z } = slotOf(o, model);
-  return o.kind === 'buried' ? { x: x + MOUND_HALF_W * 0.55, z: z + MOUND_HALF_D * 0.7 } : { x: x + STONE_W * 0.42, z: z + STONE_D / 2 + 0.3 };
+  return o.kind === 'buried' ? { x, z: z - MOUND_HALF_D + 0.1 } : { x: x + STONE_W * 0.42, z: z + STONE_D / 2 + 0.3 };
 }
 
 /** Where hover and click find an overridden grave now: the mound and stake, or the new stone. The same slot as before. */
@@ -120,17 +125,30 @@ export function pickTargetsWith(model: Pick<SceneModel, 'stones' | 'ghosts' | 'p
   return model.pickTargets.map((t) => replaced.get(`${t.kind}:${t.path}`) ?? t);
 }
 
-/** The glyphs of a stake's plate, as cells of the marker atlas: 0 to 9 the digits, 10 "#". At most five ("#9999"); more shows "#…" as "#" and the last four digits. */
+/** The glyphs of a plaque, as cells of the marker atlas (`0123456789#PR `): "PR #" then the number's last four digits. */
 export const HASH_GLYPH = 10;
+export const P_GLYPH = 11;
+export const R_GLYPH = 12;
+export const SPACE_GLYPH = 13;
 export function markerGlyphs(number: number): number[] {
-  const digits = String(Math.max(0, Math.floor(number))).slice(-(MAX_GLYPHS - 1));
-  return [HASH_GLYPH, ...[...digits].map(Number)];
+  const digits = String(Math.max(0, Math.floor(number))).slice(-(MAX_GLYPHS - 4));
+  return [P_GLYPH, R_GLYPH, SPACE_GLYPH, HASH_GLYPH, ...[...digits].map(Number)];
 }
+
+/** How far the grave's marks reach from the slot's centre on each side, for the check that they stay in the stone's layout cell. */
+export function marksExtent(kind: GraveOverride['kind']): { minX: number; maxX: number; minZ: number; maxZ: number } {
+  const stakeX = kind === 'buried' ? 0 : STONE_W * 0.42;
+  const stakeZ = kind === 'buried' ? -MOUND_HALF_D + 0.1 : STONE_D / 2 + 0.3;
+  const plate = { minX: stakeX - PLATE_W / 2, maxX: stakeX + PLATE_W / 2, minZ: stakeZ - 0.05, maxZ: stakeZ + 0.1 };
+  const body = kind === 'buried' ? { minX: -MOUND_HALF_W - 0.1, maxX: MOUND_HALF_W + 0.1, minZ: -MOUND_HALF_D - 0.06, maxZ: MOUND_HALF_D + 0.06 } : { minX: -STONE_W / 2, maxX: STONE_W / 2, minZ: -STONE_D / 2, maxZ: STONE_D / 2 };
+  return { minX: Math.min(plate.minX, body.minX), maxX: Math.max(plate.maxX, body.maxX), minZ: Math.min(plate.minZ, body.minZ), maxZ: Math.max(plate.maxZ, body.maxZ) };
+}
+export const CELL_HALF = { x: CELL_W / 2, z: CELL_D / 2 };
 
 /** The legend lines for what the session shows, each only when that kind is shown (Req 10.6). */
 export function prLegendLines(overrides: readonly GraveOverride[]): Array<{ id: 'pr-buried' | 'pr-risen'; title: string; text: string }> {
   const lines: Array<{ id: 'pr-buried' | 'pr-risen'; title: string; text: string }> = [];
-  if (overrides.some((o) => o.kind === 'buried')) lines.push({ id: 'pr-buried', title: 'Fresh earth with a stake', text: 'A pull request to delete this file is open.' });
+  if (overrides.some((o) => o.kind === 'buried')) lines.push({ id: 'pr-buried', title: 'Fresh grave with a stake', text: 'A pull request to delete this file is open.' });
   if (overrides.some((o) => o.kind === 'risen')) lines.push({ id: 'pr-risen', title: 'Clean stone with a stake', text: "A pull request to restore this file is open. Its height doesn't show its size." });
   return lines;
 }

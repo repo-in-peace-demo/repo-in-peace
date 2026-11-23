@@ -332,6 +332,13 @@ test.describe('screenshots to judge by eye', () => {
       await page.waitForTimeout(2200);
       await page.mouse.move(640, 8);
       await page.screenshot({ path: `${OUT}${file}.png` });
+      // The same from the default view, with the details closed: how it reads among the other graves.
+      await page.evaluate(() => {
+        window.repoInPeace!.clearSelection();
+        window.repoInPeace!.resetView();
+      });
+      await page.waitForTimeout(2500);
+      await page.screenshot({ path: `${OUT}${file}-overview.png` });
     });
   }
 

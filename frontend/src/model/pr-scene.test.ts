@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { buildSceneModel } from './scene-model';
 import { makeSyntheticGraveyard } from './synthetic';
 import {
+  CELL_HALF,
   HASH_GLYPH,
+  P_GLYPH,
+  R_GLYPH,
+  SPACE_GLYPH,
+  marksExtent,
   MOUND_START_S,
   SETTLE_S,
   SINK_S,
@@ -96,11 +101,31 @@ describe('picking an overridden grave', () => {
 });
 
 describe('the stake and the legend', () => {
-  it('writes "#" and up to four digits', () => {
-    expect(markerGlyphs(12)).toEqual([HASH_GLYPH, 1, 2]);
-    expect(markerGlyphs(1)).toEqual([HASH_GLYPH, 1]);
-    expect(markerGlyphs(123456)).toEqual([HASH_GLYPH, 3, 4, 5, 6]);
-    fc.assert(fc.property(fc.integer({ min: 1, max: 9999 }), (n) => markerGlyphs(n).slice(1).join('') === String(n)));
+  it('writes "PR #" and up to four digits', () => {
+    const PR = [P_GLYPH, R_GLYPH, SPACE_GLYPH, HASH_GLYPH];
+    expect(markerGlyphs(12)).toEqual([...PR, 1, 2]);
+    expect(markerGlyphs(1)).toEqual([...PR, 1]);
+    expect(markerGlyphs(123456)).toEqual([...PR, 3, 4, 5, 6]);
+    fc.assert(fc.property(fc.integer({ min: 1, max: 9999 }), (n) => markerGlyphs(n).slice(4).join('') === String(n)));
+  });
+
+  it('keeps the grave, the stake and its plaque inside the stone\'s layout cell', () => {
+    for (const kind of ['buried', 'risen'] as const) {
+      const e = marksExtent(kind);
+      expect(e.minX, kind).toBeGreaterThanOrEqual(-CELL_HALF.x);
+      expect(e.maxX, kind).toBeLessThanOrEqual(CELL_HALF.x);
+      expect(e.minZ, kind).toBeGreaterThanOrEqual(-CELL_HALF.z);
+      expect(e.maxZ, kind).toBeLessThanOrEqual(CELL_HALF.z);
+    }
+  });
+
+  it('lays the grave lengthwise, front to back, with the stake at its head', () => {
+    const o = overridesOf(model, new Map([[`file:${unused[0]!.file.path}`, pr('bury', 1)]]))[0]!;
+    const at = model.stones[o.index]!.layout;
+    const box = overridePickTarget(o, model);
+    expect(box.max.z - box.min.z).toBeGreaterThan(box.max.x - box.min.x);
+    expect(stakeSpot(o, model)).toEqual({ x: at.x, z: expect.any(Number) });
+    expect(stakeSpot(o, model).z).toBeLessThan(at.z);
   });
 
   it('explains what is shown, each kind only when it is', () => {
