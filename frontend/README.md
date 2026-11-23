@@ -65,6 +65,23 @@ Keys typed in the search box or the list (`data-owns-keys`) never fly the camera
 
 The camera stays above the ground, at least 20° above the horizontal from its look-at point, and inside the trees round the graveyard, whatever moved it (`model/fly-controls.ts`, `clampPose`).
 
+## The Usage row
+
+The detail panel's Usage row follows Knip's verdict (the stone's cracks) and explains it with the import graph when the data file has one (`importedBy`, `entry`; `src/model/usage.ts`):
+
+| Knip | Who imports it | Usage says |
+| --- | --- | --- |
+| used | it is an entry point | "Entry point: Next.js page", with ", and imported by N files" when files import it too |
+| used | only tests | "Used only by tests" |
+| used | other files | "Imported by N files" |
+| used | nothing, and not an entry point | "Used (Knip), but no file in the project imports it" |
+| unused | nothing | "Unused: nothing in the project imports it (Knip)" |
+| unused | only tests | "Unused: only imported by tests" |
+| unused | only other unused files (and tests) | "Unused: only imported by other unused files" |
+| unused | a used file | "Unused (Knip), though imported by N files" |
+
+Under the words, the first 5 importers are links (name, then "type only" and the folder dimmed) that select the file and fly to it; "+N more" shows the rest in place. An older data file without `importedBy` shows the earlier wording. The hover line adds "imported by N" only when the whole line still fits on one line, measured in its font.
+
 ## Data files
 
 `public/graveyards/<name>.graveyard.json`, written by the analyser, with the versioned schema of `../shared/graveyard-schema.ts` (the only place the schema changes). A file of another version shows a message instead of the scene. All ages are relative to the snapshot commit's date, never today, so a file always draws the same scene.

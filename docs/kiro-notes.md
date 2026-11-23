@@ -19,6 +19,7 @@ Three always-on steering files (`.kiro/steering/`) set the rules every spec foll
 | `interface` | Everything around the scene: boot screen → digging → scene, the hover line, the detail panel, the list and search |
 | `bury-and-resurrect` | Real pull requests on demo forks from the detail panel, through one serverless function, with session-only scene changes |
 | `eulogies` | A two-sentence epitaph for every grave, written at analysis time by a local model through Ollama, stored in the data file and shown in the detail panel |
+| `importers` | Who imports each file and which files are entry points, from TypeScript's parser and resolver on the snapshot; the detail panel lists the importers as links that fly to them |
 
 ## The interface spec, step by step
 
@@ -74,6 +75,16 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 - **Nobody notified.** `@` and `#<digit>` from the data get a word joiner; paths and SHAs go in code spans. A property test found that its own helper mis-read a backslash inside a code span; the helper now scans as CommonMark does.
 - **The token stays put.** Fine-grained, forks only; messages come from fixed error kinds, never from GitHub's body; every response and log line is redacted as a last guard (P5 echoes the token in GitHub's errors and headers). The e2e dev server ignores any token (`RIP_FAKE_PRS=1`), so a test can't open a real pull request.
 - **Session only.** The scene changes (a sinking stone and a fresh grave, a settling ghost and a new stone, stakes reading "PR #N") last for the visit, since the data file doesn't change until a merge. The first screenshots caught a ghost's tag still floating in front of its new stone: camera-facing cards ignore an instance's scale, so hidden instances are moved below the ground.
+
+## The importers spec: decisions
+
+- **Knip decides, the graph explains.** The panel's words always follow Knip's verdict, so they never contradict the cracked stone; the graph only says why ("only imported by other unused files"). Where the two disagree the analyser reports it and changes nothing. P2 and P3 check that the report holds exactly the files that disagree.
+- **The snapshot, not the working tree.** The resolver's file system answers from the snapshot commit's blobs (`io/resolve.ts`), so the graph matches the rest of the data; uncommitted changes get a warning.
+- **TypeScript, not a new dependency.** Its parser and `resolveModuleName` already handle `paths`, `extends` and every import form, so `typescript` moved to the analyser's dependencies instead of adding dependency-cruiser.
+- **The golden file kept.** Rather than regenerating it, the test removes the two new fields and still compares byte for byte with the old file; a second golden file holds the whole output.
+- **A gap the spec exposed.** The committed demo eulogies had been edited in place by later cleaning rules, so no cache key could give them back, and regenerating the demos would have replaced them. `--eulogies-from` copies them from the committed file by path, with no model.
+- **Tests that tested nothing.** The end-to-end property's random repositories hold only comments, so they have no imports; P4 got its own generator, with random imports in five forms written in random order.
+- **Wording met real labels.** The design's "Entry point: loaded by {label}" read as "loaded by Vite entry" with the labels the analyser actually writes, so the panel says "Entry point: Vite entry".
 
 ## Where specs and steering caught things
 

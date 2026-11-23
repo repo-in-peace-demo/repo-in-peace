@@ -7,7 +7,6 @@ Ideas kept out of the current tasks on purpose. Each needs its own small spec be
 - **Pull requests from your own account** (bury-and-resurrect, out of scope): sign in with GitHub to open Bury and Resurrect pull requests on your own repositories instead of the demo forks.
 - **After a merge**: updating the graveyard when a Bury or Resurrect pull request is merged (today the scene change lasts for the session only, and a reload shows the data file).
 - **Several files in one pull request**: bury a whole folder of unused files, or resurrect a deleted folder, as one change.
-- **Importer list**: analyser builds a reverse-import map (TypeScript resolution or dependency-cruiser); data file gains `importedBy`; detail panel lists importers (first few + count), each clickable to flyTo; framework-loaded files (Next.js pages, routes, layouts) say "entry point (loaded by the framework)".
 - **Sky motion: covered by the witch.** A witch on a broomstick now crosses the moon (`model/witch.ts`, `scene/Witch.tsx`): first as the opening move settles, then every 45 to 60 seconds, hidden under reduced motion. Bats (task 24b.5 of the graveyard-scene spec) are no longer planned.
 - **Shooting stars**: a rare streak across the upper sky, never near the moon, none with reduced motion.
 - **Tree clusters with gaps** in the forest: groves and clearings instead of an even wall, without trees ever coming inside the camera's limits (`model/camera-bounds.ts`).

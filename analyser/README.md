@@ -36,7 +36,7 @@ Progress and warnings go to stderr. Stdout stays empty.
 
 Exit codes: `0` success; `1` the analysis failed (the message says why and nothing is written); `2` the command line is wrong.
 
-The eulogy flags are in [Eulogies](#eulogies).
+The eulogy flags, `--eulogies-from` among them, are in [Eulogies](#eulogies).
 
 ## Decay thresholds
 
@@ -73,6 +73,29 @@ At very large thresholds (a decay cap above 2000 days, that is `--ancient-after`
 - **JS/TS in a subfolder** (for example a Python project with a web app in `app/`): Knip needs a `package.json` where it runs, so use `--knip-dir app`. If the clone root has none, the analyser stops before running Knip and lists every folder that has one.
 - **If Knip fails**, the run stops and nothing is written. Usually the clone's dependencies are not installed: install them yourself and run again.
 - **Security:** Knip loads the clone's config files (and its tools' config files, such as `vite.config.ts`), which runs the clone's code. Only analyse repositories you trust.
+
+## Who imports what
+
+Every file in the data has `importedBy`: the files in the graveyard that import it, sorted by path, each marked `typeOnly` when every import between the two is type-only (`import type`, `typeof import()`). A file that is loaded rather than imported also has `entry`, a kind and a short label. The detail panel shows both under Usage.
+
+- **What counts as an import:** static imports and re-exports, `import x = require()`, `import()` and `require()` with a string literal. TypeScript's own parser reads them, and TypeScript's resolver (installed with the analyser) finds the file, with the nearest `tsconfig.json` or `jsconfig.json` (its `paths`, `baseUrl` and `extends`), or Bundler resolution with JS allowed when there is none. A specifier built at run time (`import(name)`) is counted but not followed.
+- **Read from the snapshot**, like everything else: the files and configs are those of the commit, not the working tree. `node_modules` is read from disk, so a package is told apart from a missing file. If analysed files have uncommitted changes, the analyser warns and still reads the snapshot.
+- **Not counted:** imports of packages, of files outside the graveyard (build output, declaration files, other file types) and of files that don't exist. The summary line counts each kind, for example `Import graph: 412 imports among 129 files; 230 to packages, 18 outside the analysed files, 0 unresolved, 0 non-literal; 31 entry points.`
+- **Barrels are not flattened:** a file imported through an `index.ts` that re-exports it is imported by that `index.ts`.
+
+**Entry points**, the first rule that matches:
+
+| Kind | Files | Label |
+| --- | --- | --- |
+| test | `*.test.*`, `*.spec.*`, anything under `__tests__` | test |
+| framework | Next.js App Router files under an `app` folder (not under `components` or `lib`): `page`, `layout`, `template`, `route`, `loading`, `error`, `global-error`, `not-found`, `default` | Next.js page, Next.js layout, … |
+| framework | Next.js Pages Router files under a `pages` folder (not under `components` or `lib`), `pages/api` among them | Next.js page, Next.js API route |
+| framework | `middleware` at the root, one folder down, or under `src` | Next.js middleware |
+| framework | a `<script type="module" src>` in an `index.html` | Vite entry |
+| package | a `package.json`'s `main` or `bin` | package entry |
+| config | `vite.config`, `next.config`, `tailwind.config` and other `*.config` files, ESLint, Prettier and Babel rc files | Vite config, …, config |
+
+**Where Knip and the graph disagree.** The data always follows Knip: `unused` is Knip's verdict. The analyser lists, 20 of each at most, the unused files that a used file imports, and the used files that nothing imports and that aren't entry points. These usually mean a dynamic or framework load the graph can't see, or a Knip config that misses an entry. Nothing changes in the data because of them.
 
 ## What counts as a source file
 
@@ -116,6 +139,14 @@ npm run analyse -- <path-to-clone> --out /tmp/repo.graveyard.json --eulogies --e
 | `--eulogy-cache <file>` | The cache of eulogies. Must be outside the clone. | `analyser/.cache/eulogies.json` |
 
 The last four work only with `--eulogies`; given without it, they are an error, so a typo never quietly skips the eulogies.
+
+### Keeping the eulogies of an earlier file
+
+`--eulogies-from <file>` copies every grave's eulogy, and the model's name, from an earlier graveyard file of the same repository, matching files to files and ghosts to ghosts by path. No model is asked and the cache isn't used, so eulogies edited by hand, or written by an older prompt, are kept word for word. A grave the earlier file doesn't have gets none (the panel says "Words failed us for this one."), and the run lists them. The file may be the one `--out` writes. It is refused with `--eulogies`, when it isn't a valid graveyard file, when it has no eulogies, and when it is another repository's (`meta.name` differs).
+
+```
+npm run analyse -- <path-to-clone> --out ../frontend/public/graveyards/<name>.graveyard.json --eulogies-from ../frontend/public/graveyards/<name>.graveyard.json
+```
 
 ### What is sent, and where
 
@@ -204,9 +235,11 @@ Pure logic (scoring, layout of the data, history) is separate from git and Knip 
 3. No ghost is also a current file.
 4. Every file's folder exists, and the folder tree has no cycles.
 5. Every ghost's last existing commit contains the file and restores it byte for byte.
-6. With the default thresholds, the output is what the analyser wrote before thresholds were configurable (`test/golden/default-thresholds.json`).
+6. With the default thresholds, the output is what the analyser wrote before thresholds were configurable (`test/golden/default-thresholds.json`), once `importedBy` and `entry` are taken out; with them it is `test/golden/with-importers.json` (`GOLDEN_WRITE=1` rewrites it, on purpose only).
 7. Decay state agrees with the thresholds.
 
 The eulogies have their own properties (`.kiro/specs/eulogies/design.md`): the format of an accepted eulogy, the rejection of code, links, secrets and names, redaction, the cache key, isolation of one grave's failure, byte-identical output without the flag, and a re-run served from the cache. No test calls a real model: they use a fake client, or a fake Ollama server on 127.0.0.1.
+
+The import graph has its own (`.kiro/specs/importers/design.md`): `importedBy` is exactly the reverse of the imports found, the disagreements reported are exactly the files that disagree, the result doesn't depend on the order files are read, and the eulogy input never sees the graph.
 
 The end-to-end test builds real git repositories from random histories (renames, deletes, re-adds, out-of-order dates, merged side branches) and checks the whole pipeline against an independent model and against git itself.
