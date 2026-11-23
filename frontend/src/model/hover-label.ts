@@ -24,6 +24,17 @@ export function hoverLabel(target: { kind: 'file' | 'ghost'; path: string }): Ho
 }
 
 /**
+ * The hover's optional "imported by N" part (importers spec): for a stone whose data has the import graph and at least one importer.
+ * HoverLabel adds it only when the whole line still fits on one line.
+ */
+export function importersPart(model: Pick<SceneModel, 'lookup' | 'stones'>, target: { kind: 'file' | 'ghost'; path: string }): string | null {
+  const found = model.lookup.get(target.path);
+  if (found === undefined || found.kind !== 'file' || target.kind !== 'file') return null;
+  const n = model.stones[found.index]!.file.importedBy?.length ?? 0;
+  return n > 0 ? `imported by ${n.toLocaleString('en-US')}` : null;
+}
+
+/**
  * The hover label's summary line (interface spec, Req 4b): the same words as the detail panel, from `grave-facts.ts`. Null for a
  * path that is not in the scene.
  */

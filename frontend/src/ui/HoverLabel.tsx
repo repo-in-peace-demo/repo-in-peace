@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
-import { hoverLabel, hoverSummary } from '../model/hover-label';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { hoverLabel, hoverSummary, importersPart } from '../model/hover-label';
 import type { SceneModel } from '../model/scene-model';
 import { getPointer, subscribePointer, useHover } from '../store/hover-store';
 import { graveKey, usePrSession } from '../store/pr-store';
@@ -7,6 +7,15 @@ import { graveKey, usePrSession } from '../store/pr-store';
 /** How far the label sits from the pointer, in pixels. */
 const OFFSET_X = 14;
 const OFFSET_Y = 18;
+
+let measuring: CanvasRenderingContext2D | null | undefined;
+/** The width of `text` in `font`, in CSS pixels; Infinity when there is no canvas to measure with (then nothing optional is added). */
+function textWidth(text: string, font: string): number {
+  if (measuring === undefined) measuring = document.createElement('canvas').getContext('2d');
+  if (!measuring) return Infinity;
+  measuring.font = font;
+  return measuring.measureText(text).width;
+}
 
 /**
  * The name of the stone or ghost under the pointer, with its folder path dimmed and "ghost" in front of a deleted
@@ -17,6 +26,9 @@ export function HoverLabel({ model }: { model: SceneModel }) {
   const target = useHover();
   const { prs } = usePrSession();
   const ref = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  // Whether the line with "imported by N" fits on one line in the label, measured in its own font against its widest (importers spec).
+  const [withImporters, setWithImporters] = useState(false);
 
   useLayoutEffect(() => {
     const element = ref.current;
@@ -33,11 +45,30 @@ export function HoverLabel({ model }: { model: SceneModel }) {
     return subscribePointer(place);
   }, [target]);
 
+  const base = target === null ? null : hoverSummary(model, target);
+  const importers = target === null ? null : importersPart(model, target);
+  const pull = target === null ? undefined : prs.get(graveKey(target.kind, target.path));
+  const line = (parts: Array<string | null>): string | null => (base === null ? null : [base, ...parts].filter((p): p is string => p !== null).join(' · '));
+  const prPart = pull === undefined ? null : `PR #${pull.number} open`;
+  const plain = line([prPart]);
+  const longer = importers === null ? null : line([importers, prPart]);
+
+  useLayoutEffect(() => {
+    const label = ref.current;
+    const summaryEl = summaryRef.current;
+    if (longer === null || !label || !summaryEl) {
+      setWithImporters(false);
+      return;
+    }
+    const box = getComputedStyle(label);
+    const widest = Math.min(parseFloat(box.maxWidth), window.innerWidth);
+    const room = widest - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight) - parseFloat(box.borderLeftWidth) - parseFloat(box.borderRightWidth);
+    setWithImporters(textWidth(longer, getComputedStyle(summaryEl).font) <= room);
+  }, [longer]);
+
   if (target === null) return null;
   const label = hoverLabel(target);
-  const pull = prs.get(graveKey(target.kind, target.path));
-  const base = hoverSummary(model, target);
-  const summary = base !== null && pull !== undefined ? `${base} · PR #${pull.number} open` : base;
+  const summary = withImporters && longer !== null ? longer : plain;
   return (
     <div ref={ref} className="hover-label" role="status">
       <div className="hover-name">
@@ -45,7 +76,11 @@ export function HoverLabel({ model }: { model: SceneModel }) {
         {label.name}
       </div>
       <div className="hover-folder">{label.folder}</div>
-      {summary !== null && <div className="hover-summary">{summary}</div>}
+      {summary !== null && (
+        <div ref={summaryRef} className="hover-summary">
+          {summary}
+        </div>
+      )}
     </div>
   );
 }

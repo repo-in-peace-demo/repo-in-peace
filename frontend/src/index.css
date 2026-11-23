@@ -726,6 +726,43 @@ body,
   margin: 0;
 }
 
+.usage-importers {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage-importers li {
+  overflow-wrap: anywhere;
+}
+
+.usage-link,
+.usage-more {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.usage-more {
+  margin-top: 0.2rem;
+  color: var(--ink-dim);
+}
+
+.usage-link:hover,
+.usage-more:hover {
+  color: #fff;
+}
+
+.usage-dim {
+  color: var(--ink-dim);
+}
+
 .detail-epitaph {
   margin: 0 0 0.9rem;
   padding: 0.6rem 0.4rem;

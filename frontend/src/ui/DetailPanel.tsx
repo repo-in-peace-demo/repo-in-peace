@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FileEntry, Ghost, RepoMeta } from '@shared/graveyard-schema';
-import { buryOffered, calendarDay, fileType, hotDetail, linesText, shortenPath, stateSentence, usageDetail } from '../model/grave-facts';
+import { buryOffered, calendarDay, fileType, hotDetail, linesText, shortenPath, stateSentence } from '../model/grave-facts';
 import { nudgeNeeded, panelSide, type Side } from '../model/panel-placement';
 import type { SceneModel } from '../model/scene-model';
-import { isFlying, nudge, screenBoxOf } from '../scene/api';
+import { usageView } from '../model/usage';
+import { flyTo, isFlying, nudge, screenBoxOf } from '../scene/api';
 import { setDetailSide } from '../store/detail-side-store';
 import { registerPanel, setDetailCloser, setPanelOpen, settle } from '../store/panels-store';
-import { clearSelection, useSelection } from '../store/selection-store';
+import { clearSelection, select, useSelection } from '../store/selection-store';
 import { PrAction, type PrContext } from './PrAction';
 import { useScrollFade } from './useScrollFade';
 
@@ -105,7 +106,7 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
 
   if (!item || !selection) return null;
   const meta = model.graveyard.meta;
-  const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} pr={pr} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} pr={pr} />;
+  const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} pr={pr} model={model} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} pr={pr} />;
   return (
     <aside ref={panel} className={`detail detail-${side} scroll-fade`} aria-label="Selected grave" style={placedFor === path ? undefined : { visibility: 'hidden' }}>
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
@@ -131,7 +132,7 @@ function Heading({ path, ghost }: { path: string; ghost: boolean }) {
   );
 }
 
-function StoneDetail({ file, meta, pr }: { file: FileEntry; meta: RepoMeta; pr: PrContext }) {
+function StoneDetail({ file, meta, pr, model }: { file: FileEntry; meta: RepoMeta; pr: PrContext; model: SceneModel }) {
   return (
     <>
       <Heading path={file.path} ghost={false} />
@@ -143,7 +144,9 @@ function StoneDetail({ file, meta, pr }: { file: FileEntry; meta: RepoMeta; pr: 
           {calendarDay(file.lastCommitDate, meta.snapshotDate)} by {file.lastCommitAuthor}
         </dd>
         <dt>Usage</dt>
-        <dd>{usageDetail(file, meta)}</dd>
+        <dd>
+          <Usage key={file.path} file={file} meta={meta} model={model} />
+        </dd>
         <dt>Activity</dt>
         <dd>{hotDetail(file, meta)}</dd>
         <dt>Size</dt>
@@ -154,6 +157,49 @@ function StoneDetail({ file, meta, pr }: { file: FileEntry; meta: RepoMeta; pr: 
       <Eulogy text={file.eulogy} model={meta.eulogyModel} />
       {buryOffered(file) && (
         <PrAction kind="file" path={file.path} action="bury" pr={pr} question={(repo) => `Open a pull request on ${repo} that deletes ${file.path}?`} />
+      )}
+    </>
+  );
+}
+
+/**
+ * The Usage row (importers spec): the words, then the files that import this one as links that select the file and fly to it, as
+ * the list does. The first few show; "+N more" shows the rest in place. Keyed by path, so another grave starts collapsed again.
+ */
+function Usage({ file, meta, model }: { file: FileEntry; meta: RepoMeta; model: SceneModel }) {
+  const [expanded, setExpanded] = useState(false);
+  const view = usageView(file, meta, model);
+  if ('legacy' in view) return <>{view.legacy}</>;
+  const visible = expanded ? view.importers : view.importers.slice(0, view.shown);
+  const more = view.importers.length - visible.length;
+  return (
+    <>
+      <span className="usage-text">{view.text}</span>
+      {visible.length > 0 && (
+        <ul className="usage-importers" aria-label="Imported by">
+          {visible.map((importer) => (
+            <li key={importer.path}>
+              <button
+                type="button"
+                className="usage-link"
+                title={importer.path}
+                onClick={() => {
+                  select({ kind: 'file', path: importer.path });
+                  flyTo(importer.path);
+                }}
+              >
+                {importer.name}
+              </button>
+              {importer.typeOnly && <span className="usage-dim"> · type only</span>}
+              {importer.folder !== '' && <span className="usage-dim"> {importer.folder}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {more > 0 && (
+        <button type="button" className="usage-more" onClick={() => setExpanded(true)}>
+          +{more} more
+        </button>
       )}
     </>
   );

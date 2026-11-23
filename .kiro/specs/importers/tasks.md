@@ -62,9 +62,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 9.2 **Examples:** every row of the table, older files.
   - _Requirements: 6.1, 6.2_
 
-- [ ] 10. The panel and the hover (`ui/DetailPanel.tsx`, `ui/HoverLabel.tsx`, `index.css`)
-  - [ ] 10.1 The Usage row with importer links (select and fly), "+N more", "type only"; the hover suffix when it fits.
-  - [ ] 10.2 **Browser checks (P5)** on a demo file with the fields (a copy built by the test until the demos are regenerated): clicking an importer selects and flies to it; "+N more"; the dead-chain wording; the hover suffix.
+- [x] 10. The panel and the hover (`ui/DetailPanel.tsx`, `ui/HoverLabel.tsx`, `index.css`)
+  - [x] 10.1 The Usage row with importer links (select and fly), "+N more", "type only"; the hover suffix when it fits.
+  - [x] 10.2 **Browser checks (P5)** on a demo file with the fields (a copy built by the test until the demos are regenerated): clicking an importer selects and flies to it; "+N more"; the dead-chain wording; the hover suffix.
   - _Requirements: 6_
 
 ## Part 4: Docs and the demos
