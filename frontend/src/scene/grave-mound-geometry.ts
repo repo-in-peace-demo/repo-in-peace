@@ -38,8 +38,9 @@ export function makeGraveMoundGeometry(): THREE.BufferGeometry {
   const heap = new THREE.PlaneGeometry(2 * MOUND_HALF_W, 2 * MOUND_HALF_D, 16, 24);
   heap.rotateX(-Math.PI / 2);
   const p = heap.getAttribute('position');
-  const SIDE = 0.45; // the share of each half-width given to the slope; the rest is the rounded crest
-  const END = 0.3;
+  // Fourth review: slopes over 0.45 / 0.3 of the half-sizes still read as walls; most of the width now slopes, the crest is narrow.
+  const SIDE = 0.8; // the share of each half-width given to the slope; the rest is the rounded crest
+  const END = 0.55;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);
     const z = p.getZ(i);
@@ -70,13 +71,13 @@ export function makeGraveMoundGeometry(): THREE.BufferGeometry {
     [-0.08, 0.05, 0.05, 8],
   ];
   const clods = spots.map(([x, z, r, salt]) => {
-    const g = new THREE.DodecahedronGeometry(r, 0);
+    const g = new THREE.DodecahedronGeometry(r * 1.5, 0);
     g.scale(1 + 0.3 * noise(x, z, salt), 0.7, 1 - 0.2 * noise(z, x, salt));
     const onHeap = Math.abs(x) < MOUND_HALF_W * 0.6 && Math.abs(z) < MOUND_HALF_D * 0.7;
     g.translate(x, onHeap ? MOUND_H * 0.9 + r * 0.3 : r * 0.4, z);
     g.deleteAttribute('uv');
     // The soil's own colour, a little lighter: lumps of the same earth catching the light (third review: they read as black dots).
-    shade(g, salt, 1.25);
+    shade(g, salt, 1.5);
     return g;
   });
 

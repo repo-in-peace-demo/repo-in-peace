@@ -41,7 +41,7 @@ export const SOLID_S = 0.3;
  */
 export const MOUND_HALF_W = 0.55; // second review: 0.42 by 0.22 high read as a small dark block
 export const MOUND_HALF_D = 0.74;
-export const MOUND_H = 0.26;
+export const MOUND_H = 0.2; // fourth review: lower, so the gentler slopes read as a heap
 /** The stake, pushed into the head (the back, -z) of the grave, and its plaque, facing the front (+z), so it reads over the heap. */
 export const STAKE_H = 0.85;
 export const PLATE_W = 0.95; // second review: the 0.62 plaque could not be read close up

@@ -70,7 +70,8 @@ export function PrMarkers({ model }: { model: SceneModel }) {
       glyph,
       cells,
       atlas,
-      earth: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, flatShading: true }),
+      // Smooth shading (fourth review: flat facets gave the heap hard edges, like a box); the noise in colour and height keeps it rough.
+      earth: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
       wood: new THREE.MeshStandardMaterial({ color: STAKE_WOOD, roughness: 0.95, metalness: 0 }),
       paint: new THREE.MeshStandardMaterial({ color: PLAQUE_WOOD, roughness: 0.9, metalness: 0 }),
       ink: new THREE.ShaderMaterial({ vertexShader: GLYPH_VERTEX, fragmentShader: GLYPH_FRAGMENT, uniforms: { uAtlas: { value: atlas }, uCells: { value: GLYPHS.length } } }),
