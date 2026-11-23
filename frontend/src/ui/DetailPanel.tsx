@@ -25,6 +25,9 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
   const [side, setSide] = useState<Side>('right');
   // Set once the side has been worked out for the current selection: the nudge waits for it (it must measure the panel on its side).
   const [placed, setPlaced] = useState(0);
+  // The grave the side was last worked out for. Until it is this grave's, the panel is hidden: drawn at a stale side it would sit
+  // over an open legend or stats panel until the next frame, or for a whole flight (found by the panel test that looks at once).
+  const [placedFor, setPlacedFor] = useState<string | null>(null);
   const panel = useRef<HTMLElement>(null);
 
   // The detail panel takes part in the panel rule: open while a grave is selected; when it settles on its side it closes the panels it
@@ -52,6 +55,7 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
       const box = screenBoxOf(path);
       const nextSide = box ? panelSide((box.x0 + box.x1) / 2, window.innerWidth) : 'right';
       setSide(nextSide);
+      setPlacedFor(path);
       settled = true;
       setPlaced((n) => n + 1);
     };
@@ -83,8 +87,9 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
     setDetailSide(shownOn);
     setPanelOpen('detail', shownOn !== null);
   }, [shownOn]);
-  // Each time it is placed on its side (a new selection, a resize), it closes whatever open panel it overlaps there.
-  useEffect(() => {
+  // Each time it is placed on its side (a new selection, a resize), it closes whatever open panel it overlaps there: a layout effect,
+  // so the panel shows and the other closes in the same paint.
+  useLayoutEffect(() => {
     if (placed > 0 && item) settle('detail');
   }, [placed]);
   useEffect(
@@ -99,7 +104,7 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
   const meta = model.graveyard.meta;
   const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} pr={pr} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} pr={pr} />;
   return (
-    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave">
+    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave" style={placedFor === path ? undefined : { visibility: 'hidden' }}>
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
         ×
       </button>

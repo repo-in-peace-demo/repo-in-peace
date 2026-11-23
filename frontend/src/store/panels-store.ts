@@ -66,17 +66,20 @@ type Rect = { left: number; right: number; top: number; bottom: number };
 export const rectsOverlap = (a: Rect, b: Rect): boolean => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 /** Closes every open panel whose box overlaps the box of `id`. Called once `id` has opened and settled into its size. */
+/** A panel still being placed (the details before they know their side) is hidden: it neither closes nor is closed. */
+const shown = (el: Element): boolean => typeof getComputedStyle === 'undefined' || getComputedStyle(el).visibility !== 'hidden';
+
 export function settle(id: PanelId): void {
   if (!open.has(id)) return;
   const mine = elements.get(id)?.();
-  if (!mine) return;
+  if (!mine || !shown(mine)) return;
   const box = mine.getBoundingClientRect();
   if (box.width === 0 || box.height === 0) return;
   const mineAt = openedAt.get(id) ?? 0;
   for (const other of [...open]) {
     if (other === id || (openedAt.get(other) ?? 0) > mineAt) continue;
     const el = elements.get(other)?.();
-    if (!el) continue;
+    if (!el || !shown(el)) continue;
     if (!rectsOverlap(box, el.getBoundingClientRect())) continue;
     if (other === 'detail') closeDetail();
     else setPanelOpen(other, false);
