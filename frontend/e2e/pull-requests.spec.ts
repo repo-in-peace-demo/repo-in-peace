@@ -183,12 +183,13 @@ test.describe('the scene after a pull request (this session only)', () => {
     await expect(legend(page)).toHaveCount(0);
   });
 
-  test('a resurrected ghost settles and becomes a stone; it can still be selected there', async ({ page }) => {
+  test('a resurrected ghost rises away and a stone forms; it can still be selected there', async ({ page }) => {
     const ghost = spatialql.ghosts[1]!;
     await openScene(page, 'demo.spatialql');
     await openFake(page, 'ghost', ghost.path, 'Resurrect');
-    await page.waitForTimeout(2000);
-    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), ghost.path)).toEqual({ kind: 'risen', settle: 1, solid: 1 });
+    await page.waitForTimeout(2600);
+    // It has screamed, risen and faded out, and the stone has formed (e2e/resurrect.spec.ts follows it through).
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), ghost.path)).toEqual({ kind: 'risen', mouth: 1, rise: 3.5, stretch: 1.25, fade: 0, solid: 1 });
     await page.evaluate(() => window.repoInPeace!.clearSelection());
     await openLegend(page);
     await expect(legend(page)).toContainText('Clean stone with a stake');

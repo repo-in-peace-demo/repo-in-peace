@@ -101,6 +101,12 @@ export const GHOST_EYES = {
   radiusY: 0.1,
 } as const;
 
+/**
+ * The mouth, only while a ghost is resurrected (it screams as it rises): a dark oval hole below the eyes, on the side facing +z,
+ * from nothing to these radii as it opens. Shut, there is no mouth, so a ghost looks as it always did.
+ */
+export const GHOST_MOUTH = { y: 1.18, radiusX: 0.1, radiusY: 0.15 } as const;
+
 // ---- The tag ----
 
 /**

@@ -73,8 +73,10 @@ export function RisenStones({ model }: { model: SceneModel }) {
       if (frame.kind !== 'risen' || shown.current.get(o.index) === frame.solid) continue;
       shown.current.set(o.index, frame.solid);
       const { layout } = ghosts[o.index]!;
+      // It forms from the ground up as it fades in (revised with the rising ghost).
       const scale = frame.solid > 0 ? 1 : 0;
-      mesh.setMatrixAt(o.index, placement(layout.x, 0, layout.z, scale, scale, scale));
+      const grown = frame.solid > 0 ? 0.15 + 0.85 * (1 - (1 - frame.solid) * (1 - frame.solid)) : 0;
+      mesh.setMatrixAt(o.index, placement(layout.x, 0, layout.z, scale, grown, scale));
       fades[o.index] = frame.solid;
       changed = true;
     }

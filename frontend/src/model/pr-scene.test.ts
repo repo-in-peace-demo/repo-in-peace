@@ -10,7 +10,12 @@ import {
   SPACE_GLYPH,
   marksExtent,
   MOUND_START_S,
-  SETTLE_S,
+  FORM_AT_S,
+  MOUTH_S,
+  RISE_END_S,
+  RISE_H,
+  RISE_S,
+  ghostWait,
   SINK_S,
   buryFrame,
   markerGlyphs,
@@ -48,7 +53,8 @@ describe('the animation frames', () => {
   it('end at once under reduced motion', () => {
     fc.assert(fc.property(fc.double({ min: -1e6, max: 1e6, noNaN: true }), (now) => {
       expect(buryFrame(0, now, true)).toEqual({ sink: 1, mound: 1, stake: 1 });
-      expect(riseFrame(0, now, true)).toEqual({ settle: 1, solid: 1 });
+      expect(riseFrame(0, now, true)).toEqual({ mouth: 0, rise: 0, stretch: 1, fade: 0, solid: 1 });
+      expect(ghostWait(0, now, true)).toBe(0);
     }));
   });
 
@@ -58,18 +64,19 @@ describe('the animation frames', () => {
         const [t1, t2] = a <= b ? [a, b] : [b, a];
         const [f1, f2] = [buryFrame(0, t1, false), buryFrame(0, t2, false)];
         const [r1, r2] = [riseFrame(0, t1, false), riseFrame(0, t2, false)];
-        for (const v of [f1.sink, f1.mound, r1.settle, r1.solid]) expect(v >= 0 && v <= 1).toBe(true);
+        for (const v of [f1.sink, f1.mound, r1.mouth, r1.fade, r1.solid]) expect(v >= 0 && v <= 1).toBe(true);
         expect(f2.sink).toBeGreaterThanOrEqual(f1.sink);
         expect(f2.mound).toBeGreaterThanOrEqual(f1.mound);
-        expect(r2.settle).toBeGreaterThanOrEqual(r1.settle);
+        expect(r2.mouth).toBeGreaterThanOrEqual(r1.mouth);
+        expect(r2.rise).toBeGreaterThanOrEqual(r1.rise);
+        expect(r2.stretch).toBeGreaterThanOrEqual(r1.stretch);
+        expect(r2.fade).toBeLessThanOrEqual(r1.fade);
         expect(r2.solid).toBeGreaterThanOrEqual(r1.solid);
       }),
     );
     expect(buryFrame(1000, 1000, false)).toEqual({ sink: 0, mound: 0, stake: 0 });
     expect(buryFrame(0, SINK_S * 1000, false)).toEqual({ sink: 1, mound: 1, stake: 1 });
     expect(buryFrame(0, MOUND_START_S * 1000 - 1, false).mound).toBe(0);
-    expect(riseFrame(0, SETTLE_S * 1000, false)).toEqual({ settle: 1, solid: 0 });
-    expect(riseFrame(0, 1600, false)).toEqual({ settle: 1, solid: 1 });
     expect(buryFrame(5000, 0, false)).toEqual({ sink: 0, mound: 0, stake: 0 }); // a clock before the start is the start
     // With a gravedigger the stake waits for him: none with the full mound, then it rises over its own time.
     const later = { at: 2.4, duration: 0.3 };
@@ -141,5 +148,52 @@ describe('the stake and the legend', () => {
     expect(prLegendLines(buried).map((l) => l.id)).toEqual(['pr-buried']);
     expect(prLegendLines(risen)).toEqual([{ id: 'pr-risen', title: 'Clean stone with a stake', text: "A pull request to restore this file is open. Its height doesn't show its size." }]);
     expect(prLegendLines([...buried, ...risen]).map((l) => l.id)).toEqual(['pr-buried', 'pr-risen']);
+  });
+});
+
+describe('Resurrect: the scream and the rise', () => {
+  it('P: whatever the moment, it ends above where it started, fully faded, with the stone in place; and stays so', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 1e7, noNaN: true }), fc.double({ min: 0, max: 60_000, noNaN: true }), (start, after) => {
+        const end = riseFrame(start, start + RISE_END_S * 1000 + after, false);
+        expect(end.rise).toBeCloseTo(RISE_H);
+        expect(end.rise).toBeGreaterThan(0);
+        expect(end.fade).toBe(0);
+        expect(end.solid).toBe(1);
+        expect(end.mouth).toBe(1);
+      }),
+    );
+  });
+
+  it('P: the mouth is open before it rises; it rises faster and faster; the stone starts forming only once it is halfway up', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: RISE_END_S * 1000, noNaN: true }), (t) => {
+        const f = riseFrame(0, t, false);
+        if (f.rise > 0) expect(f.mouth).toBe(1);
+        if (f.solid > 0) expect(f.rise).toBeGreaterThanOrEqual(RISE_H / 2 - 1e-9);
+        if (f.rise < RISE_H / 2 - 1e-6) expect(f.solid).toBe(0);
+        // Accelerating: during the rise, the rise in the next 0.1 s is never less than in the last.
+        const step = 100;
+        if (t >= step && t + step <= (MOUTH_S + RISE_S) * 1000) expect(riseFrame(0, t + step, false).rise - f.rise).toBeGreaterThanOrEqual(f.rise - riseFrame(0, t - step, false).rise - 1e-9);
+      }),
+    );
+  });
+
+  it('starts as the ghost was, stretches upward and fades out over the 1.8 s rise', () => {
+    expect(riseFrame(0, 0, false)).toEqual({ mouth: 0, rise: 0, stretch: 1, fade: 1, solid: 0 });
+    expect(riseFrame(0, MOUTH_S * 1000, false)).toMatchObject({ mouth: 1, rise: 0, fade: 1 });
+    expect(riseFrame(0, (MOUTH_S + RISE_S) * 1000, false).stretch).toBeGreaterThan(1.2);
+    expect(riseFrame(0, FORM_AT_S * 1000, false).rise).toBeCloseTo(RISE_H / 2);
+    expect(RISE_S).toBeGreaterThanOrEqual(1.5);
+    expect(RISE_S).toBeLessThanOrEqual(2);
+    expect(RISE_H).toBeGreaterThanOrEqual(3);
+    expect(RISE_H).toBeLessThanOrEqual(4);
+  });
+
+  it('while the request runs the ghost shivers, growing to full in 0.3 s', () => {
+    expect(ghostWait(1000, 1000, false)).toBe(0);
+    expect(ghostWait(1000, 1300, false)).toBe(1);
+    expect(ghostWait(1000, 99_999, false)).toBe(1);
+    expect(ghostWait(1000, 1150, false)).toBeCloseTo(0.5);
   });
 });

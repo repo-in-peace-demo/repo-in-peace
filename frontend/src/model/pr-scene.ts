@@ -8,7 +8,9 @@ import type { SceneModel } from './scene-model';
  * the layout never moves (Req 10.4).
  *  - Bury: the stone sinks over 1.5 s (ease-in), then a fresh grave rises in its place: a long, low heap of dark soil lying lengthwise
  *    (front to back) in the stone's cell, with a wooden stake at its head carrying a plaque "PR #N".
- *  - Resurrect: the ghost settles to the ground over 1.2 s and turns opaque, then a clean upright stone with a stake replaces it.
+ *  - Resurrect (revised): while the request runs the ghost shivers and brightens a little (`ghostWait`); once the pull request is
+ *    open it opens its mouth as if screaming, then rises into the sky, faster and faster, stretching upward and fading out; once it is
+ *    halfway up, a clean upright stone with a stake forms on the ground in its place.
  * Under reduced motion both are at their end at once (Req 10.3).
  */
 
@@ -26,17 +28,34 @@ export interface BuryFrame {
   stake: number;
 }
 export interface RiseFrame {
-  /** 0 floating as before, 1 on the ground and opaque. */
-  settle: number;
-  /** 0 still a ghost, 1 a stone. */
+  /** 0 the ghost's mouth shut (no mouth), 1 open wide. */
+  mouth: number;
+  /** How far the ghost has risen above where it floated, in units. */
+  rise: number;
+  /** The ghost's height as a multiple of its own: 1, stretching upward as it rises. */
+  stretch: number;
+  /** 1 the ghost as it is, 0 faded out completely. */
+  fade: number;
+  /** 0 no stone yet, 1 the stone and its stake formed. */
   solid: number;
 }
 
 export const SINK_S = 1.5;
 export const MOUND_START_S = 1.2;
 export const MOUND_S = 0.3;
-export const SETTLE_S = 1.2;
-export const SOLID_S = 0.3;
+/** The ghost's mouth opens over this long; then it rises for RISE_S, RISE_H units up, faster and faster, and fades out. */
+export const MOUTH_S = 0.3;
+export const RISE_S = 1.8;
+export const RISE_H = 3.5;
+/** At the top it is this much taller than it was. */
+export const RISE_STRETCH = 0.25;
+/** The new stone starts to form when the ghost is halfway up (the rise is `RISE_H × p²`), and takes SOLID_S. */
+export const FORM_AT_S = MOUTH_S + RISE_S * Math.SQRT1_2;
+export const SOLID_S = 0.5;
+/** Everything of a Resurrect is over by then. */
+export const RISE_END_S = Math.max(MOUTH_S + RISE_S, FORM_AT_S + SOLID_S);
+/** While the request runs, the ghost's shiver grows to its full size over this long. */
+export const WAIT_RAMP_S = 0.3;
 
 /**
  * The fresh grave: narrower than the stone was wide, as long as the cell is deep (a grave lies lengthwise, front to back, where the
@@ -79,9 +98,22 @@ export function buryFrame(startedAt: number, nowMs: number, reducedMotion: boole
 }
 
 export function riseFrame(startedAt: number, nowMs: number, reducedMotion: boolean): RiseFrame {
-  if (reducedMotion) return { settle: 1, solid: 1 };
+  if (reducedMotion) return { mouth: 0, rise: 0, stretch: 1, fade: 0, solid: 1 };
   const t = Math.max(0, nowMs - startedAt) / 1000;
-  return { settle: easeInOut(clamp01(t / SETTLE_S)), solid: clamp01((t - SETTLE_S) / SOLID_S) };
+  const p = clamp01((t - MOUTH_S) / RISE_S);
+  return {
+    mouth: easeInOut(clamp01(t / MOUTH_S)),
+    rise: RISE_H * p * p,
+    stretch: 1 + RISE_STRETCH * p,
+    fade: 1 - easeInOut(p),
+    solid: clamp01((t - FORM_AT_S) / SOLID_S),
+  };
+}
+
+/** A ghost whose Resurrect request is running: how much it shivers and brightens, 0 to 1, from when the request started. */
+export function ghostWait(startedAt: number, nowMs: number, reducedMotion: boolean): number {
+  if (reducedMotion) return 0;
+  return easeInOut(clamp01((nowMs - startedAt) / 1000 / WAIT_RAMP_S));
 }
 
 /** The resurrected stone's height: the graveyard's shortest stone, since a ghost has no line count (the legend says so). */

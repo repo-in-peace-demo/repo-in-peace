@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GHOST_CURL, GHOST_CURL_HEIGHT, GHOST_EYES, GHOST_SWAY, HEM_BRACES, HEM_DEPTH } from '../model/ghost-shape';
+import { GHOST_CURL, GHOST_CURL_HEIGHT, GHOST_EYES, GHOST_MOUTH, GHOST_SWAY, HEM_BRACES, HEM_DEPTH } from '../model/ghost-shape';
 import { GHOST_FLOAT_AMPLITUDE, GHOST_FLOAT_BASE, GHOST_FLOAT_SPEED, GHOST_HEIGHT, GHOST_OPACITY } from '../model/visual-constants';
 import { EFFECT_COLORS, HOVER_COLOR, SELECTION_RING_COLOR } from './colors';
 import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from './fog-fade';
@@ -12,8 +12,9 @@ import { FOG_FRAGMENT_PARS, FOG_VERTEX, FOG_VERTEX_PARS, foggedUniforms } from '
  *   - the hem, cut like curly braces (`hemHeight`, repeated in GLSL below);
  *   - two eye holes on the side that faces +z, the camera's default direction;
  *   - a bright line along the cut edge, so the braces can be seen.
- * Per instance: `aPhase` (where in its bob it is), `aHighlight` (0 nothing, 0.5 hover, 1 selected) and `aSettle` (0 floating as
- * always; 1 come down to the ground, still and opaque, for a ghost being resurrected: bury-and-resurrect Req 10.2).
+ * Per instance: `aPhase` (where in its bob it is), `aHighlight` (0 nothing, 0.5 hover, 1 selected), and for a Resurrect
+ * (model/pr-scene.ts): `aWait` (0 to 1: shivering and a little brighter while the request runs) and `aScream` (mouth open 0 to 1,
+ * risen height, stretch, fade), all 0 0 1 1 for every other ghost.
  *
  * The bob is `floatAmplitude × sin(floatSpeed × time + phase)` around the float base: the same formula as
  * `ghostBaseHeight` in model/ghost-motion.ts, which the selection ring follows (a browser test compares them). The sway is
@@ -28,8 +29,10 @@ const VERTEX = /* glsl */ `
 ${FOG_VERTEX_PARS}
 attribute float aPhase;
 attribute float aHighlight;
-attribute float aSettle;
-varying float vSettle;
+attribute float aWait;
+attribute vec4 aScream;
+varying float vWait;
+varying vec2 vScream; // mouth, fade
 uniform float uTime;
 uniform float uBase;
 uniform float uAmplitude;
@@ -46,8 +49,9 @@ varying float vHighlight;
 void main() {
   vLocal = position;
   vHighlight = aHighlight;
-  vSettle = aSettle;
-  float drift = 1.0 - aSettle;
+  vWait = aWait;
+  vScream = aScream.xw;
+  float drift = 1.0;
 
   // The lower body drifts sideways like cloth, the more the nearer the hem.
   float h = clamp(position.y / uHeight, 0.0, 1.0);
@@ -65,6 +69,10 @@ void main() {
   p.x += drift * uSway * loose * sin(uTime * 1.3 + aPhase + position.y * 3.0 + angle * 2.0);
   p.z += drift * uSway * loose * cos(uTime * 1.1 + aPhase * 1.3 + position.y * 2.5 + angle * 3.0);
   p.y += drift * (uBase + uAmplitude * sin(uSpeed * uTime + aPhase));
+  // A Resurrect: stretched upward from the hem and risen; while waiting, a small fast shiver.
+  p.y = p.y + (aScream.z - 1.0) * position.y + aScream.y;
+  p.x += aWait * 0.03 * sin(uTime * 47.0 + aPhase * 5.0);
+  p.z += aWait * 0.02 * sin(uTime * 39.0 + aPhase * 3.0);
 
   vec4 world = modelMatrix * instanceMatrix * vec4(p, 1.0);
   vec4 viewPosition = viewMatrix * world;
@@ -86,11 +94,13 @@ uniform float uTime;
 uniform float uHemDepth;
 uniform float uBraces;
 uniform vec4 uEyes; // x of the right eye, height of the eyes, radius along x, radius along y
+uniform vec3 uMouth; // height, radius along x, radius along y, at its widest
 varying vec3 vNormal;
 varying vec3 vViewDir;
 varying vec3 vLocal;
 varying float vHighlight;
-varying float vSettle;
+varying float vWait;
+varying vec2 vScream;
 
 // The height of the hem's edge along one brace, for u from 0 to 1: the same formula as hemHeight in model/ghost-shape.ts.
 float hemHeight(float u) {
@@ -111,6 +121,11 @@ void main() {
     vec2 left = vec2((vLocal.x + uEyes.x) / uEyes.z, (vLocal.y - uEyes.y) / uEyes.w);
     vec2 right = vec2((vLocal.x - uEyes.x) / uEyes.z, (vLocal.y - uEyes.y) / uEyes.w);
     if (dot(left, left) < 1.0 || dot(right, right) < 1.0) discard;
+    // The scream: a mouth that opens from nothing into a tall oval.
+    if (vScream.x > 0.01) {
+      vec2 mouth = vec2(vLocal.x / (uMouth.y * vScream.x), (vLocal.y - uMouth.x) / (uMouth.z * vScream.x));
+      if (dot(mouth, mouth) < 1.0) discard;
+    }
   }
 
   // Brighter where the surface turns away from the viewer, and along the cut edge of the hem.
@@ -131,8 +146,9 @@ void main() {
     alpha = max(alpha, edge * 0.5);
   }
 
-  // Settling: turning opaque on the way down.
-  alpha = mix(alpha, 1.0, vSettle);
+  // Waiting: a little brighter. Rising: fading out.
+  colour *= 1.0 + 0.45 * vWait;
+  alpha *= (1.0 + 0.3 * vWait) * vScream.y;
   gl_FragColor = vec4(colour, alpha * fogVisibility());
   #include <colorspace_fragment>
 }
@@ -151,6 +167,7 @@ export function makeGhostMaterial(): { material: THREE.ShaderMaterial; uniforms:
     uHemDepth: { value: HEM_DEPTH },
     uBraces: { value: HEM_BRACES },
     uEyes: { value: new THREE.Vector4(GHOST_EYES.right.x, GHOST_EYES.right.y, GHOST_EYES.radiusX, GHOST_EYES.radiusY) },
+    uMouth: { value: new THREE.Vector3(GHOST_MOUTH.y, GHOST_MOUTH.radiusX, GHOST_MOUTH.radiusY) },
     uColor: { value: new THREE.Color(EFFECT_COLORS.ghost) },
     uHoverColor: { value: new THREE.Color(HOVER_COLOR) },
     uSelectedColor: { value: new THREE.Color(SELECTION_RING_COLOR) },

@@ -28,7 +28,7 @@ A direct link such as `?graveyard=demo.oikosledger` skips the boot screen and go
 
 ## Bury and Resurrect
 
-On the demo graveyards, **Bury** on an unused stone opens a real pull request that deletes the file, and **Resurrect** on a ghost opens one that restores it byte for byte as it was at its last commit. Both go to demo forks in a GitHub organisation of their own, never to the original repositories, and always as a pull request. A small serverless function (`frontend/api/pr.ts`) opens them; it checks every request against the demo's data file on the server and holds the only token, scoped to the forks. For the rest of the visit the stone sinks and a fresh grave takes its place, or the ghost becomes a stone, each with a stake showing the pull request number. See `frontend/README.md`.
+On the demo graveyards, **Bury** on an unused stone opens a real pull request that deletes the file, and **Resurrect** on a ghost opens one that restores it byte for byte as it was at its last commit. Both go to demo forks in a GitHub organisation of their own, never to the original repositories, and always as a pull request. A small serverless function (`frontend/api/pr.ts`) opens them; it checks every request against the demo's data file on the server and holds the only token, scoped to the forks. For the rest of the visit a gravedigger buries the stone and a fresh grave takes its place, or the ghost screams, rises into the sky and a stone forms where it was, each with a stake showing the pull request number. See `frontend/README.md`.
 
 ## Analyse your own repo
 
