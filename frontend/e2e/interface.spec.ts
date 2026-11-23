@@ -745,10 +745,12 @@ test.describe('panels that scroll inside, and the search placeholder', () => {
       await openScene(page, 'demo.oikosledger', size);
       await open(page);
       await expect.poll(() => fadeState(page, selector)).toEqual({ more: 'true', really: true });
-      const fade = await page.locator(selector).first().evaluate((el) => getComputedStyle(el, '::after').opacity);
-      expect(fade).toBe('1');
+      // The fade has a 0.15 s transition: wait for it (a rule that never applied would stay at 0 and fail here).
+      const fade = () => page.locator(selector).first().evaluate((el) => getComputedStyle(el, '::after').opacity);
+      await expect.poll(fade).toBe('1');
       await scrollToEnd(page, selector);
       await expect.poll(() => fadeState(page, selector)).toEqual({ more: 'false', really: false });
+      await expect.poll(fade).toBe('0');
     });
   }
 
