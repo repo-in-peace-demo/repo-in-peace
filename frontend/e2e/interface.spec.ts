@@ -584,11 +584,12 @@ test.describe('layout and access', () => {
   });
 });
 
+// Tagged @slow: about 250 flights, most of this file's time. `npm run e2e` runs it; quick runs skip it (`npm run e2e:quick`).
 test.describe('nothing in the way of the grave in focus', () => {
   test.setTimeout(600_000); // every stone and ghost of both files
 
   for (const name of ['demo.oikosledger', 'demo.spatialql']) {
-    test(`${name}: after flyTo for every stone and ghost, nothing left showing is in the way of its face: no stone, fence or sign board, and no sign label over it`, async ({ page }) => {
+    test(`${name}: after flyTo for every stone and ghost, nothing left showing is in the way of its face: no stone, fence or sign board, and no sign label over it`, { tag: '@slow' }, async ({ page }) => {
       const data = name === 'demo.oikosledger' ? oikos : spatialql;
       const model = buildSceneModel(data);
       await openScene(page, name);

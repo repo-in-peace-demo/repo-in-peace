@@ -27,3 +27,7 @@ The test starts the dev server on port 5199 itself. It takes about two minutes, 
   "WebGL is not available", the flags need changing for your Chromium version (try `--use-gl=angle`, or run with
   `--headed`). Software drawing is slow, which is fine here: key movement is measured in seconds, not frames.
 - The frontend `README.md` (task 27) must mention this folder and the flags.
+
+## Quick runs
+
+`npm run e2e` runs everything (before a deploy). `npm run e2e:quick` skips the tests tagged `@slow`: the two sweeps in `interface.spec.ts` that fly to every stone and ghost of both demos. For one file: `npx playwright test e2e/interface.spec.ts --grep-invert @slow`.

@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
+    "e2e:quick": "playwright test --grep-invert @slow",
     "reset-demo-prs": "tsx scripts/reset-demo-prs.ts"
   },
   "dependencies": {
