@@ -1,4 +1,5 @@
 import type { Source } from '../model/app-flow';
+import { TIMED_OUT } from './pr-progress';
 
 /**
  * The browser side of the PR function (bury-and-resurrect Req 1.2 to 1.4, 9.5): which graveyards have working actions, opening a pull
@@ -79,21 +80,31 @@ export type PrOutcome =
 const messageFrom = (body: unknown, fallback: string): string =>
   isRecord(body) && typeof body['error'] === 'string' && body['error'].trim() !== '' ? body['error'].trim().slice(0, MAX_MESSAGE) : fallback;
 
-export async function openPr(graveyard: string, action: Action, path: string, expected: { repo: string; fake: boolean }, fetchImpl: typeof fetch = fetch): Promise<PrOutcome> {
+/** @param signal aborts the wait (the page gives up after about 30 s); the server may still finish, and a retry then returns that pull request. */
+export async function openPr(
+  graveyard: string,
+  action: Action,
+  path: string,
+  expected: { repo: string; fake: boolean },
+  fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<PrOutcome> {
   let response: Response;
   try {
     response = await fetchImpl('/api/pr', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({ graveyard, action, path }),
+      signal,
     });
   } catch {
-    return { kind: 'error', message: UNREACHABLE };
+    return { kind: 'error', message: signal?.aborted ? TIMED_OUT : UNREACHABLE };
   }
   let body: unknown;
   try {
     body = await response.json();
   } catch {
+    if (signal?.aborted) return { kind: 'error', message: TIMED_OUT };
     return { kind: 'error', message: response.ok ? NOT_UNDERSTOOD : UNREACHABLE };
   }
   if (!response.ok) return { kind: 'error', message: messageFrom(body, NOT_UNDERSTOOD) };

@@ -114,7 +114,8 @@ test('a refused request shows the server\'s message and Try again', async ({ pag
   await select(page, 'file', unused[2]!.path);
   await panel(page).getByRole('button', { name: 'Bury' }).click();
   await panel(page).getByRole('button', { name: 'Open pull request' }).click();
-  await expect(panel(page).getByRole('alert')).toHaveText('This demo has 50 open Repo In Peace pull requests, the most it allows.');
+  await expect(panel(page).locator('.detail-error')).toHaveText('This demo has 50 open Repo In Peace pull requests, the most it allows.');
+  await expect(panel(page).locator('[aria-live="polite"]')).toHaveText('This demo has 50 open Repo In Peace pull requests, the most it allows.');
   await expect(panel(page).getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
@@ -208,5 +209,75 @@ test.describe('the scene after a pull request (this session only)', () => {
     const stone = unused[4]!;
     await openFake(page, 'file', stone.path, 'Bury');
     expect(await frameWhenDrawn(page, stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1 }); // the first frame drawn is the end
+  });
+});
+
+test.describe('while a pull request is being opened', () => {
+  /** The function answers only after `ms`: the request is held, then passed on to the dev server's fake flow. */
+  async function delayPost(page: Page, ms: number): Promise<void> {
+    await page.route('**/api/pr', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      await new Promise((r) => setTimeout(r, ms));
+      await route.fallback().catch(() => {}); // the page may have stopped waiting already
+    });
+  }
+  const progress = (page: Page) => panel(page).locator('.detail-progress');
+  const live = (page: Page) => panel(page).locator('[aria-live="polite"]');
+
+  test('the dots animate, the button is disabled, screen readers hear it once, and the result replaces the message', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await delayPost(page, 2500);
+    await select(page, 'file', unused[6]!.path);
+    await panel(page).getByRole('button', { name: 'Bury' }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+
+    await expect(progress(page)).toBeVisible();
+    await expect(panel(page).getByRole('button', { name: 'Bury' })).toBeDisabled();
+    await expect(live(page)).toHaveText(`Opening a pull request on repo-in-peace-demo/${oikos.meta.name}.`);
+    const seen = new Set<string>();
+    for (let i = 0; i < 8; i++) {
+      seen.add((await progress(page).textContent()) ?? '');
+      await page.waitForTimeout(150);
+    }
+    expect([...seen].every((t) => /^Opening pull request(\.|\.\.|…)$/.test(t))).toBe(true);
+    expect(seen.size).toBeGreaterThan(1); // the dots moved
+
+    const link = panel(page).getByRole('link', { name: /^Pull request #\d+ (opened|was already open)$/ });
+    await expect(link).toBeVisible({ timeout: 6000 });
+    await expect(progress(page)).toHaveCount(0);
+    await expect(live(page)).toHaveText(/^Pull request #\d+ (opened|was already open)\.$/);
+  });
+
+  test('under reduced motion the dots stay a still "…"', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openScene(page, 'demo.oikosledger');
+    await delayPost(page, 2000);
+    await select(page, 'file', unused[7]!.path);
+    await panel(page).getByRole('button', { name: 'Bury' }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+    for (let i = 0; i < 5; i++) {
+      await expect(progress(page)).toHaveText('Opening pull request…');
+      await page.waitForTimeout(200);
+    }
+  });
+
+  test('a slow answer says "Still working", then the page stops waiting, and Try again gets the pull request', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__repoInPeacePrTimeouts = { stillWorkingMs: 600, giveUpMs: 1800 };
+    });
+    const ghost = spatialql.ghosts[1]!;
+    await openScene(page, 'demo.spatialql');
+    await delayPost(page, 4000);
+    await select(page, 'ghost', ghost.path);
+    await panel(page).getByRole('button', { name: 'Resurrect' }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+    await expect(progress(page)).toHaveText(/^Still working/, { timeout: 1500 });
+    await expect(live(page)).toHaveText('Still working on the pull request on repo-in-peace-demo/spatialql.');
+    await expect(panel(page).locator('.detail-error')).toHaveText(/stopped waiting/, { timeout: 3000 });
+    await expect(live(page)).toHaveText(/stopped waiting/);
+
+    await page.unroute('**/api/pr');
+    await panel(page).getByRole('button', { name: 'Try again' }).click();
+    await expect(panel(page).getByRole('link', { name: /^Pull request #\d+ (opened|was already open)$/ })).toBeVisible();
   });
 });

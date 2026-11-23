@@ -72,7 +72,7 @@ The work splits like the rest of the project: the request checks, branch names, 
 ### 9. The detail panel
 
 1. ON a configured demo, clicking Bury or Resurrect SHALL first ask for confirmation, naming the fork, the action and the path, for example: "Open a pull request on repo-in-peace-demo/oikos_ledger that deletes app/lib/hooks/useUploadStatus.ts?" (and for Resurrect: "… that restores src/surface-placement.ts as it was at 1a2b3c4?").
-2. WHILE the request runs, the panel SHALL show progress and the button SHALL not be clickable again.
+2. WHILE the request runs, the panel SHALL show progress and the button SHALL be disabled. (Revised after the build:) The progress reads "Opening pull request" with dots cycling . → .. → …, a still "…" under reduced motion, and "Still working" after about 10 seconds. After about 30 seconds the page SHALL stop waiting and show a friendly error with Try again; a retry returns the pull request if the server opened it meanwhile. Progress and the result SHALL be announced through one polite live region (`aria-live="polite"`), once per change and never per dot.
 3. ON success, the panel SHALL show a link to the pull request (`#<number>`, opening in a new tab, `rel="noopener noreferrer"`). ON failure, it SHALL show the function's message, or a friendly one when the function could not be reached, and let the user try again.
 4. WHEN the answer is an existing pull request (Req 4.3), the panel SHALL say it was already open.
 5. Everything from the function SHALL be put on the page as text; the link SHALL be used only if it is an `https://github.com/<fork>/pull/<n>` URL for the expected fork (or the fake link in development).

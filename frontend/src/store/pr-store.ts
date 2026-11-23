@@ -18,7 +18,7 @@ export interface PrRecord {
   /** `performance.now()` when it was opened, for the scene's animation. */
   openedAt: number;
 }
-export type PrRequestState = { state: 'confirming' } | { state: 'opening' } | { state: 'error'; message: string };
+export type PrRequestState = { state: 'confirming' } | { state: 'opening'; startedAt: number } | { state: 'error'; message: string };
 
 export interface PrSession {
   readonly prs: ReadonlyMap<string, PrRecord>;

@@ -72,6 +72,8 @@ declare global {
     __repoInPeaceNoOpening?: boolean;
     /** Set by the browser tests (`e2e/fixtures.ts`): the digging screen goes as soon as the scene is built. Read in development builds only. */
     __repoInPeaceNoDigHold?: boolean;
+    /** Set by the browser tests: shorter "Still working" and give-up times for Bury and Resurrect. Read in development builds only. */
+    __repoInPeacePrTimeouts?: { stillWorkingMs: number; giveUpMs: number };
   }
 }
 

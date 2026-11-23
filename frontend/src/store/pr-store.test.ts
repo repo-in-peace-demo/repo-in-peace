@@ -8,8 +8,8 @@ describe('the session store', () => {
   it('records a pull request per grave, ending its request, and tells listeners', () => {
     let calls = 0;
     const stop = subscribePrSession(() => calls++);
-    setPrRequest('file', 'a.ts', { state: 'opening' });
-    expect(getPrSession().requests.get(graveKey('file', 'a.ts'))).toEqual({ state: 'opening' });
+    setPrRequest('file', 'a.ts', { state: 'opening', startedAt: 1 });
+    expect(getPrSession().requests.get(graveKey('file', 'a.ts'))).toEqual({ state: 'opening', startedAt: 1 });
     recordPr('file', 'a.ts', record);
     expect(getPrSession().prs.get('file:a.ts')).toEqual(record);
     expect(getPrSession().requests.has('file:a.ts')).toBe(false);

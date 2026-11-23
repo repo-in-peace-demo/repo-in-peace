@@ -111,6 +111,12 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 14.6 After review: the round mound became a fresh grave (a long, low heap of dark, lumpy soil lengthwise in the cell, sloped sides and ends, clods of the soil's colour) with a wooden stake at its head and a wooden plaque "PR #N"; everything inside the layout cell (tested). From the default view it stays as it is (the owner's choice): the change shows close up, and the list, hover and panel name the pull request.
   - _Requirements: 10_
 
+- [x] 17. Progress while a pull request is opened (Req 9.2, revised)
+  - [x] 17.1 `ui/pr-progress.ts` (pure, tested): the words, the cycling dots, the still "…" under reduced motion, "Still working" at 10 s, the announcements.
+  - [x] 17.2 The panel: the button disabled while it runs; the request aborted after 30 s with a friendly error and Try again; one polite live region for progress and results (the old `role="status"`/`role="alert"` removed, so nothing is said twice).
+  - [ ] 17.3 **Browser checks** (delayed fake answers): the dots animate, the button is disabled, the result replaces the message; reduced motion; "Still working" and the give-up with shortened times, then Try again.
+  - **Run:** `cd frontend && npx playwright test e2e/pull-requests.spec.ts`
+
 ## Part 5: Documentation and going live
 
 - [x] 15. Documentation

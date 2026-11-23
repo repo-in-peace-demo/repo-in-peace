@@ -762,6 +762,24 @@ body,
   margin: 0;
 }
 
+/* While a pull request is being opened: the words and their dots, the dots in a fixed width so the line doesn't jump. */
+.detail-progress {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 0.8rem;
+}
+
+.detail-dots {
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+}
+
+.detail-actions button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
 .detail-pr a {
   color: #cfe2ff;
 }
