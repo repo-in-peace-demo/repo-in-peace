@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { OWNS_KEYS_ATTRIBUTE } from '../model/fly-controls';
 import { FACT_NAMES, factNameOne } from '../model/grave-facts';
 import { FLAGS, KINDS, buildRows, filterRows, highlightedIndex, sortRows, type Flag, type Kind, type Row, type SortKey } from '../model/list-rows';
+import { useScrollFade } from './useScrollFade';
 import { registerPanel, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import type { SceneModel } from '../model/scene-model';
 import { scrollToShow, visibleRange } from '../model/virtual-window';
@@ -52,6 +53,7 @@ export function ListView({ model }: { model: SceneModel }) {
   useEffect(() => registerPanel('list', () => aside.current), []);
   // Deferred: it first fits itself below the stats panel (or keeps room for 8 rows and overlaps it), then the rule is applied.
   useSettleOnOpen('list', open, true);
+  useScrollFade(scroller, open);
 
   const all = useMemo(() => buildRows(model.graveyard), [model]);
   const { prs } = usePrSession();
@@ -216,7 +218,7 @@ export function ListView({ model }: { model: SceneModel }) {
           </p>
           <div
             ref={scroller}
-            className="list-rows"
+            className="list-rows scroll-fade"
             role="listbox"
             aria-label="Files and ghosts"
             tabIndex={0}

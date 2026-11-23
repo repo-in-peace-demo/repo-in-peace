@@ -729,3 +729,44 @@ test.describe('the epitaph', () => {
     await expect(panel(page).locator('figure.detail-epitaph')).toHaveCount(0);
   });
 });
+
+test.describe('panels that scroll inside, and the search placeholder', () => {
+  /** The data-more mark, and whether the element really has more below (worked out in the page). */
+  const fadeState = (page: Page, selector: string) =>
+    page.locator(selector).first().evaluate((el) => ({ more: (el as HTMLElement).dataset['more'], really: el.scrollHeight - el.scrollTop - el.clientHeight > 1 }));
+  const scrollToEnd = (page: Page, selector: string) => page.locator(selector).first().evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+
+  for (const [name, selector, size, open] of [
+    ['the Controls panel', '.controls-help', { width: 1280, height: 720 }, (page: Page) => page.getByRole('button', { name: 'Show or hide the controls' }).click()],
+    ['the list', '.list-rows', { width: 1280, height: 720 }, (page: Page) => page.locator('.list .panel-toggle').click()],
+    ['the legend', '#legend-body', { width: 900, height: 700 }, (page: Page) => page.locator('.legend .panel-toggle').click()],
+  ] as const) {
+    test(`${name} fades at its bottom edge while there is more below, and not at the end`, async ({ page }) => {
+      await openScene(page, 'demo.oikosledger', size);
+      await open(page);
+      await expect.poll(() => fadeState(page, selector)).toEqual({ more: 'true', really: true });
+      const fade = await page.locator(selector).first().evaluate((el) => getComputedStyle(el, '::after').opacity);
+      expect(fade).toBe('1');
+      await scrollToEnd(page, selector);
+      await expect.poll(() => fadeState(page, selector)).toEqual({ more: 'false', really: false });
+    });
+  }
+
+  test('a panel with nothing hidden shows no fade (the legend at 1920 × 1080, the details)', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
+    await page.locator('.legend .panel-toggle').click();
+    await expect.poll(() => fadeState(page, '#legend-body')).toEqual({ more: 'false', really: false });
+    await page.evaluate(() => window.repoInPeace!.select({ kind: 'file', path: 'app/components/voice/index.ts' }));
+    await expect(page.locator('.detail')).toBeVisible();
+    const detail = await fadeState(page, '.detail');
+    expect(detail.more).toBe(String(detail.really)); // the mark always says what is true
+  });
+
+  test('the search box says "Search (/)" where the full placeholder does not fit, and the full one where it does', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger', { width: 900, height: 700 });
+    const box = page.getByRole('combobox', { name: 'Search graves by file name or path' });
+    await expect(box).toHaveAttribute('placeholder', 'Search (/)');
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect(box).toHaveAttribute('placeholder', 'Search graves (/)');
+  });
+});

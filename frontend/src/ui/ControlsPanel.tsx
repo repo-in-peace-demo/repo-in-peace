@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useScrollFade } from './useScrollFade';
 import { registerPanel, setPanelOpen, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import { CONTROL_GROUPS } from '../model/controls-help';
 import { ownsKeys } from '../model/fly-controls';
@@ -15,6 +16,7 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
   const help = useRef<HTMLElement>(null);
   useEffect(() => registerPanel('controls', () => help.current), []);
   useSettleOnOpen('controls', helpOpen);
+  useScrollFade(help, helpOpen);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -44,7 +46,7 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
   return (
     <div className="controls">
       {helpOpen && (
-        <section ref={help} id="controls-help" className="controls-help" aria-label="Controls">
+        <section ref={help} id="controls-help" className="controls-help scroll-fade" aria-label="Controls">
           <h2>Controls</h2>
           {CONTROL_GROUPS.map((group) => (
             <div key={group.title}>

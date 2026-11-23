@@ -8,6 +8,7 @@ import { setDetailSide } from '../store/detail-side-store';
 import { registerPanel, setDetailCloser, setPanelOpen, settle } from '../store/panels-store';
 import { clearSelection, useSelection } from '../store/selection-store';
 import { PrAction, type PrContext } from './PrAction';
+import { useScrollFade } from './useScrollFade';
 
 /** How many characters of a path the heading keeps (the file name always whole). */
 const PATH_CHARS = 44;
@@ -36,6 +37,8 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
     setDetailCloser(() => clearSelection());
     return registerPanel('detail', () => panel.current);
   }, []);
+
+  useScrollFade(panel, selection !== null);
 
   const found = selection ? model.lookup.get(selection.path) : undefined;
   const item = found && selection && found.kind === selection.kind ? found : undefined;
@@ -104,7 +107,7 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
   const meta = model.graveyard.meta;
   const content = item.kind === 'file' ? <StoneDetail file={model.stones[item.index]!.file} meta={meta} pr={pr} /> : <GhostDetail ghost={model.ghosts[item.index]!.ghost} meta={meta} pr={pr} />;
   return (
-    <aside ref={panel} className={`detail detail-${side}`} aria-label="Selected grave" style={placedFor === path ? undefined : { visibility: 'hidden' }}>
+    <aside ref={panel} className={`detail detail-${side} scroll-fade`} aria-label="Selected grave" style={placedFor === path ? undefined : { visibility: 'hidden' }}>
       <button type="button" className="detail-close" aria-label="Close" title="Close (Esc)" onClick={() => clearSelection()}>
         ×
       </button>

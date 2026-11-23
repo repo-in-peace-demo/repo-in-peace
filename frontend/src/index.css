@@ -281,6 +281,34 @@ body,
 
 #legend-body {
   padding: 0 1rem 0.8rem;
+  /* Panel rules: never past the bottom of the window; it scrolls inside (at 1280 × 720 it was 705 px tall from 16 px down). */
+  max-height: calc(100vh - 5.4rem);
+  overflow: auto;
+}
+
+/* Panels that scroll inside (Controls, list, legend, details): a fade at the bottom edge, in the panel's colour, only while there is
+   more below (useScrollFade sets data-more). */
+.scroll-fade::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  display: block;
+  height: 1.8rem;
+  margin-top: -1.8rem;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(8, 12, 22, 0), rgb(8, 12, 22));
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.scroll-fade[data-more='true']::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-fade::after {
+    transition: none;
+  }
 }
 
 .legend-snapshot {

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { FULL_PLACEHOLDER, placeholderFor } from './search-placeholder';
 import { OWNS_KEYS_ATTRIBUTE, ownsKeys } from '../model/fly-controls';
 import { hoverSummary } from '../model/hover-label';
 import { buildRows, type Row } from '../model/list-rows';
@@ -25,6 +26,24 @@ export function SearchBox({ model }: { model: SceneModel }) {
   const [open, setOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  // The full placeholder where it fits in the box, else "Search (/)" (measured with the box's own font, again on every resize).
+  const [placeholder, setPlaceholder] = useState(FULL_PLACEHOLDER);
+  useLayoutEffect(() => {
+    const el = input.current;
+    if (!el) return;
+    const context = document.createElement('canvas').getContext('2d');
+    const fit = (): void => {
+      if (!context) return;
+      const style = getComputedStyle(el);
+      context.font = style.font;
+      const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      setPlaceholder(placeholderFor(context.measureText(FULL_PLACEHOLDER).width, room));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const rows = useMemo(() => buildRows(model.graveyard), [model]);
   const results = useMemo(() => searchRows(rows, query, RESULT_LIMIT), [rows, query]);
@@ -91,7 +110,7 @@ export function SearchBox({ model }: { model: SceneModel }) {
         ref={input}
         type="search"
         className="search-input"
-        placeholder="Search graves (/)"
+        placeholder={placeholder}
         aria-label="Search graves by file name or path"
         role="combobox"
         aria-expanded={shown}
