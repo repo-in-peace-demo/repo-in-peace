@@ -350,6 +350,22 @@ test.describe('screenshots to judge by eye', () => {
     });
   }
 
+  // Panel rules: the default view (every panel collapsed) and the Controls panel open, at three sizes.
+  test('panels default and controls', async ({ page }) => {
+    mkdirSync(OUT, { recursive: true });
+    for (const [w, h] of [[1280, 720], [1920, 1080], [900, 700]] as const) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto('/?graveyard=demo.oikosledger');
+      await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
+      await page.waitForTimeout(1200);
+      await page.mouse.move(w / 2, 5);
+      await page.screenshot({ path: `${OUT}panels-default-${w}x${h}.png` });
+      await page.getByRole('button', { name: 'Show or hide the controls' }).click();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${OUT}panels-controls-${w}x${h}.png` });
+    }
+  });
+
   // Eulogies spec, task 12: a stone with its epitaph, from a copy of spatialql with eulogies, opened from disk.
   test('interface epitaph', async ({ page }) => {
     mkdirSync(OUT, { recursive: true });

@@ -2,12 +2,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { OWNS_KEYS_ATTRIBUTE } from '../model/fly-controls';
 import { FACT_NAMES, factNameOne } from '../model/grave-facts';
 import { FLAGS, KINDS, buildRows, filterRows, highlightedIndex, sortRows, type Flag, type Kind, type Row, type SortKey } from '../model/list-rows';
-import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
-import { useYieldsTo } from '../store/detail-side-store';
+import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
 import type { SceneModel } from '../model/scene-model';
 import { scrollToShow, visibleRange } from '../model/virtual-window';
 import { flyTo } from '../scene/api';
-import { requestStatsCollapse } from '../store/panel-events';
 import { clearSelection, select, useSelection } from '../store/selection-store';
 import { graveKey, usePrSession } from '../store/pr-store';
 
@@ -37,10 +35,8 @@ const kindOfRow = (row: Row): Kind => (row.kind === 'ghost' ? 'ghost' : row.stat
  * anywhere else is highlighted here and scrolled into view. Arrow keys inside it move through the rows and never fly the camera.
  */
 export function ListView({ model }: { model: SceneModel }) {
-  const [userOpen, setOpen] = useState(() => panelsStartOpen(currentWindowWidth()));
-  // While the detail panel is on the left, only the tab shows; the open state is kept for when it closes.
-  const yielded = useYieldsTo('left');
-  const open = userOpen && !yielded;
+  // Collapsed on launch; opening it closes any open panel it overlaps (store/panels-store.ts).
+  const open = usePanelOpen('list');
   const [sort, setSort] = useState<{ key: SortKey; reversed: boolean }>({ key: 'decay', reversed: false });
   const [kinds, setKinds] = useState<ReadonlySet<Kind>>(new Set());
   const [flags, setFlags] = useState<ReadonlySet<Flag>>(new Set());
@@ -50,11 +46,10 @@ export function ListView({ model }: { model: SceneModel }) {
   const scroller = useRef<HTMLDivElement>(null);
   const aside = useRef<HTMLElement>(null);
   const toggleButton = useRef<HTMLButtonElement>(null);
-  /** Set when the user opens the list with its header (not when it comes back after the details closed). */
-  const openedByUser = useRef(false);
   // The rows' height when the list must stay below the open stats panel (a large window); null leaves it to the CSS.
   const [bodyHeight, setBodyHeight] = useState<number | null>(null);
   const selection = useSelection();
+  useEffect(() => registerPanel('list', () => aside.current), []);
 
   const all = useMemo(() => buildRows(model.graveyard), [model]);
   const { prs } = usePrSession();
@@ -98,22 +93,9 @@ export function ListView({ model }: { model: SceneModel }) {
       setBodyHeight(Math.max(8 * rem, Math.min(cssDefault, room)));
       return room;
     };
-    // Opening below the open stats panel with room for fewer than LIST_MIN_ROWS rows (a 1280 × 720 window): the stats panel folds to
-    // its header, once, as the list opens; the list then fits again in the room it leaves.
-    const room = fit();
-    const askedFor = openedByUser.current;
-    openedByUser.current = false;
-    const statsOpen = document.querySelector('.stats .panel-toggle')?.getAttribute('aria-expanded') === 'true';
-    const tools = (scroller.current?.offsetTop ?? 0) - (scroller.current?.parentElement?.offsetTop ?? 0);
-    // Only when the user opened it: coming back after the details closed restores both panels as they were.
-    let refit = 0;
-    if (askedFor && statsOpen && room - tools < LIST_MIN_ROWS * ROW_HEIGHT) {
-      requestStatsCollapse();
-      // Fit again once the stats panel has folded (the next frame), not only when the resize watcher notices it.
-      refit = requestAnimationFrame(() => {
-        refit = requestAnimationFrame(() => fit());
-      });
-    }
+    // On a short window with the stats panel open, the list keeps its least height and overlaps it; the panel rule then closes the
+    // stats panel (store/panels-store.ts), and the list fits itself again to the room it leaves.
+    fit();
     const observer = new ResizeObserver(() => {
       fit();
     });
@@ -121,7 +103,6 @@ export function ListView({ model }: { model: SceneModel }) {
     if (stats) observer.observe(stats);
     window.addEventListener('resize', fit);
     return () => {
-      cancelAnimationFrame(refit);
       observer.disconnect();
       window.removeEventListener('resize', fit);
     };
@@ -180,14 +161,7 @@ export function ListView({ model }: { model: SceneModel }) {
         className="panel-toggle"
         aria-expanded={open}
         aria-controls="list-body"
-        title={yielded ? 'Close the details and show the list' : undefined}
-        onClick={() => {
-          openedByUser.current = yielded || !userOpen;
-          if (yielded) {
-            clearSelection();
-            setOpen(true);
-          } else setOpen((o) => !o);
-        }}
+        onClick={() => togglePanel('list')}
       >
         <span>
           List · {all.length.toLocaleString('en-US')}

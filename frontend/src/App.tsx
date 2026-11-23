@@ -21,6 +21,7 @@ import { hasWebGL } from './ui/webgl';
 import { prefersReducedMotion } from './scene/reduced-motion';
 import { clearSelection } from './store/selection-store';
 import { clearPrSession } from './store/pr-store';
+import { resetPanels } from './store/panels-store';
 import { availability, fetchPrConfig, type PrConfigAnswer } from './ui/pr-client';
 
 /** Development builds only: the performance overlay and the other extras (`dev/DevExtras.tsx`). Null, and not in the bundle, in production. */
@@ -200,9 +201,11 @@ function Scene({ model, source, onBack }: { model: SceneModel; source: Source; o
   useEffect(() => {
     let live = true;
     if (source.kind === 'demo') void fetchPrConfig().then((answer) => live && setPrConfig(answer));
+    resetPanels(); // every panel starts collapsed, so the opening shot is clear
     return () => {
       live = false;
       clearPrSession(); // the session's pull requests belong to this scene
+      resetPanels();
     };
   }, [source]);
   const pr = { availability: availability(source, prConfig), graveyard: source.kind === 'demo' ? source.name : null };

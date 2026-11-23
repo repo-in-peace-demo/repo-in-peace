@@ -1,9 +1,6 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
-import { useEffect, useState } from 'react';
-import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
-import { useYieldsTo } from '../store/detail-side-store';
-import { onStatsCollapseRequest } from '../store/panel-events';
-import { clearSelection } from '../store/selection-store';
+import { useEffect, useRef } from 'react';
+import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
 import { statsHeading, statsLayout } from '../model/overlay-text';
 import type { Stats } from '../model/stats';
 
@@ -13,27 +10,22 @@ import type { Stats } from '../model/stats';
  * collapses the panel down to the name; clicks anywhere else go through to the scene.
  */
 export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
-  const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
-  // While the detail panel is on the left, only the header bar shows; the open state is kept for when it closes.
-  const yielded = useYieldsTo('left');
-  // The list asks for the room when it opens on a window too short for both (store/panel-events.ts).
-  useEffect(() => onStatsCollapseRequest(() => setOpen(false)), []);
-  const shown = open && !yielded;
+  // Collapsed on launch; opening it closes any open panel it overlaps (store/panels-store.ts).
+  const shown = usePanelOpen('stats');
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => registerPanel('stats', () => root.current), []);
   const heading = statsHeading(meta);
   const layout = statsLayout(stats, meta);
   return (
-    <section className="stats" aria-label="Statistics">
+    <section ref={root} className="stats" aria-label="Statistics">
       <button
         type="button"
         className="panel-toggle"
         aria-expanded={shown}
         aria-controls="stats-body"
-        title={yielded ? 'Close the details and show the statistics' : shown ? 'Collapse the statistics' : 'Show the statistics'}
+        title={shown ? 'Collapse the statistics' : 'Show the statistics'}
         onClick={(event) => {
-          if (yielded) {
-            clearSelection();
-            setOpen(true);
-          } else setOpen((o) => !o);
+          togglePanel('stats');
           event.currentTarget.blur(); // give the keyboard back to the scene
         }}
       >

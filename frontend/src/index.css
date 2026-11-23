@@ -5,7 +5,7 @@
   --ink: #c9d6e8;
   --ink-dim: #7d8ca3;
   --night: #05070d;
-  --panel: rgba(8, 12, 22, 0.82);
+  --panel: rgba(8, 12, 22, 0.96); /* panel rules: nothing behind a panel shows through (no sign label, no other panel) */
   --rim: rgba(160, 190, 235, 0.35);
   --error: #e08a8a;
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
@@ -113,6 +113,13 @@ body,
 }
 
 .controls-help {
+  /* Panel rules: above the list's header bar and below the stats panel's, never under either; it scrolls inside on a short window.
+     Opening it closes the stats panel or the list if their open bodies would overlap it (store/panels-store.ts). */
+  position: fixed;
+  left: 1rem;
+  bottom: 6.4rem;
+  max-height: calc(100vh - 6.4rem - 4.6rem);
+  overflow: auto;
   padding: 0.75rem 1rem;
   max-width: 24rem;
   line-height: 1.5;
@@ -894,6 +901,7 @@ body,
   padding: 0 0.4rem;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .list-row .swatch {
@@ -919,7 +927,7 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 0 1 auto;
-  min-width: 3rem;
+  min-width: 2.5rem;
 }
 
 .list-folder {
@@ -931,6 +939,9 @@ body,
 }
 
 .list-marks {
+  /* Never squeezed: the name and the folder are cut with an ellipsis before the tags (panel rules, item 4). */
+  flex: 0 0 auto;
+  margin-left: auto;
   display: flex;
   gap: 0.25rem;
   color: var(--ink-dim);

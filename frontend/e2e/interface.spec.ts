@@ -345,103 +345,134 @@ test.describe('layout and access', () => {
     }
   });
 
-  for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }, { width: 900, height: 700 }]) {
-    test(`at ${size.width} × ${size.height}, with every panel open: no two panels ever overlap, whichever side the details open on, and closing them restores the panels`, async ({ page }) => {
-      await openScene(page, 'demo.oikosledger', size);
-      // Every panel open: the stats panel, the legend and the list (they start collapsed below 1600 px).
-      for (const toggle of [page.locator('.stats .panel-toggle'), page.locator('.legend .panel-toggle'), page.locator('.list .panel-toggle')]) {
-        if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  // Panel rules: every panel starts collapsed; opening one closes any open panel it would overlap; nothing ever overlaps, the Controls
+  // panel and the detail panel included; closing the details reopens nothing.
+  const PANEL_PARTS = ['.stats', '.legend', '.search', '.list', '.detail', '.controls-help', '.controls-buttons'];
+  const TOGGLES = { stats: '.stats .panel-toggle', legend: '.legend .panel-toggle', list: '.list .panel-toggle', controls: '.controls-buttons button[aria-controls="controls-help"]' } as const;
+  type PanelName = keyof typeof TOGGLES;
+  const isOpen = async (page: Page, name: PanelName) => (await page.locator(TOGGLES[name]).getAttribute('aria-expanded')) === 'true';
+  async function openPanel(page: Page, name: PanelName): Promise<void> {
+    if (!(await isOpen(page, name))) await page.locator(TOGGLES[name]).click();
+    await expect(page.locator(TOGGLES[name])).toHaveAttribute('aria-expanded', 'true');
+    await page.waitForTimeout(250); // the rule settles two frames after a panel opens
+  }
+  async function noOverlaps(page: Page, what: string): Promise<void> {
+    const boxes: Array<{ name: string; box: Box }> = [];
+    for (const name of PANEL_PARTS) {
+      const el = page.locator(name).first();
+      if ((await el.count()) === 0 || !(await el.isVisible())) continue;
+      boxes.push({ name, box: (await el.boundingBox())! });
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, b] = [boxes[i]!, boxes[j]!];
+        expect(overlaps(a.box, b.box), `${what}: ${a.name} ${JSON.stringify(a.box)} and ${b.name} ${JSON.stringify(b.box)} overlap`).toBe(false);
       }
-      await page.mouse.move(size.width / 2, 5);
-      const visible = async (): Promise<Array<{ name: string; box: Box }>> => {
-        const out: Array<{ name: string; box: Box }> = [];
-        for (const name of ['.stats', '.legend', '.search', '.list', '.detail', '.controls-buttons']) {
-          const el = page.locator(name).first();
-          if ((await el.count()) === 0 || !(await el.isVisible())) continue;
-          out.push({ name, box: (await el.boundingBox())! });
-        }
-        return out;
-      };
-      const noOverlaps = async (what: string): Promise<void> => {
-        const boxes = await visible();
-        for (let i = 0; i < boxes.length; i++) {
-          for (let j = i + 1; j < boxes.length; j++) {
-            const [a, b] = [boxes[i]!, boxes[j]!];
-            expect(overlaps(a.box, b.box), `${what}: ${a.name} ${JSON.stringify(a.box)} and ${b.name} ${JSON.stringify(b.box)} overlap`).toBe(false);
-          }
-        }
-      };
-      await noOverlaps('every panel open, nothing selected');
+    }
+  }
 
-      // An item on the left half of the window: the details open on the right, and the legend folds to its header bar.
+  for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }, { width: 900, height: 700 }]) {
+    test(`at ${size.width} × ${size.height}: every panel starts collapsed`, async ({ page }) => {
+      await openScene(page, 'demo.oikosledger', size);
+      for (const name of Object.keys(TOGGLES) as PanelName[]) expect(await isOpen(page, name), `${name} starts collapsed`).toBe(false);
+      await expect(page.locator('.controls-help')).toHaveCount(0);
+      await noOverlaps(page, 'on launch');
+    });
+
+    test(`at ${size.width} × ${size.height}: opening a panel closes any open panel it overlaps, and no two panels ever overlap, the Controls panel and the details included`, async ({ page }) => {
+      await openScene(page, 'demo.oikosledger', size);
+      await page.mouse.move(size.width / 2, 5);
+      // Open each in turn: after each, it is open, and whatever it overlapped has closed.
+      for (const name of ['stats', 'legend', 'list', 'controls', 'stats', 'list'] as PanelName[]) {
+        await openPanel(page, name);
+        expect(await isOpen(page, name), `${name} stays open after opening`).toBe(true);
+        await noOverlaps(page, `after opening ${name}`);
+      }
+      // The Controls panel and the list share the bottom left: opening the Controls closes the list, at every size.
+      await openPanel(page, 'list');
+      await openPanel(page, 'controls');
+      expect(await isOpen(page, 'list'), 'the list closed as the Controls opened').toBe(false);
+      await noOverlaps(page, 'the Controls opened over the list');
+
+      // The details close what they overlap on their side, and closing them reopens nothing.
       const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
       const inView = points.filter((x) => x.at && x.at.x > 0 && x.at.x < size.width && x.at.y > 0 && x.at.y < size.height) as Array<{ p: string; at: { x: number; y: number } }>;
       const leftItem = inView.reduce((a, b) => (b.at.x < a.at.x ? b : a));
       const rightItem = inView.reduce((a, b) => (b.at.x > a.at.x ? b : a));
-      for (const [label, item, side, folded] of [
-        ['left', leftItem, 'right', ['.legend']],
-        ['right', rightItem, 'left', ['.stats', '.list']],
+      for (const [label, item, side, there] of [
+        ['left', leftItem, 'right', ['legend']],
+        ['right', rightItem, 'left', ['stats', 'list', 'controls']],
       ] as const) {
-        // What was open before: it comes back exactly so (at 1280 × 720 the list's opening has folded the stats panel already).
-        const before = await Promise.all(folded.map((panel) => page.locator(`${panel} .panel-toggle`).getAttribute('aria-expanded')));
+        for (const name of there) await openPanel(page, name);
         await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), item.p);
         await expect(page.locator('.detail')).toHaveClass(new RegExp(`detail-${side}`));
-        for (const panel of folded) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', 'false');
-        await page.waitForTimeout(900); // a nudge, if any, has landed
-        await noOverlaps(`an item on the ${label}, the details on the ${side}`);
-        // Closing the details brings back what was open.
+        await page.waitForTimeout(900); // a nudge, if any, has landed, and the rule has settled
+        await noOverlaps(page, `an item on the ${label}, the details on the ${side}`);
+        const after = await Promise.all(there.map((n) => isOpen(page, n)));
         await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
-        for (const [i, panel] of folded.entries()) await expect(page.locator(`${panel} .panel-toggle`)).toHaveAttribute('aria-expanded', before[i]!);
-        await noOverlaps(`the details closed after the ${label} item`);
+        await page.waitForTimeout(300);
+        expect(await Promise.all(there.map((n) => isOpen(page, n))), 'closing the details reopens nothing').toEqual(after);
+        await noOverlaps(page, `the details closed after the ${label} item`);
       }
     });
   }
 
-  test('the list shows its rows again after the details folded it, from the top, in sort order', async ({ page }) => {
+  test('the list shows its rows from the top when it opens again after the details closed it', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.locator('.list .panel-toggle').click();
     const rowsBox = page.getByRole('listbox', { name: 'Files and ghosts' });
     const firstName = sortRows(buildRows(oikos), 'decay')[0]!.name;
-    // A stone on the right half: the details open on the left and fold the list (which has just scrolled to that stone's row).
     const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
     const right = (points.filter((x) => x.at && x.at.x < 1280 && x.at.y > 0 && x.at.y < 720) as Array<{ p: string; at: { x: number; y: number } }>).reduce((a, b) => (b.at.x > a.at.x ? b : a));
     await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), right.p);
     await expect(page.locator('.detail')).toHaveClass(/detail-left/);
-    await expect(rowsBox).toHaveCount(0);
-    const showsRowsFromTheTop = async (what: string): Promise<void> => {
-      await expect(rowsBox, what).toBeVisible();
-      const rows = rowsBox.locator('[role=option]');
-      await expect.poll(() => rows.count(), { message: `${what}: rows drawn` }).toBeGreaterThan(5);
-      const first = rows.first();
-      await expect(first.locator('.list-name'), `${what}: the first row is first in sort order`).toHaveText(firstName);
-      const [box, row] = [(await rowsBox.boundingBox())!, (await first.boundingBox())!];
-      expect(row.y >= box.y - 1 && row.y + row.height <= box.y + box.height + 1, `${what}: the first row is in view`).toBe(true);
-    };
-    // Closing the details brings the list back.
+    await expect(rowsBox).toHaveCount(0); // the details, on the left, closed the list
     await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
-    await showsRowsFromTheTop('back after the details closed');
-    // And closing and opening it again.
+    await expect(rowsBox).toHaveCount(0); // and closing them doesn't reopen it
     await page.locator('.list .panel-toggle').click();
-    await page.locator('.list .panel-toggle').click();
-    await showsRowsFromTheTop('opened again');
+    await expect(rowsBox).toBeVisible();
+    const rows = rowsBox.locator('[role=option]');
+    await expect.poll(() => rows.count(), { message: 'rows drawn' }).toBeGreaterThan(5);
+    await expect(rows.first().locator('.list-name')).toHaveText(firstName);
   });
 
-  test('at 1280 × 720 the stats panel folds as the list opens, so the list has room for at least 8 rows; at 1920 × 1080 both stay open', async ({ page }) => {
+  test('at 1280 × 720 opening the list closes the open stats panel and the list has room for 8 rows; at 1920 × 1080 both stay open', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.locator('.stats .panel-toggle').click();
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
     await page.locator('.list .panel-toggle').click();
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'false');
-    // The list fits itself again once the stats panel has folded.
     const listbox = page.getByRole('listbox', { name: 'Files and ghosts' });
     await expect.poll(async () => (await listbox.boundingBox())!.height / 30, { message: 'rows the list has room for', timeout: 3000 }).toBeGreaterThanOrEqual(8);
 
     await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
+    await page.locator('.stats .panel-toggle').click();
+    await page.locator('.list .panel-toggle').click();
+    await page.waitForTimeout(300);
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('.list .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
   });
 
-  test('the legend\'s header, folded under the details, brings the legend back and closes the details', async ({ page }) => {
+  test('list rows cut the name and folder with an ellipsis before the tags, never under them', async ({ page }) => {
+    await openScene(page, 'demo.oikosledger');
+    await page.locator('.list .panel-toggle').click();
+    const rows = page.getByRole('listbox', { name: 'Files and ghosts' }).locator('[role=option]');
+    await expect.poll(() => rows.count()).toBeGreaterThan(5);
+    const problems = await rows.evaluateAll((els) =>
+      els.flatMap((row) => {
+        const r = (sel: string) => row.querySelector(sel)?.getBoundingClientRect();
+        const [name, folder, marks, box] = [r('.list-name'), r('.list-folder'), r('.list-marks'), row.getBoundingClientRect()];
+        const out: string[] = [];
+        if (name && marks && name.right > marks.left + 0.5) out.push(`name under tags: ${row.textContent}`);
+        if (folder && marks && folder.width > 0 && folder.right > marks.left + 0.5) out.push(`folder under tags: ${row.textContent}`);
+        if (marks && marks.right > box.right + 0.5) out.push(`tags cut off: ${row.textContent}`);
+        return out;
+      }),
+    );
+    expect(problems).toEqual([]);
+  });
+
+  test('opening the legend over the details closes the details (the panel rule, the other way round)', async ({ page }) => {
     await openScene(page, 'demo.oikosledger');
     await page.locator('.legend .panel-toggle').click();
     const at = await pointAt(page, 'app/components/voice/index.ts');

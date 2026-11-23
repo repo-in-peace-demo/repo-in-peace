@@ -5,6 +5,7 @@ import { nudgeNeeded, panelSide, type Side } from '../model/panel-placement';
 import type { SceneModel } from '../model/scene-model';
 import { isFlying, nudge, screenBoxOf } from '../scene/api';
 import { setDetailSide } from '../store/detail-side-store';
+import { registerPanel, setDetailCloser, setPanelOpen, settleSoon } from '../store/panels-store';
 import { clearSelection, useSelection } from '../store/selection-store';
 import { PrAction, type PrContext } from './PrAction';
 
@@ -15,8 +16,8 @@ const PATH_CHARS = 44;
  * The selected stone or ghost, in words (interface spec, Req 4): what it is, why it looks as it does, its eulogy, and Bury or
  * Resurrect (bury-and-resurrect spec, PrAction.tsx). Opens on any selection (scene, list, search) and closes when the selection is cleared (×, Escape,
  * an empty-ground click). It sits on the side of the window away from the selected item, and moves the picture sideways only if it
- * would still cover it. One panel per side: while it is open, the other panels on its side fold to their header bar (the legend on
- * the right; the stats panel and the list on the left), and they come back as they were when it closes. Everything from the data
+ * would still cover it. When it settles on its side it closes any open panel it overlaps (store/panels-store.ts); closing it doesn't
+ * reopen them. Everything from the data
  * file is put on the page as text.
  */
 export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext }) {
@@ -25,6 +26,13 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
   // Set once the side has been worked out for the current selection: the nudge waits for it (it must measure the panel on its side).
   const [placed, setPlaced] = useState(0);
   const panel = useRef<HTMLElement>(null);
+
+  // The detail panel takes part in the panel rule: open while a grave is selected; when it settles on its side it closes the panels it
+  // overlaps, and a panel opened later that overlaps it closes it (clears the selection). It never reopens what it closed.
+  useEffect(() => {
+    setDetailCloser(() => clearSelection());
+    return registerPanel('detail', () => panel.current);
+  }, []);
 
   const found = selection ? model.lookup.get(selection.path) : undefined;
   const item = found && selection && found.kind === selection.kind ? found : undefined;
@@ -70,12 +78,22 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
     return () => cancelAnimationFrame(frame);
   }, [placed]); // after each placement, with the panel already on its side
 
-  // One panel per side: the panels on this side fold to their header bar while this one is open, and come back when it closes.
   const shownOn = item ? side : null;
   useEffect(() => {
     setDetailSide(shownOn);
+    setPanelOpen('detail', shownOn !== null);
   }, [shownOn]);
-  useEffect(() => () => setDetailSide(null), []);
+  // Each time it is placed on its side (a new selection, a resize), it closes whatever open panel it overlaps there.
+  useEffect(() => {
+    if (placed > 0 && item) settleSoon('detail');
+  }, [placed]);
+  useEffect(
+    () => () => {
+      setDetailSide(null);
+      setPanelOpen('detail', false);
+    },
+    [],
+  );
 
   if (!item || !selection) return null;
   const meta = model.graveyard.meta;

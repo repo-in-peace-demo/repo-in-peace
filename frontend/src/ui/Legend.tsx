@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import { currentWindowWidth, panelsStartOpen } from '../model/panel-layout';
-import { useYieldsTo } from '../store/detail-side-store';
-import { clearSelection } from '../store/selection-store';
+import { useEffect, useRef } from 'react';
+import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
 import type { Legend as LegendModel } from '../model/legend';
 import { overridesOf, prLegendLines } from '../model/pr-scene';
 import type { SceneModel } from '../model/scene-model';
@@ -16,18 +14,14 @@ export function Legend({ legend, lookup }: { legend: LegendModel; lookup: SceneM
   // What this session's pull requests show in the scene, while any is shown (bury-and-resurrect Req 10.6).
   const { prs } = usePrSession();
   const prLines = prLegendLines(overridesOf({ lookup }, prs));
-  const [open, setOpen] = useState(() => panelsStartOpen(currentWindowWidth())); // collapsed on a narrow window, so the opening shot is clear
-  // While the detail panel is on the right, the legend shows only its header bar; its own open state is kept for when it closes.
-  const yielded = useYieldsTo('right');
-  const shown = open && !yielded;
+  // Collapsed on launch; opening it closes any open panel it overlaps (store/panels-store.ts).
+  const shown = usePanelOpen('legend');
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => registerPanel('legend', () => root.current), []);
   return (
-    <section className="legend" aria-label="Legend">
-      <button type="button" className="panel-toggle" aria-expanded={shown} aria-controls="legend-body" title={yielded ? 'Close the details and show the legend' : undefined} onClick={(event) => {
-        // With the details open on this side, the header brings the legend back: it closes the details (one panel per side).
-        if (yielded) {
-          clearSelection();
-          setOpen(true);
-        } else setOpen((o) => !o);
+    <section ref={root} className="legend" aria-label="Legend">
+      <button type="button" className="panel-toggle" aria-expanded={shown} aria-controls="legend-body" onClick={(event) => {
+        togglePanel('legend');
         event.currentTarget.blur(); // give the keyboard back to the scene
       }}>
         <span>Legend</span>
