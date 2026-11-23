@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 
 /**
  * Which panels are open, and the one rule that keeps them readable (panel rules, revised): every panel starts collapsed, and
@@ -12,6 +12,10 @@ import { useSyncExternalStore } from 'react';
 export type PanelId = 'stats' | 'legend' | 'list' | 'controls' | 'detail';
 
 let open: ReadonlySet<PanelId> = new Set();
+/** When each open panel was opened, as a counter: a panel only ever closes panels opened before it, so a late check can't close a
+ * panel opened after it (found when slow frames delayed the list's check past the detail panel's opening). */
+const openedAt = new Map<PanelId, number>();
+let counter = 0;
 const elements = new Map<PanelId, () => Element | null>();
 const listeners = new Set<() => void>();
 /** How to close the detail panel (clear the selection); set by DetailPanel. */
@@ -26,11 +30,15 @@ export const isPanelOpen = (id: PanelId): boolean => open.has(id);
 export function setPanelOpen(id: PanelId, next: boolean): void {
   if (open.has(id) === next) return;
   const s = new Set(open);
-  if (next) s.add(id);
-  else s.delete(id);
+  if (next) {
+    s.add(id);
+    openedAt.set(id, ++counter);
+  } else {
+    s.delete(id);
+    openedAt.delete(id);
+  }
   open = s;
   notify();
-  if (next) settleSoon(id);
 }
 
 export const togglePanel = (id: PanelId): void => setPanelOpen(id, !open.has(id));
@@ -39,6 +47,7 @@ export const togglePanel = (id: PanelId): void => setPanelOpen(id, !open.has(id)
 export function resetPanels(): void {
   if (open.size === 0) return;
   open = new Set();
+  openedAt.clear();
   notify();
 }
 
@@ -63,8 +72,9 @@ export function settle(id: PanelId): void {
   if (!mine) return;
   const box = mine.getBoundingClientRect();
   if (box.width === 0 || box.height === 0) return;
+  const mineAt = openedAt.get(id) ?? 0;
   for (const other of [...open]) {
-    if (other === id) continue;
+    if (other === id || (openedAt.get(other) ?? 0) > mineAt) continue;
     const el = elements.get(other)?.();
     if (!el) continue;
     if (!rectsOverlap(box, el.getBoundingClientRect())) continue;
@@ -77,6 +87,18 @@ export function settle(id: PanelId): void {
 export function settleSoon(id: PanelId): void {
   if (typeof requestAnimationFrame === 'undefined') return settle(id);
   requestAnimationFrame(() => requestAnimationFrame(() => settle(id)));
+}
+
+/**
+ * A panel's part in the rule: once it has opened and been laid out (a layout effect: before the page is painted), it closes what it
+ * overlaps. `deferred` waits two frames instead, for a panel that first fits itself around the others (the list).
+ */
+export function useSettleOnOpen(id: PanelId, isOpen: boolean, deferred = false): void {
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    if (deferred) settleSoon(id);
+    else settle(id);
+  }, [id, isOpen, deferred]);
 }
 
 export function subscribePanels(listener: () => void): () => void {

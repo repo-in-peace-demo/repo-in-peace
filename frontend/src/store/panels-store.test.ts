@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-// Without requestAnimationFrame (Node) a panel settles as soon as it opens.
-import { isPanelOpen, rectsOverlap, registerPanel, resetPanels, setDetailCloser, setPanelOpen } from './panels-store';
+// Each panel calls settle once it is laid out (useSettleOnOpen); here the tests call it.
+import { isPanelOpen, rectsOverlap, registerPanel, resetPanels, setDetailCloser, setPanelOpen, settle } from './panels-store';
 
 const box = (left: number, top: number, w: number, h: number) => ({ getBoundingClientRect: () => ({ left, top, right: left + w, bottom: top + h, width: w, height: h }) }) as unknown as Element;
 const stops: Array<() => void> = [];
@@ -21,8 +21,10 @@ describe('the panel rule', () => {
     setPanelOpen('stats', true);
     setPanelOpen('legend', true);
     setPanelOpen('list', true);
+    settle('list');
     expect([isPanelOpen('stats'), isPanelOpen('list'), isPanelOpen('legend')]).toEqual([false, true, true]);
     setPanelOpen('stats', true);
+    settle('stats');
     expect([isPanelOpen('stats'), isPanelOpen('list')]).toEqual([true, false]);
   });
 
@@ -33,10 +35,26 @@ describe('the panel rule', () => {
     stops.push(registerPanel('legend', () => box(900, 0, 300, 400)));
     setPanelOpen('detail', true);
     setPanelOpen('legend', true);
+    settle('legend');
     expect(closed).toBe(1);
     setPanelOpen('legend', false);
     setPanelOpen('detail', true);
+    settle('detail');
     expect(isPanelOpen('legend')).toBe(false);
+  });
+
+  it('never closes a panel opened after it, however late its own check runs', () => {
+    let closed = 0;
+    setDetailCloser(() => closed++);
+    stops.push(registerPanel('list', () => box(0, 60, 320, 600)));
+    stops.push(registerPanel('detail', () => box(0, 64, 340, 480)));
+    setPanelOpen('list', true);
+    setPanelOpen('detail', true); // the details open before the list's (delayed) check
+    settle('list');
+    expect(closed).toBe(0);
+    expect(isPanelOpen('list')).toBe(true);
+    settle('detail');
+    expect(isPanelOpen('list')).toBe(false);
   });
 
   it('counts edges that only touch as not overlapping', () => {

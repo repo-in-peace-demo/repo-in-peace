@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
+import { registerPanel, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import type { Legend as LegendModel } from '../model/legend';
 import { overridesOf, prLegendLines } from '../model/pr-scene';
 import type { SceneModel } from '../model/scene-model';
@@ -18,6 +18,7 @@ export function Legend({ legend, lookup }: { legend: LegendModel; lookup: SceneM
   const shown = usePanelOpen('legend');
   const root = useRef<HTMLElement>(null);
   useEffect(() => registerPanel('legend', () => root.current), []);
+  useSettleOnOpen('legend', shown);
   return (
     <section ref={root} className="legend" aria-label="Legend">
       <button type="button" className="panel-toggle" aria-expanded={shown} aria-controls="legend-body" onClick={(event) => {

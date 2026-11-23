@@ -1,6 +1,6 @@
 import type { RepoMeta } from '@shared/graveyard-schema';
 import { useEffect, useRef } from 'react';
-import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
+import { registerPanel, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import { statsHeading, statsLayout } from '../model/overlay-text';
 import type { Stats } from '../model/stats';
 
@@ -14,6 +14,7 @@ export function StatsPanel({ meta, stats }: { meta: RepoMeta; stats: Stats }) {
   const shown = usePanelOpen('stats');
   const root = useRef<HTMLElement>(null);
   useEffect(() => registerPanel('stats', () => root.current), []);
+  useSettleOnOpen('stats', shown);
   const heading = statsHeading(meta);
   const layout = statsLayout(stats, meta);
   return (

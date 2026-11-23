@@ -5,7 +5,7 @@ import { nudgeNeeded, panelSide, type Side } from '../model/panel-placement';
 import type { SceneModel } from '../model/scene-model';
 import { isFlying, nudge, screenBoxOf } from '../scene/api';
 import { setDetailSide } from '../store/detail-side-store';
-import { registerPanel, setDetailCloser, setPanelOpen, settleSoon } from '../store/panels-store';
+import { registerPanel, setDetailCloser, setPanelOpen, settle } from '../store/panels-store';
 import { clearSelection, useSelection } from '../store/selection-store';
 import { PrAction, type PrContext } from './PrAction';
 
@@ -85,7 +85,7 @@ export function DetailPanel({ model, pr }: { model: SceneModel; pr: PrContext })
   }, [shownOn]);
   // Each time it is placed on its side (a new selection, a resize), it closes whatever open panel it overlaps there.
   useEffect(() => {
-    if (placed > 0 && item) settleSoon('detail');
+    if (placed > 0 && item) settle('detail');
   }, [placed]);
   useEffect(
     () => () => {

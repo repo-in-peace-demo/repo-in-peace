@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { OWNS_KEYS_ATTRIBUTE } from '../model/fly-controls';
 import { FACT_NAMES, factNameOne } from '../model/grave-facts';
 import { FLAGS, KINDS, buildRows, filterRows, highlightedIndex, sortRows, type Flag, type Kind, type Row, type SortKey } from '../model/list-rows';
-import { registerPanel, togglePanel, usePanelOpen } from '../store/panels-store';
+import { registerPanel, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import type { SceneModel } from '../model/scene-model';
 import { scrollToShow, visibleRange } from '../model/virtual-window';
 import { flyTo } from '../scene/api';
@@ -50,6 +50,8 @@ export function ListView({ model }: { model: SceneModel }) {
   const [bodyHeight, setBodyHeight] = useState<number | null>(null);
   const selection = useSelection();
   useEffect(() => registerPanel('list', () => aside.current), []);
+  // Deferred: it first fits itself below the stats panel (or keeps room for 8 rows and overlaps it), then the rule is applied.
+  useSettleOnOpen('list', open, true);
 
   const all = useMemo(() => buildRows(model.graveyard), [model]);
   const { prs } = usePrSession();
@@ -89,8 +91,10 @@ export function ListView({ model }: { model: SceneModel }) {
       const cssDefault = Math.max(12 * rem, window.innerHeight - 18 * rem); // as in index.css; the measured room keeps it below the stats
       const limit = (stats ? stats.getBoundingClientRect().bottom : 0) + 8;
       const room = el.getBoundingClientRect().bottom - limit - (toggleButton.current?.offsetHeight ?? 0);
-      // Never below 8rem: on a short window with the stats open, the list overlays it rather than vanish.
-      setBodyHeight(Math.max(8 * rem, Math.min(cssDefault, room)));
+      // Never less than room for LIST_MIN_ROWS rows: on a short window with the stats open the list overlaps it, and the panel rule
+      // closes the stats panel (the list then fits again in the room that leaves).
+      const tools = (scroller.current?.offsetTop ?? 0) - (scroller.current?.parentElement?.offsetTop ?? 0);
+      setBodyHeight(Math.max(8 * rem, tools + LIST_MIN_ROWS * ROW_HEIGHT, Math.min(cssDefault, room)));
       return room;
     };
     // On a short window with the stats panel open, the list keeps its least height and overlaps it; the panel rule then closes the

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { registerPanel, setPanelOpen, togglePanel, usePanelOpen } from '../store/panels-store';
+import { registerPanel, setPanelOpen, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import { CONTROL_GROUPS } from '../model/controls-help';
 import { ownsKeys } from '../model/fly-controls';
 import { shortcutFor } from '../model/shortcuts';
@@ -14,6 +14,7 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
   const helpOpen = usePanelOpen('controls');
   const help = useRef<HTMLElement>(null);
   useEffect(() => registerPanel('controls', () => help.current), []);
+  useSettleOnOpen('controls', helpOpen);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {

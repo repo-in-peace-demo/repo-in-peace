@@ -354,21 +354,27 @@ test.describe('layout and access', () => {
   async function openPanel(page: Page, name: PanelName): Promise<void> {
     if (!(await isOpen(page, name))) await page.locator(TOGGLES[name]).click();
     await expect(page.locator(TOGGLES[name])).toHaveAttribute('aria-expanded', 'true');
-    await page.waitForTimeout(250); // the rule settles two frames after a panel opens
   }
-  async function noOverlaps(page: Page, what: string): Promise<void> {
+  /** The first two panels that overlap now, or '' when none do. */
+  async function firstOverlap(page: Page): Promise<string> {
     const boxes: Array<{ name: string; box: Box }> = [];
     for (const name of PANEL_PARTS) {
       const el = page.locator(name).first();
       if ((await el.count()) === 0 || !(await el.isVisible())) continue;
-      boxes.push({ name, box: (await el.boundingBox())! });
+      const box = await el.boundingBox();
+      if (box) boxes.push({ name, box });
     }
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         const [a, b] = [boxes[i]!, boxes[j]!];
-        expect(overlaps(a.box, b.box), `${what}: ${a.name} ${JSON.stringify(a.box)} and ${b.name} ${JSON.stringify(b.box)} overlap`).toBe(false);
+        if (overlaps(a.box, b.box)) return `${a.name} ${JSON.stringify(a.box)} and ${b.name} ${JSON.stringify(b.box)} overlap`;
       }
     }
+    return '';
+  }
+  /** Once the panels have settled (the list's check waits two frames, which can be slow with software rendering), nothing overlaps. */
+  async function noOverlaps(page: Page, what: string): Promise<void> {
+    await expect.poll(() => firstOverlap(page), { message: what, timeout: 5000 }).toBe('');
   }
 
   for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }, { width: 900, height: 700 }]) {
@@ -406,8 +412,9 @@ test.describe('layout and access', () => {
         for (const name of there) await openPanel(page, name);
         await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), item.p);
         await expect(page.locator('.detail')).toHaveClass(new RegExp(`detail-${side}`));
-        await page.waitForTimeout(900); // a nudge, if any, has landed, and the rule has settled
+        await page.waitForTimeout(900); // a nudge, if any, has landed
         await noOverlaps(page, `an item on the ${label}, the details on the ${side}`);
+        await expect(page.locator('.detail'), 'the details stay open: panels opened before them never close them').toBeVisible();
         const after = await Promise.all(there.map((n) => isOpen(page, n)));
         await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
         await page.waitForTimeout(300);
@@ -421,12 +428,14 @@ test.describe('layout and access', () => {
     await openScene(page, 'demo.oikosledger');
     await page.locator('.list .panel-toggle').click();
     const rowsBox = page.getByRole('listbox', { name: 'Files and ghosts' });
+    await expect(rowsBox).toBeVisible();
     const firstName = sortRows(buildRows(oikos), 'decay')[0]!.name;
     const points = await page.evaluate((paths) => paths.map((p) => ({ p, at: window.repoInPeace!.getScreenPoint(p) })), oikos.files.map((f) => f.path));
     const right = (points.filter((x) => x.at && x.at.x < 1280 && x.at.y > 0 && x.at.y < 720) as Array<{ p: string; at: { x: number; y: number } }>).reduce((a, b) => (b.at.x > a.at.x ? b : a));
     await page.evaluate((p) => window.repoInPeace!.select({ kind: 'file', path: p }), right.p);
     await expect(page.locator('.detail')).toHaveClass(/detail-left/);
     await expect(rowsBox).toHaveCount(0); // the details, on the left, closed the list
+    await expect(page.locator('.detail')).toBeVisible(); // and the list's own (later) check did not close the details
     await page.locator('.detail').getByRole('button', { name: 'Close' }).click();
     await expect(rowsBox).toHaveCount(0); // and closing them doesn't reopen it
     await page.locator('.list .panel-toggle').click();
@@ -448,7 +457,7 @@ test.describe('layout and access', () => {
     await openScene(page, 'demo.oikosledger', { width: 1920, height: 1080 });
     await page.locator('.stats .panel-toggle').click();
     await page.locator('.list .panel-toggle').click();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1500); // the list's check waits two frames
     await expect(page.locator('.stats .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('.list .panel-toggle')).toHaveAttribute('aria-expanded', 'true');
   });
