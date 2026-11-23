@@ -15,9 +15,9 @@ Status key: `[x]` done, `[ ]` not started.
   - [x] 1.2 **Examples:** every form; type-only variants; comments and strings ignored; JS, JSX, TSX, MJS, CJS.
   - _Requirements: 1_
 
-- [ ] 2. The graph (`core/import-graph.ts`)
-  - [ ] 2.1 `buildEdges` (self-imports dropped, pairs merged, type-only only when every edge is) and `importedByOf` (every file a sorted list).
-  - [ ] 2.2 **P1** and **P4 (pure)** on random graphs.
+- [x] 2. The graph (`core/import-graph.ts`)
+  - [x] 2.1 `buildEdges` (self-imports dropped, pairs merged, type-only only when every edge is) and `importedByOf` (every file a sorted list).
+  - [x] 2.2 **P1** and **P4 (pure)** on random graphs.
   - _Requirements: 2.4, 4.1_
 
 - [ ] 3. Entry points (`core/entry-points.ts`)
