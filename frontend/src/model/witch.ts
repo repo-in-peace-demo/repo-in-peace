@@ -39,6 +39,8 @@ export interface WitchState {
   progress: number;
   /** 0 to 1: faded in at the start, out at the end (smoothly: never a jump). */
   opacity: number;
+  /** Seconds into the pass. */
+  elapsed: number;
 }
 
 const smooth = (t: number): number => {
@@ -74,7 +76,7 @@ export function witchAt(seconds: number, firstStart: number, reducedMotion: bool
   if (u > 1) return null;
   const at = arcAt(u);
   const elapsed = seconds - start;
-  return { azimuthDeg: at.azimuthDeg, elevationDeg: at.elevationDeg + BOB_DEG * Math.sin((2 * Math.PI * elapsed) / BOB_PERIOD_S), progress: u, opacity: passOpacity(elapsed) };
+  return { azimuthDeg: at.azimuthDeg, elevationDeg: at.elevationDeg + BOB_DEG * Math.sin((2 * Math.PI * elapsed) / BOB_PERIOD_S), progress: u, opacity: passOpacity(elapsed), elapsed };
 }
 
 /** When the first pass starts: as the opening move settles, or just after the scene opens without one. */

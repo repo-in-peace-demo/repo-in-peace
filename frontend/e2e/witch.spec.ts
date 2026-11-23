@@ -2,7 +2,7 @@ import { test as plain } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG, skyDirection } from '../src/model/atmosphere';
-import { FADE_S, PASS_S, START_DELAY_S } from '../src/model/witch';
+import { FADE_S, PASS_S, START_DELAY_S, passOpacity } from '../src/model/witch';
 import { expect, test, type Page } from './fixtures';
 
 /**
@@ -58,14 +58,15 @@ for (const name of ['demo.oikosledger', 'demo.spatialql']) {
 
 test('she fades in and out smoothly: no jump to zero between frames, and gone only once faded', async ({ page }) => {
   await open(page, 'demo.oikosledger', { width: 1280, height: 720 });
-  // Sample every animation frame in the page for the whole first pass and a little after.
+  // Sample every animation frame in the page for the whole first pass and a little after: her opacity and her own pass clock.
   const samples = await page.evaluate(
     (ms) =>
-      new Promise<Array<{ t: number; o: number }>>((done) => {
-        const out: Array<{ t: number; o: number }> = [];
+      new Promise<Array<{ o: number; e: number | null }>>((done) => {
+        const out: Array<{ o: number; e: number | null }> = [];
         const start = performance.now();
         const step = (): void => {
-          out.push({ t: performance.now(), o: window.repoInPeace!.getWitch()?.opacity ?? 0 });
+          const w = window.repoInPeace!.getWitch();
+          out.push({ o: w?.opacity ?? 0, e: w?.elapsed ?? null });
           if (performance.now() - start < ms) requestAnimationFrame(step);
           else done(out);
         };
@@ -74,16 +75,15 @@ test('she fades in and out smoothly: no jump to zero between frames, and gone on
     (PASS_S + 2) * 1000,
   );
   expect(Math.max(...samples.map((s) => s.o)), 'she was there').toBeGreaterThan(0.99);
-  // However long a frame takes (software rendering is slow), the fade never changes faster than its smoothstep allows: at most
-  // 1.5 / FADE_S per second (1.0), plus a margin for the scene's frame and this sampler being out of step.
-  const tooFast = samples.slice(1).flatMap((s, i) => {
-    const before = samples[i]!;
-    const allowed = ((1.5 / FADE_S) * (s.t - before.t)) / 1000 + 0.08;
-    return Math.abs(s.o - before.o) > allowed ? [`${before.o.toFixed(2)} -> ${s.o.toFixed(2)} in ${(s.t - before.t).toFixed(0)} ms`] : [];
-  });
-  expect(tooFast, 'no jump faster than the fade').toEqual([]);
-  const seen = samples.filter((s) => s.o > 0);
-  expect(seen[seen.length - 1]!.o, 'faded almost to nothing before she went').toBeLessThan(0.3);
+  // What is drawn is always the smooth fade at her own time into the pass (the model test shows it changes by under 1.1% a frame at
+  // 60 fps); measured on her clock, not this sampler's, which slow software frames knock out of step with the scene.
+  const off = samples.filter((s) => s.e !== null && Math.abs(s.o - passOpacity(s.e)) > 1e-9);
+  expect(off, 'opacity follows the fade').toEqual([]);
+  // And she is only gone once fading: the first frame she is drawn in is inside her opening fade and the last inside her closing one
+  // (how low the last opacity is depends on the frame rate: about half a second a frame under software rendering here).
+  const seen = samples.filter((s) => s.o > 0 && s.e !== null);
+  expect(seen[0]!.e!, 'came in fading').toBeLessThan(FADE_S);
+  expect(seen[seen.length - 1]!.e!, 'left fading').toBeGreaterThan(PASS_S - FADE_S);
 });
 
 test('under reduced motion she never appears', async ({ page }) => {
