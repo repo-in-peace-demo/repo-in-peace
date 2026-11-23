@@ -15,12 +15,12 @@ import { currentOverrides, frameOf } from './pr-overrides';
  * Four instanced meshes (mounds, posts, plates, glyphs) with room for every unused stone and every ghost, all hidden until needed; only
  * the overridden instances are written, each frame while they rise.
  */
-const POST_W = 0.06;
-const GLYPH_W = 0.07;
-const GLYPH_H = 0.13;
+const POST_W = 0.07;
+const GLYPH_W = 0.105;
+const GLYPH_H = 0.2;
 /** Revised after review: wood tones for the stake and the plaque (the plate was grey-blue under the moonlight), burnt-in letters. */
 const STAKE_WOOD = '#6b4a2c';
-const PLAQUE_WOOD = '#a47a4c';
+const PLAQUE_WOOD = '#c09060';
 
 const GLYPH_VERTEX = /* glsl */ `
 attribute float aGlyph;

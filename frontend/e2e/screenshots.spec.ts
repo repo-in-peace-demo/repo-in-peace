@@ -330,7 +330,15 @@ test.describe('screenshots to judge by eye', () => {
       await panel.getByRole('button', { name: 'Open pull request' }).click();
       await panel.getByRole('link', { name: /^Pull request #\d+/ }).waitFor();
       await page.waitForTimeout(2200);
+      // Close up: the camera a few units in front of the grave and above it, looking at its middle (with the panel closed).
+      const at = buildSceneModel(g).lookup.get(path)!;
+      const slot = kind === 'file' ? buildSceneModel(g).stones[at.index]!.layout : buildSceneModel(g).ghosts[at.index]!.layout;
+      await page.evaluate((s) => {
+        window.repoInPeace!.clearSelection();
+        window.repoInPeace!.setPose({ position: { x: s.x + 0.6, y: 2.4, z: s.z + 3.6 }, target: { x: s.x, y: 0.3, z: s.z } });
+      }, { x: slot.x, z: slot.z });
       await page.mouse.move(640, 8);
+      await page.waitForTimeout(800);
       await page.screenshot({ path: `${OUT}${file}.png` });
       // The same from the default view, with the details closed: how it reads among the other graves.
       await page.evaluate(() => {

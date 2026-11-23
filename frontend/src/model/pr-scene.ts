@@ -39,13 +39,13 @@ export const SOLID_S = 0.3;
  * The fresh grave: narrower than the stone was wide, as long as the cell is deep (a grave lies lengthwise, front to back, where the
  * stone stood), and low. Changed after review: the first mound was a round brown dome.
  */
-export const MOUND_HALF_W = 0.42;
+export const MOUND_HALF_W = 0.55; // second review: 0.42 by 0.22 high read as a small dark block
 export const MOUND_HALF_D = 0.74;
-export const MOUND_H = 0.22;
+export const MOUND_H = 0.26;
 /** The stake, pushed into the head (the back, -z) of the grave, and its plaque, facing the front (+z), so it reads over the heap. */
-export const STAKE_H = 0.72;
-export const PLATE_W = 0.62;
-export const PLATE_H = 0.2;
+export const STAKE_H = 0.85;
+export const PLATE_W = 0.95; // second review: the 0.62 plaque could not be read close up
+export const PLATE_H = 0.3;
 /** "PR #" and up to four digits. */
 export const MAX_GLYPHS = 8;
 

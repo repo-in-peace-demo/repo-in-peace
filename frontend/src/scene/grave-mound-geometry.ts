@@ -8,7 +8,8 @@ import { MOUND_H, MOUND_HALF_D, MOUND_HALF_W } from '../model/pr-scene';
  * soil's shading varies per vertex (vertex colours), and the faces are flat-shaded, so it reads as turned earth, not a smooth dome.
  * Made once; the same shape for every grave. Deterministic: no Math.random.
  */
-const SOIL = new THREE.Color('#3a291b');
+// Second review: #3a291b read as a black hole under the moonlight; this stays darker than the grass but shows as soil.
+const SOIL = new THREE.Color('#6a4b30');
 
 /** A small fixed noise in [-1, 1] from a position (a hash of sines, as in many shaders). */
 const noise = (x: number, z: number, salt: number): number => {
@@ -22,7 +23,9 @@ function shade(geometry: THREE.BufferGeometry, salt: number): void {
   const colors = new Float32Array(position.count * 3);
   const c = new THREE.Color();
   for (let i = 0; i < position.count; i++) {
-    const k = 0.72 + 0.4 * (0.5 + 0.5 * noise(position.getX(i), position.getZ(i), salt + position.getY(i) * 3));
+    // Lighter on top (catching the moonlight), darker at the foot; noisy, so the soil looks turned.
+    const top = Math.min(1, position.getY(i) / MOUND_H);
+    const k = 0.6 + 0.35 * top + 0.35 * (0.5 + 0.5 * noise(position.getX(i), position.getZ(i), salt + position.getY(i) * 3));
     c.copy(SOIL).multiplyScalar(k);
     colors.set([c.r, c.g, c.b], i * 3);
   }
