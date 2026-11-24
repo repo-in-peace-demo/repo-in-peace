@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Graveyard } from '@shared/graveyard-schema';
-import { expect, test, type Page } from './fixtures';
+import { OPEN_PRS, expect, test, type Page } from './fixtures';
 import { risenHeight } from '../src/model/pr-scene';
 import { buildSceneModel } from '../src/model/scene-model';
 
@@ -57,7 +57,7 @@ test('Bury: confirmation naming the fork and path, then the fake pull request li
   await expect(page.locator(`[id="row-file-${encodeURIComponent(stone.path)}"]`)).toContainText(`PR #${number}`);
 });
 
-test('the same Bury after a reload says the pull request was already open', async ({ page }) => {
+test('when the open list says nothing (as when GitHub cannot be asked), the same Bury after a reload says the pull request was already open', async ({ page }) => {
   const stone = unused[1]!;
   await openScene(page, 'demo.oikosledger');
   await select(page, 'file', stone.path);
@@ -281,5 +281,72 @@ test.describe('while a pull request is being opened', () => {
     await page.unroute('**/api/pr');
     await panel(page).getByRole('button', { name: 'Try again' }).click();
     await expect(panel(page).getByRole('link', { name: /^Pull request #\d+ (opened|was already open)$/ })).toBeVisible();
+  });
+});
+
+test.describe('open pull requests are live: on load, their graves show it (Req 10.4)', () => {
+  const live = (page: Page) => page.unroute(OPEN_PRS); // ask the dev server's own list of its made-up pull requests
+
+  test('a reload after a Bury shows the mound and stake at once, without the gravedigger, and the panel says it is open', async ({ page }) => {
+    const stone = unused[8]!;
+    await openScene(page, 'demo.oikosledger'); // the list off, so the stone is offered whatever an earlier test did
+    await select(page, 'file', stone.path);
+    await panel(page).getByRole('button', { name: 'Bury' }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+    const href = await panel(page).getByRole('link', { name: /^Pull request #\d+/ }).getAttribute('href');
+    const number = href!.split('/').at(-1)!;
+
+    await live(page);
+    await openScene(page, 'demo.oikosledger'); // a reload
+    await expect.poll(() => page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path), { timeout: 5000 }).not.toBeNull();
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toEqual({ kind: 'buried', sink: 1, mound: 1, stake: 1 });
+    expect(await page.evaluate(() => window.repoInPeace!.getGravediggers())).toEqual([]);
+    await select(page, 'file', stone.path);
+    const link = panel(page).getByRole('link', { name: `Buried: PR #${number} is open` });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', href!);
+    await expect(panel(page).getByRole('button', { name: 'Bury' })).toHaveCount(0);
+  });
+
+  test('a reload after a Resurrect shows the restored stone at once, and the panel says it is open', async ({ page }) => {
+    const ghost = spatialql.ghosts[1]!;
+    await openScene(page, 'demo.spatialql'); // the list off, so the ghost is offered whatever an earlier test did
+    await select(page, 'ghost', ghost.path);
+    await panel(page).getByRole('button', { name: 'Resurrect' }).click();
+    await panel(page).getByRole('button', { name: 'Open pull request' }).click();
+    await expect(panel(page).getByRole('link', { name: /^Pull request #\d+/ })).toBeVisible();
+
+    await live(page);
+    await openScene(page, 'demo.spatialql');
+    await expect.poll(() => page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), ghost.path), { timeout: 5000 }).toMatchObject({ kind: 'risen', solid: 1, fade: 0 });
+    await select(page, 'ghost', ghost.path);
+    await expect(panel(page).getByRole('link', { name: /^Resurrected: PR #\d+ is open$/ })).toBeVisible();
+    await expect(panel(page).getByRole('button', { name: 'Resurrect' })).toHaveCount(0);
+  });
+
+  test('closed, merged or no pull requests: the graves are as the data file says', async ({ page }) => {
+    // The list holds only open pull requests (the server leaves closed and merged ones out): an empty list.
+    const stone = unused[9] ?? unused[0]!;
+    await openScene(page, 'demo.oikosledger');
+    await page.waitForTimeout(500);
+    expect(await page.evaluate((p) => window.repoInPeace!.getOverrideFrame(p), stone.path)).toBeNull();
+    await select(page, 'file', stone.path);
+    await expect(panel(page).getByRole('button', { name: 'Bury' })).toBeVisible();
+    // And the legend says which facts are live.
+    await page.evaluate(() => window.repoInPeace!.clearSelection());
+    const toggle = page.getByRole('region', { name: 'Legend' }).getByRole('button').first();
+    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+    await expect(page.getByRole('region', { name: 'Legend' })).toContainText('Facts are from the snapshot date; open pull requests are live.');
+  });
+
+  test('a malformed or failing list changes nothing', async ({ page }) => {
+    await page.route(OPEN_PRS, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ open: [{ action: 'delete', path: 1 }, 'x'] }) }));
+    await openScene(page, 'demo.oikosledger');
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.repoInPeace!.getPullRequests())).toEqual({});
+    await page.route(OPEN_PRS, (route) => route.fulfill({ status: 502, contentType: 'application/json', body: '{"error":"x"}' }));
+    await openScene(page, 'demo.oikosledger');
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.repoInPeace!.getPullRequests())).toEqual({});
   });
 });

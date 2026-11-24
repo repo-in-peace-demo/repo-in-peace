@@ -15,8 +15,10 @@ export interface PrRecord {
   url: string | null;
   existing: boolean;
   fake: boolean;
-  /** `performance.now()` when it was opened, for the scene's animation. */
+  /** `performance.now()` when it was opened, for the scene's animation; long ago for one found open on load, so it shows at its end. */
   openedAt: number;
+  /** Found open on GitHub when the scene loaded (not opened in this session): no animation, and the panel says it is open. */
+  found?: true;
 }
 export type PrRequestState = { state: 'confirming' } | { state: 'opening'; startedAt: number } | { state: 'error'; message: string };
 
@@ -39,6 +41,24 @@ export function subscribePrSession(listener: () => void): () => void {
   const entry = { listener };
   listeners.add(entry);
   return () => listeners.delete(entry);
+}
+
+/** When a pull request found open on load "was opened": long enough ago that every animation is at its end. */
+export const FOUND_OPENED_AT = -1e9;
+
+/** Pull requests found open on GitHub when the scene loaded: recorded at once, at their end, unless this session has one already. */
+export function recordFoundPrs(found: ReadonlyArray<{ kind: GraveKind; path: string; record: Omit<PrRecord, 'openedAt' | 'found'> }>): void {
+  const prs = new Map(session.prs);
+  let changed = false;
+  for (const { kind, path, record } of found) {
+    const key = graveKey(kind, path);
+    if (prs.has(key) || session.requests.has(key)) continue;
+    prs.set(key, Object.freeze({ ...record, openedAt: FOUND_OPENED_AT, found: true as const }));
+    changed = true;
+  }
+  if (!changed) return;
+  session = { prs, requests: session.requests };
+  notify();
 }
 
 /** A pull request opened for a grave: it ends any request in progress for it. */

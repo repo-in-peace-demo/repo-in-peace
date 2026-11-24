@@ -50,6 +50,38 @@ export function availability(source: Source, config: PrConfigAnswer | 'unreachab
   return { kind: 'available', repo: demo.repo, fake: config.fake };
 }
 
+/** A grave of the demo with an open Repo In Peace pull request on its fork (GET /api/pr?open=<demo>). */
+export interface OpenPr {
+  action: Action;
+  path: string;
+  number: number;
+  /** Null when the link is not one the page may open (`safePrLink`): the number is then shown as text. */
+  url: string | null;
+}
+
+/** The open pull requests answer, checked: anything malformed is dropped, and a bad answer is no list at all. */
+export function parseOpenAnswer(value: unknown, expected: { repo: string; fake: boolean }): OpenPr[] {
+  if (!isRecord(value) || !Array.isArray(value['open'])) return [];
+  const out: OpenPr[] = [];
+  for (const p of value['open']) {
+    if (!isRecord(p) || (p['action'] !== 'bury' && p['action'] !== 'resurrect') || typeof p['path'] !== 'string') continue;
+    if (!Number.isSafeInteger(p['number']) || (p['number'] as number) < 1) continue;
+    out.push({ action: p['action'], path: p['path'], number: p['number'] as number, url: safePrLink(p['url'], expected.repo, expected.fake) });
+  }
+  return out;
+}
+
+/** The demo's open pull requests, or none when the function can't say (the page then shows the data file as it is). */
+export async function fetchOpenPrs(graveyard: string, expected: { repo: string; fake: boolean }, fetchImpl: typeof fetch = fetch): Promise<OpenPr[]> {
+  try {
+    const response = await fetchImpl(`/api/pr?open=${encodeURIComponent(graveyard)}`, { headers: { accept: 'application/json' } });
+    if (!response.ok) return [];
+    return parseOpenAnswer(await response.json(), expected);
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPrConfig(fetchImpl: typeof fetch = fetch): Promise<PrConfigAnswer | 'unreachable'> {
   try {
     const response = await fetchImpl('/api/pr', { headers: { accept: 'application/json' } });

@@ -1,3 +1,4 @@
+import { OpenPullCache } from '../server/pr/open-list';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -26,6 +27,7 @@ async function serve(): Promise<string> {
     throttle: new Throttle(),
     clientKey: clientKeyFromHeaders,
     log: () => {},
+    openCache: new OpenPullCache(),
     fake: createFakePrs(),
   };
   const middleware = apiMiddleware(deps);

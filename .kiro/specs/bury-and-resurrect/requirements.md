@@ -77,14 +77,14 @@ The work splits like the rest of the project: the request checks, branch names, 
 4. WHEN the answer is an existing pull request (Req 4.3), the panel SHALL say it was already open.
 5. Everything from the function SHALL be put on the page as text; the link SHALL be used only if it is an `https://github.com/<fork>/pull/<n>` URL for the expected fork (or the fake link in development).
 
-### 10. The scene, for the session
+### 10. The scene: this session's pull requests, and the open ones
 
 1. **Bury:** after a successful Bury, the stone SHALL sink into the ground over about 1.5 seconds, leaving a fresh grave (a long, low heap of dark, lumpy soil, lengthwise in its cell) with a small wooden stake and plaque reading "PR #N".
 2. **Resurrect:** after a successful Resurrect, the ghost SHALL settle to the ground and become a clean, upright stone (the fresh look) with a small marker showing the pull request number.
 3. UNDER reduced motion, both SHALL change at once, with no movement.
-4. THESE changes SHALL last for the session only. A reload SHALL show the graveyard as its data file says. The layout SHALL not move: the mound takes the stone's place, and the new stone the ghost's.
+4. *(Revised: open pull requests are live.)* WHEN a demo scene loads, the page SHALL ask the PR function which of its graves have an open Repo In Peace pull request on the fork, and SHALL show each such grave at its end state at once, without the animation: the mound and stake for a Bury, the restored stone for a Resurrect. The panel SHALL say "Buried: PR #N is open" or "Resurrected: PR #N is open", with the link, in place of the button. Closed and merged pull requests SHALL show nothing: the grave is as its data file says. The function SHALL ask GitHub at most once a minute per fork (one call, cached), and a pull request is matched to a grave only by the branch this function makes for it, for a grave the data file still offers. WHEN the list can't be had, the scene SHALL show the data file as it is. The layout SHALL not move: the mound takes the stone's place, and the new stone the ghost's.
 5. THE selection, the list and the detail panel SHALL show the pull request link for that grave for the rest of the session (the list as a small marker in the row, the panel as the link instead of the button). Hover, selection and search SHALL keep working on a buried stone's mound and a resurrected stone.
-6. EVERY effect SHALL mean one fact (product.md): the mound and the marker mean "a pull request to delete this file is open", the new stone and its marker mean "a pull request to restore this file is open". The legend SHALL explain both while any is shown.
+6. EVERY effect SHALL mean one fact (product.md): the mound and the marker mean "a pull request to delete this file is open", the new stone and its marker mean "a pull request to restore this file is open". The legend SHALL explain both while any is shown, and SHALL always say "Facts are from the snapshot date; open pull requests are live."
 
 ### 11. Tests
 

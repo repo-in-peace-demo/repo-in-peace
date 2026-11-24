@@ -5,6 +5,7 @@ import { githubClient } from '../server/pr/github';
 import { graveyardReader } from '../server/pr/graveyards';
 import { FAKE_PR_PATH, clientKeyFromHeaders, createFakePrs, fakePrPage, handlePr, type PrDeps } from '../server/pr/handler';
 import { Throttle } from '../server/pr/limits';
+import { OpenPullCache } from '../server/pr/open-list';
 
 /**
  * The PR function in `npm run dev` (bury-and-resurrect Decision 1): `/api/pr` goes to the same handler Vercel runs, in development mode,
@@ -38,6 +39,7 @@ export function apiDev(): Plugin {
         clientKey: clientKeyFromHeaders,
         log: (line) => server.config.logger.info(line, { timestamp: true }),
         fake: createFakePrs(),
+        openCache: new OpenPullCache(),
       };
       if ('problem' in config) server.config.logger.warn(`PR function: ${config.problem}`);
       else server.config.logger.info(`PR function: ${config.token === undefined ? 'fake pull requests (no token)' : `real pull requests on ${[...config.demos.values()].map((d) => d.repo).join(', ') || 'no configured forks'}`}`);

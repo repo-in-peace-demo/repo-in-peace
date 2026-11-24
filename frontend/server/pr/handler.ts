@@ -10,6 +10,7 @@ import { checkAgainstGraveyard } from './check.js';
 import type { ForkConfig, PrConfig } from './config.js';
 import { GitHubError, githubProblem, type GitHubClient } from './github.js';
 import { forkOf, openPullRequest } from './open-pr.js';
+import { listOpenPulls, OpenPullCache, type OpenPull } from './open-list.js';
 import { prTitle } from './pr-text.js';
 import { redact } from './redact.js';
 import { MAX_BODY_BYTES, parseRequest } from './request.js';
@@ -34,6 +35,8 @@ export interface PrDeps {
   clientKey: (request: Request) => string;
   log: (line: string) => void;
   fake: FakePrs;
+  /** The open pull requests per fork, for a minute (GET /api/pr?open=<demo>). */
+  openCache: OpenPullCache;
 }
 
 const HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
@@ -61,6 +64,8 @@ const usable = (config: PrDeps['config']): config is PrConfig => !('problem' in 
 export async function handlePr(request: Request, deps: PrDeps): Promise<Response> {
   const log = (line: string): void => deps.log(redact(line, ['problem' in deps.config ? undefined : deps.config.token]));
   if (request.method === 'GET') {
+    const openOf = new URL(request.url).searchParams.get('open');
+    if (openOf !== null) return listOpen(deps, openOf, log);
     if ('problem' in deps.config) log(`pr config: ${deps.config.problem}`);
     if (!usable(deps.config)) return respond(deps, 200, { available: false });
     const demos = await demosOf(deps, deps.config);
@@ -138,6 +143,7 @@ export async function handlePr(request: Request, deps: PrDeps): Promise<Response
       return fail(deps, result.status, result.refused);
     }
     log(`pr ${action} ${name} ${path} -> #${result.number} (${result.existing ? 'existing' : 'new'})`);
+    deps.openCache.add(fork.repo, { action, path, number: result.number, url: result.url });
     return respond(deps, result.existing ? 200 : 201, { number: result.number, url: result.url, repo: fork.repo, existing: result.existing });
   } catch (error) {
     if (error instanceof GitHubError) {
@@ -146,6 +152,45 @@ export async function handlePr(request: Request, deps: PrDeps): Promise<Response
     }
     log(`pr ${action} ${name} ${path} -> error: ${error instanceof Error ? error.name : 'unknown'}`);
     return fail(deps, 500, 'Something went wrong on the server. Try again.');
+  }
+}
+
+/**
+ * GET /api/pr?open=<demo>: the demo's graves with an open Repo In Peace pull request (open-list.ts), `{ open: [{ action, path, number,
+ * url }] }`. Changes nothing, and counts against no visitor's limit; GitHub is asked once a minute per fork at most. When GitHub can't
+ * be asked, the answer is an error and the page shows the data file as it is.
+ */
+async function listOpen(deps: PrDeps, name: string, log: (line: string) => void): Promise<Response> {
+  if (!usable(deps.config)) return fail(deps, 503, "Pull requests aren't set up on this deployment.");
+  const config = deps.config;
+  const fork = (await demosOf(deps, config)).get(name);
+  if (!fork) return fail(deps, 404, `${name} isn't a demo graveyard with pull requests.`);
+  let graveyard: Graveyard;
+  try {
+    graveyard = await deps.readGraveyard(name);
+  } catch {
+    return fail(deps, 503, "The server can't read this demo's graveyard right now.");
+  }
+  // Development without a token: the pull requests this server made up, all open.
+  if (config.token === undefined) {
+    const open: OpenPull[] = [];
+    for (const f of graveyard.files) {
+      const n = f.unused ? deps.fake.byKey.get(`${fork.repo}#${branchName('bury', f.path)}`) : undefined;
+      if (n !== undefined) open.push({ action: 'bury', path: f.path, number: n, url: `${FAKE_PR_PATH}${n}` });
+    }
+    for (const g of graveyard.ghosts) {
+      const n = deps.fake.byKey.get(`${fork.repo}#${branchName('resurrect', g.path)}`);
+      if (n !== undefined) open.push({ action: 'resurrect', path: g.path, number: n, url: `${FAKE_PR_PATH}${n}` });
+    }
+    return respond(deps, 200, { open, fake: true });
+  }
+  try {
+    const gh = deps.github(config.token);
+    const open = await deps.openCache.get(fork.repo, () => listOpenPulls(gh, forkOf(fork.repo, fork.base), graveyard));
+    return respond(deps, 200, { open });
+  } catch (error) {
+    log(`pr open ${name} -> ${error instanceof GitHubError ? `github ${error.kind} ${error.status}` : 'error'}`);
+    return fail(deps, 502, "Couldn't ask GitHub which pull requests are open.");
   }
 }
 

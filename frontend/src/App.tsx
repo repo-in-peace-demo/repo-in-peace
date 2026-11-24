@@ -21,9 +21,9 @@ import { StatusMessage } from './ui/StatusMessage';
 import { hasWebGL } from './ui/webgl';
 import { prefersReducedMotion } from './scene/reduced-motion';
 import { clearSelection } from './store/selection-store';
-import { clearPrSession } from './store/pr-store';
+import { clearPrSession, recordFoundPrs } from './store/pr-store';
 import { resetPanels } from './store/panels-store';
-import { availability, fetchPrConfig, type PrConfigAnswer } from './ui/pr-client';
+import { availability, fetchOpenPrs, fetchPrConfig, type PrConfigAnswer } from './ui/pr-client';
 
 /** Development builds only: the performance overlay and the other extras (`dev/DevExtras.tsx`). Null, and not in the bundle, in production. */
 const DevExtras = import.meta.env.DEV ? lazy(() => import('./dev/DevExtras')) : null;
@@ -221,6 +221,22 @@ function Scene({ model, source, onBack }: { model: SceneModel; source: Source; o
     };
   }, [source]);
   const pr = { availability: availability(source, prConfig), graveyard: source.kind === 'demo' ? source.name : null };
+  // The demo's open Repo In Peace pull requests, live from GitHub (Req 10.4, revised): their graves show the mound and stake, or the
+  // restored stone, at once and without the animation, and the panel says the pull request is open. Closed and merged ones show nothing.
+  const avail = pr.availability;
+  const repo = avail.kind === 'available' ? avail.repo : null;
+  const fake = avail.kind === 'available' && avail.fake;
+  useEffect(() => {
+    if (repo === null || source.kind !== 'demo') return;
+    let live = true;
+    void fetchOpenPrs(source.name, { repo, fake }).then((open) => {
+      if (!live) return;
+      recordFoundPrs(open.map((p) => ({ kind: p.action === 'bury' ? 'file' : 'ghost', path: p.path, record: { action: p.action, number: p.number, url: p.url, existing: true, fake } })));
+    });
+    return () => {
+      live = false;
+    };
+  }, [repo, fake, source]);
   return (
     <>
       <SceneCanvas model={model} />

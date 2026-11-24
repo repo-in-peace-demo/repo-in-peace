@@ -34,6 +34,7 @@ export function Legend({ legend, lookup }: { legend: LegendModel; lookup: SceneM
       {shown && (
         <div ref={body} id="legend-body" className="scroll-fade">
           <p className="legend-snapshot">{legend.snapshotLine}</p>
+          <p className="legend-snapshot">Facts are from the snapshot date; open pull requests are live.</p>
           {legend.groups.map((group) => (
             <section key={group.id} className="legend-group" aria-label={group.title}>
               <h3 className="legend-group-title">{group.title}</h3>

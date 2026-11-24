@@ -17,7 +17,7 @@ Three always-on steering files (`.kiro/steering/`) set the rules every spec foll
 | `repo-analyser` | A local git clone in, one graveyard data file out: ages, sizes, decay, Knip's unused files, and ghosts for deleted files |
 | `graveyard-scene` | The 3D scene: nested plots, tombstones, moss, cracks, candles and ghosts, signs, the camera and its limits, the atmosphere, the opening move |
 | `interface` | Everything around the scene: boot screen → digging → scene, the hover line, the detail panel, the list and search |
-| `bury-and-resurrect` | Real pull requests on demo forks from the detail panel, through one serverless function, with session-only scene changes |
+| `bury-and-resurrect` | Real pull requests on demo forks from the detail panel, through one serverless function; open pull requests shown live on load |
 | `eulogies` | A two-sentence epitaph for every grave, written at analysis time by a local model through Ollama, stored in the data file and shown in the detail panel |
 | `importers` | Who imports each file and which files are entry points, from TypeScript's parser and resolver on the snapshot; the detail panel lists the importers as links that fly to them |
 
@@ -87,7 +87,7 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 - **One pull request per grave.** Deterministic branch names (`rip/<action>/<stem>-<hash8>`, checked against `git check-ref-format`), an existing open pull request returned first, and fallbacks at the two places concurrent requests can collide. The fake GitHub server's test runs up to eight at once and checks that one pull request is opened, and that the requests really overlapped.
 - **Nobody notified.** `@` and `#<digit>` from the data get a word joiner; paths and SHAs go in code spans. A property test found that its own helper mis-read a backslash inside a code span; the helper now scans as CommonMark does.
 - **The token stays put.** Fine-grained, forks only; messages come from fixed error kinds, never from GitHub's body; every response and log line is redacted as a last guard (P5 echoes the token in GitHub's errors and headers). The e2e dev server ignores any token (`RIP_FAKE_PRS=1`), so a test can't open a real pull request.
-- **Session only.** The scene changes (a sinking stone and a fresh grave, a settling ghost and a new stone, stakes reading "PR #N") last for the visit, since the data file doesn't change until a merge. The first screenshots caught a ghost's tag still floating in front of its new stone: camera-facing cards ignore an instance's scale, so hidden instances are moved below the ground.
+- **Session only, then live.** The scene changes (a sinking stone and a fresh grave, a settling ghost and a new stone, stakes reading "PR #N") last for the visit, since the data file doesn't change until a merge; later revised so a reload asks which pull requests are still open (one GitHub call per fork, cached a minute) and shows those graves at their end, while closed and merged ones show nothing. The first screenshots caught a ghost's tag still floating in front of its new stone: camera-facing cards ignore an instance's scale, so hidden instances are moved below the ground.
 
 ## The importers spec: decisions
 

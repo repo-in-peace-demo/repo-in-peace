@@ -71,7 +71,9 @@ export function PrAction({ kind, path, action, question, pr }: { kind: GraveKind
   );
 
   if (record !== undefined) {
-    const label = `Pull request #${record.number} ${record.existing ? 'was already open' : 'opened'}`;
+    const label = record.found
+      ? `${record.action === 'bury' ? 'Buried' : 'Resurrected'}: PR #${record.number} is open`
+      : `Pull request #${record.number} ${record.existing ? 'was already open' : 'opened'}`;
     return live(
       <div className="detail-actions">
         <p className="detail-pr">

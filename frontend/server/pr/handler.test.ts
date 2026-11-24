@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { OpenPullCache } from './open-list';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Graveyard } from '../../../shared/graveyard-schema';
 import { makeSyntheticGraveyard } from '../../src/model/synthetic';
@@ -7,7 +8,7 @@ import { blobSha } from '../../test/git-trees';
 import { readConfig, type Mode } from './config';
 import { githubClient } from './github';
 import { graveyardReader } from './graveyards';
-import { clientKeyFromHeaders, createFakePrs, fakePrPage, handlePr, type PrDeps } from './handler';
+import { clientKeyFromHeaders, createFakePrs, fakePrPage, handlePr, type FakePrs, type PrDeps } from './handler';
 import { Throttle } from './limits';
 
 const OWNER = 'repo-in-peace-demo';
@@ -27,7 +28,7 @@ beforeAll(async () => {
 });
 afterAll(async () => fake?.close());
 
-function deps(over: { env?: Record<string, string | undefined>; mode?: Mode; throttle?: Throttle; readGraveyard?: PrDeps['readGraveyard']; lines?: string[] } = {}): PrDeps {
+function deps(over: { env?: Record<string, string | undefined>; mode?: Mode; throttle?: Throttle; readGraveyard?: PrDeps['readGraveyard']; lines?: string[]; fake?: FakePrs; openCache?: OpenPullCache } = {}): PrDeps {
   const env = over.env ?? { GITHUB_TOKEN: fake.token, RIP_DEMOS: JSON.stringify({ [NAME]: { repo: `${OWNER}/synthetic`, base: 'main' } }) };
   return {
     config: readConfig(env, over.mode ?? 'production'),
@@ -40,7 +41,8 @@ function deps(over: { env?: Record<string, string | undefined>; mode?: Mode; thr
     throttle: over.throttle ?? new Throttle([{ limit: 1_000_000, windowMs: 1000 }]),
     clientKey: clientKeyFromHeaders,
     log: (line) => over.lines?.push(line),
-    fake: createFakePrs(),
+    fake: over.fake ?? createFakePrs(),
+    openCache: over.openCache ?? new OpenPullCache(),
   };
 }
 

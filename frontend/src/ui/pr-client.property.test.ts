@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { Graveyard } from '@shared/graveyard-schema';
-import { NOT_UNDERSTOOD, PR_NOTES, UNREACHABLE, availability, fetchPrConfig, openPr, parseConfigAnswer, safePrLink } from './pr-client';
+import { NOT_UNDERSTOOD, PR_NOTES, UNREACHABLE, availability, fetchOpenPrs, fetchPrConfig, openPr, parseConfigAnswer, parseOpenAnswer, safePrLink } from './pr-client';
 
 const REPO = 'repo-in-peace-demo/oikos_ledger';
 const config = { available: true as const, demos: { 'demo.oikosledger': { repo: REPO, base: 'main' } }, fake: false };
@@ -106,5 +106,41 @@ describe('fetchPrConfig and openPr', () => {
     expect(await openPr('d', 'bury', 'a', opts, answer(502, '<html>Bad gateway</html>') as typeof fetch)).toEqual({ kind: 'error', message: UNREACHABLE });
     expect(await openPr('d', 'bury', 'a', opts, answer(200, { number: 'x' }) as typeof fetch)).toEqual({ kind: 'error', message: NOT_UNDERSTOOD });
     expect(await openPr('d', 'bury', 'a', opts, answer(400, { error: 'x'.repeat(1000) }) as typeof fetch)).toMatchObject({ message: 'x'.repeat(300) });
+  });
+});
+
+describe('the open pull requests on load (Req 10.4)', () => {
+  const expected = { repo: 'repo-in-peace-demo/oikos_ledger', fake: false };
+  it('keeps well-formed entries, links only to the expected fork, and drops everything else', () => {
+    const good = { action: 'bury', path: 'src/a.ts', number: 4, url: 'https://github.com/repo-in-peace-demo/oikos_ledger/pull/4' };
+    expect(parseOpenAnswer({ open: [good] }, expected)).toEqual([good]);
+    expect(parseOpenAnswer({ open: [{ ...good, url: 'https://evil.example/pull/4' }] }, expected)).toEqual([{ ...good, url: null }]);
+    expect(parseOpenAnswer({ open: [{ ...good, action: 'delete' }, { ...good, number: 0 }, { ...good, path: 3 }, 'x', null] }, expected)).toEqual([]);
+    for (const bad of [null, [], {}, { open: 'x' }, 'open']) expect(parseOpenAnswer(bad, expected)).toEqual([]);
+  });
+
+  it('P: whatever the answer, every entry kept is a Bury or Resurrect with a path, a positive number, and a safe link or none', () => {
+    fc.assert(
+      fc.property(fc.anything(), (value) => {
+        for (const p of parseOpenAnswer({ open: Array.isArray(value) ? value : [value] }, expected)) {
+          expect(['bury', 'resurrect']).toContain(p.action);
+          expect(typeof p.path).toBe('string');
+          expect(Number.isSafeInteger(p.number) && p.number > 0).toBe(true);
+          expect(p.url === null || p.url.startsWith('https://github.com/repo-in-peace-demo/oikos_ledger/pull/')).toBe(true);
+        }
+      }),
+    );
+  });
+
+  it('asks /api/pr?open=<demo>, and gives none when the function fails or cannot be reached', async () => {
+    let asked = '';
+    const ok = (async (url: string) => {
+      asked = url;
+      return new Response(JSON.stringify({ open: [] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    expect(await fetchOpenPrs('demo.oikosledger', expected, ok)).toEqual([]);
+    expect(asked).toBe('/api/pr?open=demo.oikosledger');
+    expect(await fetchOpenPrs('demo.oikosledger', expected, (async () => new Response('{"error":"x"}', { status: 502 })) as unknown as typeof fetch)).toEqual([]);
+    expect(await fetchOpenPrs('demo.oikosledger', expected, (async () => { throw new TypeError('offline'); }) as unknown as typeof fetch)).toEqual([]);
   });
 });

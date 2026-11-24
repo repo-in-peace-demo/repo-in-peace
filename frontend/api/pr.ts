@@ -8,6 +8,7 @@ import { graveyardReader } from '../server/pr/graveyards.js';
 import { githubClient } from '../server/pr/github.js';
 import { clientKeyFromHeaders, createFakePrs, handlePr, type PrDeps } from '../server/pr/handler.js';
 import { Throttle } from '../server/pr/limits.js';
+import { OpenPullCache } from '../server/pr/open-list.js';
 
 let deps: PrDeps | undefined;
 function dependencies(): PrDeps {
@@ -22,6 +23,7 @@ function dependencies(): PrDeps {
     clientKey: clientKeyFromHeaders,
     log: (line) => console.log(line),
     fake: createFakePrs(),
+    openCache: new OpenPullCache(),
   };
   return deps;
 }

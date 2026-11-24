@@ -55,6 +55,7 @@ function handlePr(request: Request, deps: PrDeps): Promise<Response>;
 ```
 
 - **`GET /api/pr`** → `200 { available: true, demos: { "demo.oikosledger": { repo, base } }, fake: boolean }`, or `{ available: false }`. Changes nothing (Req 5.4).
+- **`GET /api/pr?open=<demo>`** (Req 10.4, revised) → `200 { open: [{ action, path, number, url }] }`: the demo's graves with an open Repo In Peace pull request (`server/pr/open-list.ts`). One `GET /pulls?state=open&per_page=100` per fork (the cap of 50 fits one page), cached for 60 s per instance; a pull request this instance opens is added to the cache at once. A pull request counts only if its head is the fork itself and its branch is `branchName(action, path)` for a grave the data file offers, so action and path come from the data file. Unknown demo `404`; GitHub failing `502`, and the page then shows the data file. In development without a token, the fake pull requests, all open. The page records them as found (`recordFoundPrs`, opened long ago, so every animation is at its end) unless its session already has one for that grave. In the browser tests the fixture answers this with an empty list, because the dev server's fake pull requests outlive each test; the tests of this list remove that answer.
 - **`POST /api/pr`** with `Content-Type: application/json` and a body of at most 2 KB: `{ graveyard, action, path }`. Other fields are ignored (Req 5.1).
 
 | Answer | Status | When |
