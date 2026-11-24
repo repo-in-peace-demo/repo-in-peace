@@ -51,6 +51,7 @@ export const CONTROL_GROUPS: readonly ControlGroup[] = [
       { keys: 'Home or R', action: 'Reset the view and clear the selection', codes: ['Home', 'KeyR'] },
       { keys: 'Esc', action: 'Clear the selection and close this panel', codes: ['Escape'] },
       { keys: '?', action: 'Show or hide this panel' },
+      { keys: 'M', action: 'Sound on or off (off at the start of every visit)', codes: ['KeyM'] },
     ],
   },
   {

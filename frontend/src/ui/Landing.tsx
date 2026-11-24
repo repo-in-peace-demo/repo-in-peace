@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { SoundToggle } from './SoundToggle';
 import { WITCH_COLOUR, WITCH_HANDLE, WITCH_HINGES, WITCH_PARTS, WITCH_STRAWS, WITCH_VIEWBOX } from '../model/witch-drawing';
 
 /** The tagline, word for word as in the social image (scripts/make-brand.mjs). */
@@ -185,6 +186,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
         <p className="landing-desktop">Best on a desktop browser.</p>
       </div>
 
+      <SoundToggle className="landing-sound" />
       <footer className="landing-footer">
         Built with Kiro for Kiroween 2026 · <a href={REPO_URL}>GitHub</a> · <a href={ANALYSE_URL}>Analyse your own repo</a>
       </footer>

@@ -39,20 +39,29 @@ describe('shortcutFor', () => {
   });
 
   it('shares no key with flying', () => {
-    expect(SHORTCUT_CODES).toEqual(['Home', 'KeyR', 'KeyK']); // K only with Cmd or Ctrl
+    expect(SHORTCUT_CODES).toEqual(['Home', 'KeyR', 'KeyK', 'KeyM']); // K only with Cmd or Ctrl; M for sound
     expect(SHORTCUT_CODES.some((code) => FLY_KEY_CODES.has(code))).toBe(false);
   });
 
-  it('only ever answers for Home, R, ?, / and Ctrl+K', () => {
+  it('only ever answers for Home, R, M, ?, / and Ctrl+K', () => {
     fc.assert(
-      fc.property(fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('KeyK', 'Home', 'KeyR')), fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('/', '?')), fc.boolean(), fc.boolean(), (code, key, ctrlKey, repeat) => {
+      fc.property(fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('KeyK', 'Home', 'KeyR', 'KeyM')), fc.oneof(fc.string({ maxLength: 12 }), fc.constantFrom('/', '?')), fc.boolean(), fc.boolean(), (code, key, ctrlKey, repeat) => {
         const answer = shortcutFor(press({ code, key, ctrlKey, repeat }));
         if (ctrlKey && code === 'KeyK' && !repeat) return answer === 'search';
-        const wanted = code === 'Home' || code === 'KeyR' || key === '?' || key === '/';
+        const wanted = code === 'Home' || code === 'KeyR' || code === 'KeyM' || key === '?' || key === '/';
         return answer === undefined || (wanted && !ctrlKey && !repeat);
       }),
       { numRuns: 300 },
     );
+  });
+});
+
+describe('the sound shortcut', () => {
+  it('is M, wherever M is on the keyboard, not while typing, not with Cmd, Ctrl or Alt, not on a repeat', () => {
+    expect(shortcutFor(press({ code: 'KeyM', key: 'm' }))).toBe('sound');
+    expect(shortcutFor(press({ code: 'KeyM', key: 'm', typing: true }))).toBeUndefined();
+    expect(shortcutFor(press({ code: 'KeyM', key: 'm', metaKey: true }))).toBeUndefined();
+    expect(shortcutFor(press({ code: 'KeyM', key: 'm', repeat: true }))).toBeUndefined();
   });
 });
 

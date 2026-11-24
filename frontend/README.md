@@ -62,6 +62,7 @@ The demo list is `graveyards/index.json`, made from the files in `public/graveya
 | Shift | hold to fly 3 times faster |
 | Home or R | reset the view and clear the selection |
 | ? | show or hide the controls panel |
+| M | sound on or off |
 
 On first load the camera rises from a low shot into the overview over about 3.6 seconds; any key, click, drag or scroll ends it where it is, and with Reduce motion on the scene opens on the overview. Reset view goes straight to the overview.
 
@@ -87,6 +88,16 @@ The detail panel's Usage row follows Knip's verdict (the stone's cracks) and exp
 | unused | a used file | "Unused (Knip), though imported by N files" |
 
 Under the words, the first 5 importers are links (name, then "type only" and the folder dimmed) that select the file and fly to it; "+N more" shows the rest in place. An older data file without `importedBy` shows the earlier wording. The hover line adds "imported by N" only when the whole line still fits on one line, measured in its font.
+
+## Sound
+
+Off at the start of every visit; the speaker button (next to Reset view and ?, and top right on the landing page) or M turns it on and off, fading in over a second and out over half a second. The choice lasts for the visit (and is written to localStorage, but never read back to unmute). Everything is made with the Web Audio API, no audio files (`sound/engine.ts`), and the engine is loaded and created only on the first unmute, so a silent visit makes no audio context at all. The context is suspended when muted and while the tab is hidden.
+
+- **Ambient:** crickets (four voices, each at its own pitch and loose rhythm) and an owl's "hoo-hoo… hoo" every 25 to 60 s, panned a little left or right (`owlCalls`).
+- **The gravedigger:** a crunchy thrust and a scatter of falling soil for every dig while the request runs, two dull thuds when he pats the mound, a wooden knock for the stake.
+- **Resurrection:** a wail rising in pitch and fading with the ghost, a low rumble as the stone forms, and a thunk as it stands (about 2 s).
+
+The timing is pure and shared with the animations (`model/sound-schedule.ts`, played by `scene/SoundDriver.tsx`). Under reduced motion the scene's sounds are skipped with their animations.
 
 ## Data files
 

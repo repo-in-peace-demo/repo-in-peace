@@ -1338,3 +1338,36 @@ body,
     animation: none;
   }
 }
+
+/* The speaker button (ui/SoundToggle.tsx): in the scene it sits with Reset view and ?; on the landing page, top right. */
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-toggle svg {
+  display: block;
+}
+
+.landing-sound {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  padding: 0.5rem;
+  border: 1px solid #8b93a7;
+  border-radius: 6px;
+  background: rgba(11, 16, 32, 0.7);
+  color: #d9dee8;
+  cursor: pointer;
+}
+
+.landing-sound:hover {
+  color: #fff;
+}
+
+.landing-sound:focus-visible {
+  outline: 3px solid #d9dee8;
+  outline-offset: 3px;
+}

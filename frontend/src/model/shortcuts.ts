@@ -1,10 +1,10 @@
 /**
  * Keyboard shortcuts that are not for flying: Home or R resets the view, ? shows or hides the controls help, / and Cmd+K (Ctrl+K)
- * focus the search box.
+ * focus the search box, M turns sound on or off (ui/SoundToggle.tsx).
  * Pure: which shortcut, if any, a key press means. The page feeds it the key events.
  */
 
-export type Shortcut = 'reset' | 'help' | 'search';
+export type Shortcut = 'reset' | 'help' | 'search' | 'sound';
 
 export interface KeyPress {
   /** `KeyboardEvent.code`: the place of the key, whatever the keyboard layout. Used for Home and R, as for W A S D. */
@@ -32,8 +32,9 @@ export function shortcutFor(press: KeyPress): Shortcut | undefined {
   if (press.key === '/') return 'search';
   if (press.code === 'Home' || press.code === 'KeyR') return 'reset';
   if (press.key === '?') return 'help';
+  if (press.code === 'KeyM') return 'sound';
   return undefined;
 }
 
 /** Codes that start a shortcut by their place on the keyboard. None of them is a flying key. */
-export const SHORTCUT_CODES: readonly string[] = ['Home', 'KeyR', 'KeyK'];
+export const SHORTCUT_CODES: readonly string[] = ['Home', 'KeyR', 'KeyK', 'KeyM'];

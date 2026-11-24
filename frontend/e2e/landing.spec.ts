@@ -77,7 +77,7 @@ test('a ?graveyard= link skips the landing page and the boot screen', async ({ p
 test('keyboard: Tab reaches both buttons and the footer links, each with a visible focus ring', async ({ page }) => {
   await open(page);
   const reached: string[] = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     await page.keyboard.press('Tab');
     const focus = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
@@ -90,7 +90,7 @@ test('keyboard: Tab reaches both buttons and the footer links, each with a visib
     expect(focus.outline, focus.text).not.toBe('none');
     expect(focus.width, focus.text).toBeGreaterThanOrEqual(2);
   }
-  expect(reached.slice(0, 4)).toEqual(['Enter the graveyard', 'Take the tour', 'GitHub', 'Analyse your own repo']);
+  expect(reached.slice(0, 5)).toEqual(['Enter the graveyard', 'Take the tour', '', 'GitHub', 'Analyse your own repo']); // '': the speaker, an icon button with a label
   // From a fresh page, the first Tab is on the primary button, and Enter goes in.
   await page.reload();
   await expect(landing(page)).toBeVisible();

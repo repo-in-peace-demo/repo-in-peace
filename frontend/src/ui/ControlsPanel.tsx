@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { SoundToggle } from './SoundToggle';
 import { useScrollFade } from './useScrollFade';
 import { registerPanel, setPanelOpen, togglePanel, usePanelOpen, useSettleOnOpen } from '../store/panels-store';
 import { CONTROL_GROUPS } from '../model/controls-help';
@@ -34,7 +35,7 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
         repeat: event.repeat,
         typing: ownsKeys(target),
       });
-      if (shortcut === undefined || shortcut === 'search') return; // the search box handles its own shortcut
+      if (shortcut === undefined || shortcut === 'search' || shortcut === 'sound') return; // the search box and the speaker button handle theirs
       event.preventDefault();
       if (shortcut === 'reset') resetView();
       else togglePanel('controls');
@@ -110,6 +111,7 @@ export function ControlsPanel({ onBack }: { onBack?: () => void } = {}) {
         >
           ?
         </button>
+        <SoundToggle />
       </div>
     </div>
   );
