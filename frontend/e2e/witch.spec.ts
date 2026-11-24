@@ -2,6 +2,7 @@ import { test as plain } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { MOON_AZIMUTH_DEG, MOON_ELEVATION_DEG, skyDirection } from '../src/model/atmosphere';
+import { OPENING_DURATION_MS } from '../src/model/framing';
 import { FADE_S, PASS_S, START_DELAY_S, passOpacity } from '../src/model/witch';
 import { expect, test, type Page } from './fixtures';
 
@@ -63,34 +64,41 @@ for (const name of ['demo.oikosledger', 'demo.spatialql']) {
   }
 }
 
-test('she fades in and out smoothly: no jump to zero between frames, and gone only once faded', async ({ page }) => {
-  await open(page, 'demo.oikosledger', { width: 1280, height: 720 });
-  // Sample every animation frame in the page for the whole first pass and a little after: her opacity and her own pass clock.
-  const samples = await page.evaluate(
-    (ms) =>
-      new Promise<Array<{ o: number; e: number | null }>>((done) => {
-        const out: Array<{ o: number; e: number | null }> = [];
-        const start = performance.now();
-        const step = (): void => {
-          const w = window.repoInPeace!.getWitch();
-          out.push({ o: w?.opacity ?? 0, e: w?.elapsed ?? null });
-          if (performance.now() - start < ms) requestAnimationFrame(step);
-          else done(out);
-        };
-        requestAnimationFrame(step);
-      }),
-    (PASS_S + 2) * 1000,
+/** Holds the animation clock at `t` seconds and returns the witch as the next drawn frame has her (two animation frames later). */
+async function witchAt(page: Page, t: number) {
+  await page.evaluate((x) => window.repoInPeace!.setAnimationTime(x), t);
+  return page.evaluate(
+    () =>
+      new Promise<ReturnType<NonNullable<typeof window.repoInPeace>['getWitch']>>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done(window.repoInPeace!.getWitch()))),
+      ),
   );
+}
+
+test('she fades in and out smoothly: no jump to zero between moments, and gone only once faded', async ({ page }) => {
+  await open(page, 'demo.oikosledger', { width: 1280, height: 720 });
+  // Her first pass and a little either side, every 0.1 s on the animation clock, held at each moment (so a slow start under load
+  // can't make the test miss it): her opacity follows the fade, never changes by more than the fade allows, and she is there only
+  // during the pass.
+  const STEP = 0.1;
+  const samples: Array<{ t: number; o: number; e: number | null }> = [];
+  for (let t = START_DELAY_S - 0.5; t <= START_DELAY_S + PASS_S + 0.5; t += STEP) {
+    const w = await witchAt(page, t);
+    samples.push({ t, o: w?.opacity ?? 0, e: w?.elapsed ?? null });
+  }
+  await page.evaluate(() => window.repoInPeace!.resumeAnimation());
   expect(Math.max(...samples.map((s) => s.o)), 'she was there').toBeGreaterThan(0.99);
-  // What is drawn is always the smooth fade at her own time into the pass (the model test shows it changes by under 1.1% a frame at
-  // 60 fps); measured on her clock, not this sampler's, which slow software frames knock out of step with the scene.
-  const off = samples.filter((s) => s.e !== null && Math.abs(s.o - passOpacity(s.e)) > 1e-9);
-  expect(off, 'opacity follows the fade').toEqual([]);
-  // And she is only gone once fading: the first frame she is drawn in is inside her opening fade and the last inside her closing one
-  // (how low the last opacity is depends on the frame rate: about half a second a frame under software rendering here).
-  const seen = samples.filter((s) => s.o > 0 && s.e !== null);
-  expect(seen[0]!.e!, 'came in fading').toBeLessThan(FADE_S);
-  expect(seen[seen.length - 1]!.e!, 'left fading').toBeGreaterThan(PASS_S - FADE_S);
+  for (const s of samples) {
+    const inPass = s.t >= START_DELAY_S && s.t <= START_DELAY_S + PASS_S;
+    expect(s.e !== null, `there at ${s.t.toFixed(1)} s only during the pass`).toBe(inPass);
+    if (s.e !== null) expect(s.o, `opacity at ${s.e.toFixed(2)} s into the pass`).toBeCloseTo(passOpacity(s.e), 6);
+  }
+  // Smooth: the fade (a smoothstep over FADE_S) changes by at most 1.5 × STEP / FADE_S between moments STEP apart.
+  for (let i = 1; i < samples.length; i++) expect(Math.abs(samples[i]!.o - samples[i - 1]!.o)).toBeLessThanOrEqual((1.5 * STEP) / FADE_S + 1e-6);
+  // She arrives and leaves faded out: low opacity at the first and last moments of the pass.
+  const seen = samples.filter((s) => s.e !== null);
+  expect(seen[0]!.o, 'came in fading').toBeLessThan(0.1);
+  expect(seen[seen.length - 1]!.o, 'left fading').toBeLessThan(0.1);
 });
 
 test('under reduced motion she never appears', async ({ page }) => {
@@ -102,18 +110,19 @@ test('under reduced motion she never appears', async ({ page }) => {
   }
 });
 
-plain('with the opening move, her first pass starts only as it settles', async ({ page }) => {
+plain('with the opening move, her first pass starts only as it settles, and there is one pass before the next', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.addInitScript(() => {
     window.__repoInPeaceNoDigHold = true;
   });
   await page.goto('/?graveyard=demo.oikosledger');
   await page.waitForFunction(() => window.repoInPeace !== undefined, undefined, { timeout: 60_000 });
-  const t0 = Date.now();
-  await expect.poll(() => page.evaluate(() => window.repoInPeace!.getWitch()), { timeout: 15_000, intervals: [100] }).not.toBeNull();
-  expect(Date.now() - t0, 'not before the opening move (3.6 s) has settled').toBeGreaterThan(3000);
-  await page.waitForTimeout((PASS_S + 1) * 1000);
-  expect(await page.evaluate(() => window.repoInPeace!.getWitch()), 'one pass, then gone until the next').toBeNull();
+  // Read at moments on the animation clock, not by waiting: the opening move is 3.6 s, and she starts START_DELAY_S after it.
+  const first = OPENING_DURATION_MS / 1000 + START_DELAY_S;
+  for (const t of [0.5, 2, 3.5, first - 0.1]) expect(await witchAt(page, t), `not yet at ${t} s`).toBeNull();
+  expect(await witchAt(page, first + 0.5), 'flying just after the opening move').not.toBeNull();
+  expect(await witchAt(page, first + PASS_S + 1), 'one pass, then gone until the next').toBeNull();
+  await page.evaluate(() => window.repoInPeace!.resumeAnimation());
 });
 
 test('screenshot: mid-pass against the moon', async ({ page }) => {
