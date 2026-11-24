@@ -38,19 +38,26 @@ for (const name of ['demo.oikosledger', 'demo.spatialql']) {
   for (const size of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
     test(`${name} at ${size.width} × ${size.height}: she flies across the moon in the default view`, async ({ page }) => {
       await open(page, name, size);
-      await expect.poll(() => page.evaluate(() => window.repoInPeace!.getWitch()), { timeout: 10_000 }).not.toBeNull();
       const moon = (await moonOnScreen(page))!;
       expect(moon.x > 0 && moon.x < size.width && moon.y > 0 && moon.y < size.height, 'the moon is in the frame').toBe(true);
-      // Sampled through the pass: in the frame's sky (above the moon's line minus a little), and once close to the moon.
+      // Sampled through the first pass, with the animation clock held at each moment (so a slow start under load can't make the test
+      // miss the pass): in the frame's sky (above the moon's line minus a little), and once close to the moon.
       let closest = Infinity;
-      for (let i = 0; i < 24; i++) {
+      let seen = 0;
+      for (let i = 1; i < 24; i++) {
+        const elapsed = (PASS_S * i) / 24;
+        await page.evaluate((t) => window.repoInPeace!.setAnimationTime(t), START_DELAY_S + elapsed);
+        // Wait for a frame drawn at that moment: the state is the last drawn frame's.
+        await expect.poll(() => page.evaluate(() => window.repoInPeace!.getWitch()?.elapsed ?? -1), { timeout: 5000 }).toBeCloseTo(elapsed, 3);
         const at = await witchOnScreen(page);
         if (at) {
+          seen++;
           closest = Math.min(closest, Math.hypot(at.x - moon.x, at.y - moon.y));
           expect(at.y, 'in the upper part of the frame, the sky').toBeLessThan(size.height * 0.45);
         }
-        await page.waitForTimeout(250);
       }
+      await page.evaluate(() => window.repoInPeace!.resumeAnimation());
+      expect(seen).toBeGreaterThan(20);
       expect(closest, 'she passes over the moon').toBeLessThan(size.height * 0.03);
     });
   }
