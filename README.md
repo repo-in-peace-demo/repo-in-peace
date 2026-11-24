@@ -2,6 +2,28 @@
 
 Repo In Peace turns a JavaScript or TypeScript repository into a haunted 3D graveyard, so you can find and bury dead code. Folders are fenced plots, files are tombstones (taller for more lines), and every effect means one fact: moss for a file left untouched, a lean for an ancient one, cracks and a faint red glow for a file Knip reports unused, a lit candle for a hot one, and a translucent ghost for a deleted file. It is a nod to SGI's FSN, the early-1990s 3D file browser, made for Kiroween 2026 (Resurrection).
 
+## For judges: how to test
+
+**1. Open it.** <LIVE_URL>. No login or setup. Use a desktop browser with WebGL (recent Chrome, Edge, Firefox or Safari). A mouse is easiest; on a trackpad, one-finger drag orbits and Shift + drag pans.
+
+**2. Pick a graveyard.** The boot screen lists the two demos: `spatialql` has ghosts (deleted files); `oikos_ledger` has the most variety. Direct links skip the boot screen:
+- <LIVE_URL>/?graveyard=demo.spatialql
+- <LIVE_URL>/?graveyard=demo.oikosledger
+
+**3. Things to try (about 5 minutes).**
+- Watch the camera rise into the overview, then find clean, mossy, leaning, cracked (unused) and candlelit (busy) stones, and the floating ghosts. The **Legend** explains each.
+- Click a cracked stone: its facts, which files import it, and its eulogy.
+- Open the **List** (sorted by decay, most dead first) and click a row to fly to it. Press `/` to search.
+- **Bury** an unused stone: confirm, watch the gravedigger, then follow the link to the pull request on GitHub. It deletes exactly that one file on a demo fork.
+- **Resurrect** a ghost in spatialql: the ghost rises, a stone forms, and a new pull request restores the file as it was.
+- Press `?` for all the controls; Home, or a double-click on empty space, returns to the overview.
+
+**4. About the pull requests.** They go to demo forks in the `repo-in-peace-demo` organisation, never to the original repositories, and always as a pull request. Bury twice on the same file and you get the same pull request. Limits: 3 pull requests a minute and 20 an hour per visitor, and at most 50 open on each fork; if a limit is hit, the app says so. The forks are reset from time to time.
+
+**5. Analyse your own repo (optional).** See [Analyse your own repo](#analyse-your-own-repo).
+
+**6. Known limits.** JavaScript and TypeScript repositories only; desktop browsers; with "Reduce motion" on, the animations are replaced by instant changes.
+
 ## How it fits together
 
 ```
