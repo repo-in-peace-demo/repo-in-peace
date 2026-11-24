@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { WITCH_COLOUR, WITCH_HANDLE, WITCH_HINGES, WITCH_PARTS, WITCH_STRAWS, WITCH_VIEWBOX } from '../model/witch-drawing';
 
 /** The tagline, word for word as in the social image (scripts/make-brand.mjs). */
 export const TAGLINE =
@@ -16,54 +17,115 @@ function starField(): Array<{ x: number; y: number; r: number; delay: number }> 
   return Array.from({ length: 46 }, () => ({ x: next() * 100, y: next() * 62, r: 0.6 + next() * 0.9, delay: next() * 9 }));
 }
 
-/** The moon's middle and the witch's size, in the sky's viewBox units. */
-const MOON = { x: 1240, y: 170 };
-const WITCH_SCALE = 55;
-/** A point of the witch's drawing (scene/Witch.tsx's shapes: x right, y up, about -1 to 1) in the sky's units, over the moon. */
-const at = (x: number, y: number): [number, number] => [MOON.x + 6 + x * WITCH_SCALE, MOON.y + 4 - y * WITCH_SCALE];
-const pts = (...ps: Array<[number, number]>): string => ps.map(([x, y]) => at(x, y).join(',')).join(' ');
-const k = WITCH_SCALE;
+/** The moon's middle and radius, in the sky's viewBox units. */
+const MOON = { x: 1240, y: 170, r: 44 };
+/** The witch's drawing (model/witch-drawing.ts, 200 × 120) at half size over the moon: about 100 units wide, as before. */
+const WITCH_SCALE = 0.5;
+const WITCH_AT = { x: MOON.x + 6 - (WITCH_VIEWBOX.w * WITCH_SCALE) / 2, y: MOON.y + 4 - (WITCH_VIEWBOX.h * WITCH_SCALE) / 2 };
 
 /**
- * The witch on her broom in front of the moon, a dark silhouette drawn from the same shapes as the scene's witch (scene/Witch.tsx).
- * She stays where she is: the whole figure bobs and tilts gently, the bristles and the cloak flutter (index.css); still under reduced
+ * The witch on her broom in front of the moon, drawn from the same shapes as the scene's witch (model/witch-drawing.ts). She stays
+ * where she is: the whole figure bobs and tilts gently, and the bristles, cloak and hair flutter (index.css); still under reduced
  * motion. Decoration: hidden from screen readers with the rest of the sky.
  */
 function Witch() {
-  const [bx, by] = at(-0.6, -0.08); // the binding, where the bristles fan from
-  const [sx, sy] = at(0.08, 0.27); // the shoulders, where the cloak hangs from
-  const line = (x1: number, y1: number, x2: number, y2: number, r: number) => {
-    const [a1, b1] = at(x1, y1);
-    const [a2, b2] = at(x2, y2);
-    return <line x1={a1} y1={b1} x2={a2} y2={b2} strokeWidth={2 * r * k} />;
-  };
-  const ellipse = (x: number, y: number, rx: number, ry: number) => {
-    const [cx, cy] = at(x, y);
-    return <ellipse cx={cx} cy={cy} rx={rx * k} ry={ry * k} />;
-  };
+  const part = (name: 'bristles' | 'cloak' | 'hair') => (
+    <g className={`landing-witch-${name}`} style={{ transformOrigin: `${WITCH_HINGES[name].x}px ${WITCH_HINGES[name].y}px` }}>
+      {WITCH_PARTS[name].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </g>
+  );
   return (
-    <g className="landing-witch" fill="#06080c" stroke="#06080c" strokeLinecap="round" opacity="0.96" style={{ transformOrigin: `${MOON.x}px ${MOON.y}px` }}>
-      <g className="landing-witch-bristles" style={{ transformOrigin: `${bx}px ${by}px` }}>
-        {Array.from({ length: 7 }, (_, i) => {
-          const q = i / 6 - 0.5;
-          return <g key={i}>{line(-0.6, -0.08 + q * 0.05, -0.98, -0.1 + q * 0.34, 0.018)}</g>;
-        })}
+    <g className="landing-witch" style={{ transformOrigin: `${MOON.x}px ${MOON.y}px` }}>
+      <g transform={`translate(${WITCH_AT.x} ${WITCH_AT.y}) scale(${WITCH_SCALE})`} fill={WITCH_COLOUR}>
+        {part('bristles')}
+        {part('cloak')}
+        {part('hair')}
+        {WITCH_PARTS.body.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        <g fill="none" stroke={WITCH_COLOUR} strokeLinecap="round">
+          <path d={WITCH_HANDLE.d} strokeWidth={WITCH_HANDLE.width} />
+          {WITCH_STRAWS.map((d) => (
+            <path key={d} d={d} strokeWidth={1.4} />
+          ))}
+        </g>
       </g>
-      <g className="landing-witch-cloak" stroke="none" style={{ transformOrigin: `${sx}px ${sy}px` }}>
-        <polygon points={pts([0.08, 0.27], [-0.02, 0], [-0.5, 0.2])} />
-        <polygon points={pts([-0.02, 0], [-0.38, 0], [-0.5, 0.2])} />
+    </g>
+  );
+}
+
+/** Craters: centre (relative to the moon's), radius. Lit from the upper right, as the scene's moon is. */
+const CRATERS: ReadonlyArray<[number, number, number]> = [
+  [20, -19, 5.5],
+  [-25, 11, 4.2],
+  [6, -29, 3],
+  [27, 18, 3.6],
+  [-14, 28, 2.6],
+  [-31, -8, 2.2],
+];
+/** The maria: irregular blotches (relative to the moon's middle), softened by a blur. */
+const MARIA = [
+  'M-30 -22 C-24 -32 -8 -30 -4 -22 C0 -14 -6 -6 -14 -4 C-22 -2 -30 -6 -32 -12 C-33 -16 -32 -19 -30 -22 Z',
+  'M2 -6 C8 -12 20 -10 24 -2 C28 6 22 16 14 18 C6 20 -2 14 -2 6 C-2 1 -1 -3 2 -6 Z',
+  'M-20 8 C-14 4 -6 8 -6 14 C-6 20 -12 24 -18 22 C-24 20 -26 12 -20 8 Z',
+  'M-4 24 C2 20 12 22 12 28 C12 34 2 36 -4 32 C-7 30 -7 27 -4 24 Z',
+];
+
+/** An arc of a circle from angle a1 to a2 (degrees, 0 to the right, positive downward as SVG's y). */
+function arc(cx: number, cy: number, r: number, a1: number, a2: number): string {
+  const p = (a: number) => `${(cx + r * Math.cos((a * Math.PI) / 180)).toFixed(2)} ${(cy + r * Math.sin((a * Math.PI) / 180)).toFixed(2)}`;
+  return `M${p(a1)} A${r} ${r} 0 0 1 ${p(a2)}`;
+}
+
+/**
+ * The moon: a sphere's shading (lit from the upper right, darker toward the limb), soft maria, fine grain, and craters each with a
+ * darker crescent on the lower left and a faint lit rim on the upper right. All clipped to the disc; the glow stays as it was.
+ */
+function Moon() {
+  const { x, y, r } = MOON;
+  return (
+    <g>
+      <defs>
+        <radialGradient id="landing-moon-shade" cx="0.62" cy="0.36" r="0.75">
+          <stop offset="0" stopColor="#e9eef6" />
+          <stop offset="0.6" stopColor="#d9e1ed" />
+          <stop offset="1" stopColor="#aeb9cd" />
+        </radialGradient>
+        <clipPath id="landing-moon-disc">
+          <circle cx={x} cy={y} r={r} />
+        </clipPath>
+        <filter id="landing-moon-soft" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.6" />
+        </filter>
+        <filter id="landing-moon-grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" />
+          <feColorMatrix values="0 0 0 0 0.32  0 0 0 0 0.38  0 0 0 0 0.5  0.9 0 0 0 -0.42" />
+        </filter>
+        {CRATERS.map(([dx, dy, cr], i) => (
+          <mask key={i} id={`landing-crater-${i}`} maskUnits="userSpaceOnUse">
+            <circle cx={x + dx} cy={y + dy} r={cr} fill="#fff" />
+            <circle cx={x + dx + cr * 0.38} cy={y + dy - cr * 0.38} r={cr * 0.92} fill="#000" />
+          </mask>
+        ))}
+      </defs>
+      <circle className="landing-moon" cx={x} cy={y} r={r} fill="url(#landing-moon-shade)" />
+      <g clipPath="url(#landing-moon-disc)">
+        <g fill="#93a5c2" opacity="0.38" filter="url(#landing-moon-soft)">
+          {MARIA.map((d) => (
+            <path key={d} d={d} transform={`translate(${x} ${y})`} />
+          ))}
+        </g>
+        <rect x={x - r} y={y - r} width={2 * r} height={2 * r} filter="url(#landing-moon-grain)" opacity="0.5" />
+        {CRATERS.map(([dx, dy, cr], i) => (
+          <g key={i}>
+            <circle cx={x + dx} cy={y + dy} r={cr} fill="#8798b6" opacity="0.18" />
+            <circle cx={x + dx} cy={y + dy} r={cr} fill="#6f7f9c" opacity="0.55" mask={`url(#landing-crater-${i})`} />
+            <path d={arc(x + dx, y + dy, cr, -110, 20)} fill="none" stroke="#f4f7fb" strokeWidth={Math.max(0.6, cr * 0.16)} opacity="0.6" strokeLinecap="round" />
+          </g>
+        ))}
       </g>
-      {line(-0.62, -0.08, 0.86, 0.06, 0.022)}
-      <g stroke="none">
-        {ellipse(-0.6, -0.08, 0.05, 0.075)}
-        {ellipse(0.02, 0.1, 0.17, 0.16)}
-        {ellipse(0.13, 0.33, 0.075, 0.08)}
-        {ellipse(0.12, 0.4, 0.2, 0.03)}
-        <polygon points={pts([0.02, 0.41], [0.23, 0.41], [-0.02, 0.72])} />
-      </g>
-      {line(-0.02, 0.71, -0.14, 0.76, 0.022)}
-      {line(0.08, 0.18, 0.36, 0.03, 0.035)}
-      {line(0, -0.02, 0.14, -0.2, 0.04)}
     </g>
   );
 }
@@ -85,24 +147,7 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
           </radialGradient>
         </defs>
         <circle cx={MOON.x} cy={MOON.y} r="150" fill="url(#landing-moon-glow)" />
-        <circle className="landing-moon" cx={MOON.x} cy={MOON.y} r="44" fill="#dbe3ef" />
-        {/* Its maria and craters: soft blue-grey patches, inside the disc. */}
-        <clipPath id="landing-moon-disc">
-          <circle cx={MOON.x} cy={MOON.y} r="44" />
-        </clipPath>
-        <g clipPath="url(#landing-moon-disc)" fill="#8fa3c4">
-          <ellipse cx={MOON.x - 14} cy={MOON.y - 12} rx="15" ry="11" opacity="0.45" />
-          <ellipse cx={MOON.x + 12} cy={MOON.y + 4} rx="11" ry="13" opacity="0.4" />
-          <ellipse cx={MOON.x - 4} cy={MOON.y + 22} rx="9" ry="6" opacity="0.35" />
-          <circle cx={MOON.x + 22} cy={MOON.y - 20} r="5" opacity="0.5" />
-          <circle cx={MOON.x - 26} cy={MOON.y + 10} r="4" opacity="0.45" />
-          <circle cx={MOON.x + 4} cy={MOON.y - 28} r="3" opacity="0.5" />
-          <circle cx={MOON.x + 28} cy={MOON.y + 20} r="3.5" opacity="0.4" />
-          <circle cx={MOON.x - 18} cy={MOON.y + 30} r="2.5" opacity="0.45" />
-          {/* A lighter rim on two craters' far side, so they read as dips. */}
-          <circle cx={MOON.x + 22.8} cy={MOON.y - 19.2} r="4" fill="none" stroke="#eef2f8" strokeWidth="0.8" opacity="0.6" />
-          <circle cx={MOON.x - 25.4} cy={MOON.y + 10.6} r="3.2" fill="none" stroke="#eef2f8" strokeWidth="0.7" opacity="0.55" />
-        </g>
+        <Moon />
         <g fill="#dbe6ff">
           {stars.map((s, i) => (
             <circle key={i} className="landing-star" cx={s.x * 16} cy={s.y * 9} r={s.r} style={{ animationDelay: `${s.delay}s` }} />

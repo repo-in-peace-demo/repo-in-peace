@@ -1297,7 +1297,8 @@ body,
 /* The witch in front of the moon: she stays put, bobbing and tilting gently; the bristles and cloak flutter. */
 .landing-witch,
 .landing-witch-bristles,
-.landing-witch-cloak {
+.landing-witch-cloak,
+.landing-witch-hair {
   transform-box: view-box;
 }
 
@@ -1311,6 +1312,11 @@ body,
 
 .landing-witch-cloak {
   animation: landing-witch-flutter 0.9s ease-in-out infinite alternate-reverse;
+}
+
+.landing-witch-hair {
+  animation: landing-witch-flutter 0.8s ease-in-out infinite alternate;
+  animation-delay: -0.3s;
 }
 
 @keyframes landing-witch-bob {
@@ -1327,7 +1333,8 @@ body,
   .landing-star,
   .landing-witch,
   .landing-witch-bristles,
-  .landing-witch-cloak {
+  .landing-witch-cloak,
+  .landing-witch-hair {
     animation: none;
   }
 }

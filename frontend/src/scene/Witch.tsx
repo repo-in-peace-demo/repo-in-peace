@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { SKY_RADIUS, skyDirection } from '../model/atmosphere';
 import { OPENING_DURATION_MS } from '../model/framing';
 import { playsOpening } from '../model/opening-move';
+import { WITCH_VIEWBOX, witchSvg } from '../model/witch-drawing';
 import { WITCH_HALF_SIZE_DEG, firstPassStart, type WitchState } from '../model/witch';
 import { witchAt } from '../model/sky-director';
 import { animationTime, isReducedMotion } from './animation-clock';
@@ -13,9 +14,9 @@ import { prefersReducedMotion } from './reduced-motion';
 
 /**
  * The witch on her broom (model/witch.ts): an ambient sky element, decoration and not data, so not in the legend. A flat dark
- * silhouette of our own design, drawn in the fragment shader from simple shapes (a stick, bristles, a body, a head, a pointed hat with
- * a brim, and a trailing cloak), on one screen-space quad like the moon's, so she is the same size and shape anywhere in the frame.
- * One draw call, no texture. Drawn in the sky (behind everything, no depth), so the forest and the graveyard always cover her, and
+ * silhouette of our own design, the same drawing as the landing page's (model/witch-drawing.ts), rasterised once into a texture and
+ * drawn on one screen-space quad like the moon's, so she is the same size and shape anywhere in the frame.
+ * One draw call, one small texture. Drawn in the sky (behind everything, no depth), so the forest and the graveyard always cover her, and
  * picking never sees her (picking uses the layout's boxes only).
  */
 export const witchDebug: { state: WitchState | null } = { state: null };
@@ -41,53 +42,20 @@ uniform float uTime;
 uniform float uSkyTime; // the sky's clock, so the clouds over her are the clouds drawn
 uniform float uOpacity;
 uniform vec3 uMoonDirection;
+uniform sampler2D uDrawing;
+uniform float uAspect; // the drawing's height over its width
 varying vec2 vP;
 varying vec3 vDirection;
 ${CLOUD_GLSL}
-float segment(vec2 p, vec2 a, vec2 b, float r) {
-  vec2 pa = p - a, ba = b - a;
-  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-  return length(pa - ba * h) - r;
-}
-float ellipse(vec2 p, vec2 c, vec2 r) { return (length((p - c) / r) - 1.0) * min(r.x, r.y); }
-float triangle(vec2 p, vec2 a, vec2 b, vec2 c) {
-  // Signed distance to a triangle (negative inside).
-  vec2 e0 = b - a, e1 = c - b, e2 = a - c;
-  vec2 v0 = p - a, v1 = p - b, v2 = p - c;
-  vec2 pq0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
-  vec2 pq1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
-  vec2 pq2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
-  float s = sign(e0.x * e2.y - e0.y * e2.x);
-  vec2 d = min(min(vec2(dot(pq0, pq0), s * (v0.x * e0.y - v0.y * e0.x)), vec2(dot(pq1, pq1), s * (v1.x * e1.y - v1.y * e1.x))),
-               vec2(dot(pq2, pq2), s * (v2.x * e2.y - v2.y * e2.x)));
-  return -sqrt(d.x) * sign(d.y);
-}
 void main() {
-  vec2 p = vP;
-  float flutter = sin(uTime * 11.0 + p.x * 9.0) * 0.025;
-  // The broomstick, slightly raised to the front, and the bristles fanning out behind, fluttering at their tips.
-  float d = segment(p, vec2(-0.62, -0.08), vec2(0.86, 0.06), 0.022);
-  for (int i = 0; i < 7; i++) {
-    float k = float(i) / 6.0 - 0.5;
-    vec2 tip = vec2(-0.98, -0.1 + k * 0.34 + flutter * (1.0 + abs(k) * 2.0));
-    d = min(d, segment(p, vec2(-0.6, -0.08 + k * 0.05), tip, 0.018));
-  }
-  d = min(d, ellipse(p, vec2(-0.6, -0.08), vec2(0.05, 0.075))); // the binding
-  // The rider: body leaning forward, head, a pointed hat bent back at the tip, its brim.
-  d = min(d, ellipse(p, vec2(0.02, 0.1), vec2(0.17, 0.16)));
-  d = min(d, ellipse(p, vec2(0.13, 0.33), vec2(0.075, 0.08)));
-  d = min(d, ellipse(p, vec2(0.12, 0.4), vec2(0.2, 0.03)));
-  d = min(d, triangle(p, vec2(0.02, 0.41), vec2(0.23, 0.41), vec2(-0.02, 0.72)));
-  d = min(d, segment(p, vec2(-0.02, 0.71), vec2(-0.14, 0.76), 0.022));
-  // An arm to the stick, and a leg hanging below it.
-  d = min(d, segment(p, vec2(0.08, 0.18), vec2(0.36, 0.03), 0.035));
-  d = min(d, segment(p, vec2(0.0, -0.02), vec2(0.14, -0.2), 0.04));
-  // The cloak, trailing behind from the shoulders and rippling.
-  vec2 c1 = vec2(-0.5, 0.2 + flutter * 3.0), c2 = vec2(-0.38, 0.0 + flutter * 2.0);
-  d = min(d, triangle(p, vec2(0.08, 0.27), vec2(-0.02, 0.0), c1));
-  d = min(d, triangle(p, vec2(-0.02, 0.0), c2, c1));
-  float edge = fwidth(d) + 0.004;
-  float alpha = 1.0 - smoothstep(-edge, edge, d);
+  // The drawing (model/witch-drawing.ts) fills the quad's width; its height is the quad's times uAspect, centred.
+  vec2 uv = vec2(0.5 + 0.5 * vP.x, 0.5 + 0.5 * vP.y / uAspect);
+  if (uv.y < 0.0 || uv.y > 1.0) discard;
+  // The wind: the bristles (the back fifth) and the cloak and hair (behind her shoulders, above the broom) ripple a little.
+  float back = 1.0 - smoothstep(0.12, 0.22, uv.x);
+  float cloak = smoothstep(0.28, 0.4, uv.x) * (1.0 - smoothstep(0.5, 0.58, uv.x)) * smoothstep(0.38, 0.5, uv.y);
+  uv.y += (back * 0.012 + cloak * 0.008) * sin(uTime * 11.0 + uv.x * 40.0);
+  float alpha = texture2D(uDrawing, uv).a;
   // As if through clouds: she fades in and out, and the drifting clouds in front of her cover her, more the more she has faded.
   float cover = cloudCover(cloudField(normalize(vDirection), uSkyTime)) * cloudAround(normalize(vDirection), uMoonDirection);
   alpha *= uOpacity * (1.0 - cover * (0.45 + 0.5 * (1.0 - uOpacity)));
@@ -96,9 +64,28 @@ void main() {
 }
 `;
 
+/** The shared drawing, rasterised once into a texture (transparent until the image has loaded, a frame or two). */
+function witchTexture(): THREE.CanvasTexture {
+  const width = 512;
+  const height = Math.round((width * WITCH_VIEWBOX.h) / WITCH_VIEWBOX.w);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.NoColorSpace;
+  const image = new Image();
+  image.onload = () => {
+    canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+    texture.needsUpdate = true;
+  };
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(witchSvg(width, height))}`;
+  return texture;
+}
+
 export function Witch() {
   const mesh = useRef<THREE.Mesh>(null);
   const assets = useMemo(() => {
+    const drawing = witchTexture();
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uCentre: { value: new THREE.Vector3() },
@@ -107,6 +94,8 @@ export function Witch() {
         uSkyTime: { value: 0 },
         uOpacity: { value: 0 },
         uMoonDirection: { value: new THREE.Vector3(MOON_DIRECTION.x, MOON_DIRECTION.y, MOON_DIRECTION.z) },
+        uDrawing: { value: drawing },
+        uAspect: { value: WITCH_VIEWBOX.h / WITCH_VIEWBOX.w },
       },
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
@@ -115,12 +104,13 @@ export function Witch() {
       depthTest: false,
       fog: false,
     });
-    return { material, geometry: new THREE.PlaneGeometry(2, 2) };
+    return { material, drawing, geometry: new THREE.PlaneGeometry(2, 2) };
   }, []);
   useEffect(
     () => () => {
       assets.material.dispose();
       assets.geometry.dispose();
+      assets.drawing.dispose();
       witchDebug.state = null;
     },
     [assets],

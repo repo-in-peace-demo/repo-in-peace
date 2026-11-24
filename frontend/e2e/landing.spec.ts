@@ -125,7 +125,7 @@ test('under reduced motion nothing moves; without it, only the stars twinkle and
   await open(page);
   const moving = await page.evaluate(() => document.getAnimations().map((a) => (a.effect as KeyframeEffect | null)?.target?.getAttribute('class') ?? ''));
   expect(moving.length).toBeGreaterThan(0);
-  expect(new Set(moving)).toEqual(new Set(['landing-star', 'landing-witch', 'landing-witch-bristles', 'landing-witch-cloak']));
+  expect(new Set(moving)).toEqual(new Set(['landing-star', 'landing-witch', 'landing-witch-bristles', 'landing-witch-cloak', 'landing-witch-hair']));
   // She stays on the moon: over two seconds her middle moves a few pixels at most, and is always inside the moon's glow.
   const centre = () => page.locator('.landing-witch').evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
   const moon = await page.locator('.landing-moon').evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, r: r.width / 2 }; });
