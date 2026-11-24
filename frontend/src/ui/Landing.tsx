@@ -85,7 +85,24 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
           </radialGradient>
         </defs>
         <circle cx={MOON.x} cy={MOON.y} r="150" fill="url(#landing-moon-glow)" />
-        <circle cx={MOON.x} cy={MOON.y} r="44" fill="#dbe3ef" />
+        <circle className="landing-moon" cx={MOON.x} cy={MOON.y} r="44" fill="#dbe3ef" />
+        {/* Its maria and craters: soft blue-grey patches, inside the disc. */}
+        <clipPath id="landing-moon-disc">
+          <circle cx={MOON.x} cy={MOON.y} r="44" />
+        </clipPath>
+        <g clipPath="url(#landing-moon-disc)" fill="#8fa3c4">
+          <ellipse cx={MOON.x - 14} cy={MOON.y - 12} rx="15" ry="11" opacity="0.45" />
+          <ellipse cx={MOON.x + 12} cy={MOON.y + 4} rx="11" ry="13" opacity="0.4" />
+          <ellipse cx={MOON.x - 4} cy={MOON.y + 22} rx="9" ry="6" opacity="0.35" />
+          <circle cx={MOON.x + 22} cy={MOON.y - 20} r="5" opacity="0.5" />
+          <circle cx={MOON.x - 26} cy={MOON.y + 10} r="4" opacity="0.45" />
+          <circle cx={MOON.x + 4} cy={MOON.y - 28} r="3" opacity="0.5" />
+          <circle cx={MOON.x + 28} cy={MOON.y + 20} r="3.5" opacity="0.4" />
+          <circle cx={MOON.x - 18} cy={MOON.y + 30} r="2.5" opacity="0.45" />
+          {/* A lighter rim on two craters' far side, so they read as dips. */}
+          <circle cx={MOON.x + 22.8} cy={MOON.y - 19.2} r="4" fill="none" stroke="#eef2f8" strokeWidth="0.8" opacity="0.6" />
+          <circle cx={MOON.x - 25.4} cy={MOON.y + 10.6} r="3.2" fill="none" stroke="#eef2f8" strokeWidth="0.7" opacity="0.55" />
+        </g>
         <g fill="#dbe6ff">
           {stars.map((s, i) => (
             <circle key={i} className="landing-star" cx={s.x * 16} cy={s.y * 9} r={s.r} style={{ animationDelay: `${s.delay}s` }} />

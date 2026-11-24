@@ -128,7 +128,7 @@ test('under reduced motion nothing moves; without it, only the stars twinkle and
   expect(new Set(moving)).toEqual(new Set(['landing-star', 'landing-witch', 'landing-witch-bristles', 'landing-witch-cloak']));
   // She stays on the moon: over two seconds her middle moves a few pixels at most, and is always inside the moon's glow.
   const centre = () => page.locator('.landing-witch').evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
-  const moon = await page.locator('.landing-sky circle[r="44"]').evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, r: r.width / 2 }; });
+  const moon = await page.locator('.landing-moon').evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, r: r.width / 2 }; });
   const seen = [];
   for (let i = 0; i < 5; i++) { seen.push(await centre()); await page.waitForTimeout(500); }
   for (const c of seen) expect(Math.hypot(c.x - moon.x, c.y - moon.y)).toBeLessThan(moon.r * 1.2);
