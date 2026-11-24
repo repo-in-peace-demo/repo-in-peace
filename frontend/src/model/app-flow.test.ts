@@ -13,6 +13,7 @@ const notice = { title: 'Wrong version', message: 'version 1', details: [] };
 
 describe('the first screen for a page address', () => {
   it('is the boot screen, a demo or a made-up graveyard being dug up, or the name error', () => {
+    expect(initialFlow({ kind: 'landing' }, 0)).toEqual({ screen: 'landing' });
     expect(initialFlow({ kind: 'boot' }, 0)).toEqual({ screen: 'boot', notice: null });
     expect(initialFlow({ kind: 'demo', name: 'demo.spatialql' }, 5)).toEqual({ screen: 'digging', source: demo, startedAt: 5, counts: null });
     expect(initialFlow({ kind: 'made', files: 2000 }, 0)).toMatchObject({ screen: 'digging', source: { kind: 'made', files: 2000 } });
@@ -53,6 +54,16 @@ describe('the flow', () => {
     expect(flow(s, { type: 'choose', source: demo, now: 0 }).screen).toBe('digging');
   });
 
+  it('goes landing → boot on enter, and nowhere else from the landing page', () => {
+    const landing: FlowState = { screen: 'landing' };
+    expect(flow(landing, { type: 'enter' })).toEqual({ screen: 'boot', notice: null });
+    for (const e of [{ type: 'choose', source: demo, now: 0 }, { type: 'loaded', model }, { type: 'counts', counts: countsOf(spatialql) }] as FlowEvent[]) {
+      expect(flow(landing, e)).toBe(landing);
+    }
+    const boot: FlowState = { screen: 'boot', notice: null };
+    expect(flow(boot, { type: 'enter' })).toBe(boot);
+  });
+
   it('ignores late results: a model or a failure arriving after Back changes nothing', () => {
     const boot: FlowState = { screen: 'boot', notice: null };
     expect(flow(boot, { type: 'loaded', model })).toBe(boot);
@@ -61,6 +72,7 @@ describe('the flow', () => {
   });
 
   const route: fc.Arbitrary<Route> = fc.oneof(
+    fc.constant<Route>({ kind: 'landing' }),
     fc.constant<Route>({ kind: 'boot' }),
     fc.constant<Route>({ kind: 'demo', name: 'demo.spatialql' }),
     fc.constant<Route>({ kind: 'made', files: 10 }),
@@ -73,6 +85,7 @@ describe('the flow', () => {
     fc.constant<FlowEvent>({ type: 'failed', title: 't', message: 'm', details: [] }),
     fc.constant<FlowEvent>({ type: 'local-rejected', notice }),
     fc.constant<FlowEvent>({ type: 'back' }),
+    fc.constant<FlowEvent>({ type: 'enter' }),
   );
 
   it('for any events: a scene always has a model, only a loaded model leads to a scene, and back always ends on the boot screen', () => {

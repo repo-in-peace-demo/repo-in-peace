@@ -1,4 +1,5 @@
-/* Page-wide styles. Fonts are the browser's own: nothing is downloaded. */
+/* Page-wide styles. Fonts are the browser's own, except Creepster for the landing page's title, served from this site
+   (public/fonts/creepster/, SIL Open Font License): nothing is loaded from another host. */
 
 :root {
   color-scheme: dark;
@@ -1144,4 +1145,189 @@ body,
   height: 24px;
   vertical-align: middle;
   margin-right: 0.4rem;
+}
+
+/* ---- The landing page (ui/Landing.tsx) ---- */
+
+@font-face {
+  font-family: 'Creepster';
+  src: url('/fonts/creepster/Creepster-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
+.landing {
+  position: relative;
+  min-height: 100%;
+  height: 100%;
+  overflow-y: auto; /* narrow screens scroll; the body never does */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(#0b1020, #141b2e);
+  color: #d9dee8;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  text-align: center;
+}
+
+.landing-sky {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.landing-star {
+  animation: landing-twinkle 9s ease-in-out infinite;
+}
+
+@keyframes landing-twinkle {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+
+.landing-content {
+  position: relative;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  max-width: 44rem;
+  padding: 2.5rem 1.5rem 1rem;
+}
+
+.landing-logo {
+  width: min(12rem, 38vw);
+  height: auto;
+}
+
+.landing-title {
+  margin: 0;
+  font-family: 'Creepster', fantasy;
+  font-weight: 400;
+  font-size: clamp(2.8rem, 8vw, 5rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #7cfc9a;
+}
+
+.landing-tagline {
+  margin: 0;
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+  line-height: 1.5;
+}
+
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 0.6rem;
+}
+
+.landing-actions button {
+  min-width: 12rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.landing-primary {
+  border: 2px solid #f2c46d;
+  background: #f2c46d;
+  color: #0b1020;
+}
+
+.landing-primary:hover {
+  background: #f6d48e;
+}
+
+.landing-secondary {
+  border: 2px solid #9fe7f5;
+  background: transparent;
+  color: #9fe7f5;
+}
+
+.landing-secondary:hover {
+  background: rgba(159, 231, 245, 0.1);
+}
+
+.landing-actions button:focus-visible,
+.landing-footer a:focus-visible {
+  outline: 3px solid #d9dee8;
+  outline-offset: 3px;
+}
+
+/* Shown only on narrow or touch screens. */
+.landing-desktop {
+  display: none;
+  margin: 0;
+  color: #8b93a7;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .landing-desktop {
+    display: block;
+  }
+}
+
+.landing-footer {
+  position: relative;
+  padding: 1rem 1.5rem 1.4rem;
+  color: #8b93a7;
+  font-size: 0.9rem;
+}
+
+.landing-footer a {
+  color: #8b93a7;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.landing-footer a:hover {
+  color: #d9dee8;
+}
+
+/* The witch in front of the moon: she stays put, bobbing and tilting gently; the bristles and cloak flutter. */
+.landing-witch,
+.landing-witch-bristles,
+.landing-witch-cloak {
+  transform-box: view-box;
+}
+
+.landing-witch {
+  animation: landing-witch-bob 3.2s ease-in-out infinite alternate;
+}
+
+.landing-witch-bristles {
+  animation: landing-witch-flutter 0.7s ease-in-out infinite alternate;
+}
+
+.landing-witch-cloak {
+  animation: landing-witch-flutter 0.9s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes landing-witch-bob {
+  from { transform: translateY(-4px) rotate(-2deg); }
+  to { transform: translateY(4px) rotate(1.5deg); }
+}
+
+@keyframes landing-witch-flutter {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-star,
+  .landing-witch,
+  .landing-witch-bristles,
+  .landing-witch-cloak {
+    animation: none;
+  }
 }

@@ -2,9 +2,10 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import type { Graveyard } from '@shared/graveyard-schema';
 import { countsOf, flow, initialFlow, type Counts, type FlowEvent, type FlowState, type Source } from './model/app-flow';
 import { digHoldMs } from './model/digging-timing';
-import { graveyardUrl, routeFromAddress } from './model/graveyard-load';
+import { BOOT_SEARCH, graveyardUrl, routeFromAddress } from './model/graveyard-load';
 import { buildSceneModel, type SceneModel } from './model/scene-model';
 import { SceneCanvas } from './scene/SceneCanvas';
+import { Landing } from './ui/Landing';
 import { BootScreen } from './ui/BootScreen';
 import { ControlsPanel } from './ui/ControlsPanel';
 import { DetailPanel } from './ui/DetailPanel';
@@ -88,13 +89,24 @@ export function App() {
     [dispatch],
   );
 
+  // From a scene or an error to the boot screen, at its own address.
   const back = useCallback(() => {
     const url = new URL(window.location.href);
-    url.search = '';
+    url.search = BOOT_SEARCH;
     window.history.pushState(null, '', url);
     dispatch({ type: 'back' });
   }, [dispatch]);
 
+  // From the landing page to the boot screen; the browser's Back returns to the landing page.
+  const enter = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.search = BOOT_SEARCH;
+    window.history.pushState(null, '', url);
+    dispatch({ type: 'enter' });
+  }, [dispatch]);
+
+  // The landing page needs no WebGL (it has no 3D), so it shows even where the graveyard can't be drawn.
+  if (state.screen === 'landing') return <Landing onEnter={enter} />;
   if (!webgl) {
     return <StatusMessage title="WebGL is not available" message="This browser cannot draw the graveyard. Try another browser, or turn on hardware acceleration." />;
   }

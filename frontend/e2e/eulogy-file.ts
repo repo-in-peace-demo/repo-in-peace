@@ -29,7 +29,7 @@ export function eulogyGraveyard(): { graveyard: Graveyard; stone: string; ghost:
 
 /** Opens the file through "Open a graveyard file…" on the boot screen, as a user would, and waits for the scene. */
 export async function openEulogyFile(page: Page, graveyard: Graveyard): Promise<void> {
-  await page.goto('/');
+  await page.goto('/?boot');
   await expect(page.getByRole('main', { name: 'Repo In Peace' })).toContainText('RIP/OS');
   await page.keyboard.press('KeyX'); // skips the typing
   await page.locator('input[type=file]').setInputFiles({

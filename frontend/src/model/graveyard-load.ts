@@ -36,6 +36,7 @@ export function parseGraveyardName(search: string): NameResult | null {
 
 /** Where the page address leads: the boot screen, a demo graveyard, a made-up one (development builds), or a refused name. */
 export type Route =
+  | { kind: 'landing' }
   | { kind: 'boot' }
   | { kind: 'demo'; name: string }
   | { kind: 'made'; files: number }
@@ -44,14 +45,19 @@ export type Route =
 /**
  * The route of a page address (interface spec, Req 1.1 and 2.1). A `graveyard` parameter wins: a valid name goes to that demo, any
  * other value is refused with the name message and nothing is requested. Without one, `madeFiles` (the count of a made-up graveyard
- * that a development build read from the address, or null) goes to it, and otherwise the boot screen shows.
+ * that a development build read from the address, or null) goes to it; otherwise `?boot` shows the boot screen, and a bare address
+ * the landing page (landing page request).
  */
 export function routeFromAddress(search: string, madeFiles: number | null = null): Route {
   const named = parseGraveyardName(search);
   if (named !== null) return named.ok ? { kind: 'demo', name: named.name } : { kind: 'bad-name', message: named.message };
   if (madeFiles !== null && Number.isInteger(madeFiles) && madeFiles >= 1) return { kind: 'made', files: madeFiles };
-  return { kind: 'boot' };
+  return new URLSearchParams(search).has(BOOT_PARAM) ? { kind: 'boot' } : { kind: 'landing' };
 }
+
+/** The boot screen's address (`?boot`): the landing page is the bare address, and Back from the boot screen returns to it. */
+export const BOOT_PARAM = 'boot';
+export const BOOT_SEARCH = `?${BOOT_PARAM}`;
 
 /** Where the data file is served from. `baseUrl` is Vite's `import.meta.env.BASE_URL`. */
 export function graveyardUrl(name: string, baseUrl: string): string {

@@ -1,0 +1,12 @@
+{
+  "name": "Repo In Peace",
+  "short_name": "Repo In Peace",
+  "icons": [
+    { "src": "/brand/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/brand/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "display": "standalone",
+  "start_url": "/"
+}

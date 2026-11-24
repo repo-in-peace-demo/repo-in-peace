@@ -28,7 +28,7 @@ const panel = (page: Page) => page.getByRole('complementary', { name: 'Selected 
 
 async function openCopy(page: Page, size = { width: 1280, height: 720 }): Promise<void> {
   await page.setViewportSize(size);
-  await page.goto('/');
+  await page.goto('/?boot');
   await page.keyboard.press('KeyX'); // skips the typing
   await page.locator('input[type=file]').setInputFiles({ name: 'oikos-importers.graveyard.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data.graveyard)) });
   await page.waitForFunction(() => window.repoInPeace !== undefined && document.querySelector('canvas') !== null, undefined, { timeout: 60_000 });

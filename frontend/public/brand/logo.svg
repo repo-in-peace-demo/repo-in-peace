@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300" role="img" aria-labelledby="t">
+<title id="t">Repo In Peace: a tombstone carved RIP FSN 1992 Flew over files. Rose again., a shovel leaning on it</title>
+<defs>
+  <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3b0c8"/><stop offset="1" stop-color="#5b6886"/></linearGradient>
+  <linearGradient id="soil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a4128"/><stop offset="1" stop-color="#3b2a1c"/></linearGradient>
+</defs>
+<path d="M40 276 V112 A80 80 0 0 1 200 112 V276 Z" fill="url(#stone)" stroke="#2a3146" stroke-width="4" stroke-linejoin="round"/>
+<path d="M52 270 V114 A68 68 0 0 1 188 114" fill="none" stroke="#c6d0e2" stroke-opacity="0.35" stroke-width="2"/>
+<g font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" text-anchor="middle">
+  <text x="120" y="106.4" font-size="40" fill="#c6d0e2" opacity="0.55" font-weight="700" letter-spacing="4">RIP</text><text x="120" y="104" font-size="40" fill="#232a3c" font-weight="700" letter-spacing="4">RIP</text>
+  <text x="120" y="147.56" font-size="26" fill="#c6d0e2" opacity="0.55" font-weight="700" letter-spacing="3">FSN</text><text x="120" y="146" font-size="26" fill="#232a3c" font-weight="700" letter-spacing="3">FSN</text>
+  <text x="120" y="177.2" font-size="20" fill="#c6d0e2" opacity="0.55" letter-spacing="2">1992</text><text x="120" y="176" font-size="20" fill="#232a3c" letter-spacing="2">1992</text>
+  <text x="120" y="210.81" font-size="13.5" fill="#c6d0e2" opacity="0.55" font-style="italic">Flew over files.</text><text x="120" y="210" font-size="13.5" fill="#232a3c" font-style="italic">Flew over files.</text>
+  <text x="120" y="228.81" font-size="13.5" fill="#c6d0e2" opacity="0.55" font-style="italic">Rose again.</text><text x="120" y="228" font-size="13.5" fill="#232a3c" font-style="italic">Rose again.</text>
+</g>
+<g stroke-linecap="round" stroke-linejoin="round">
+  <path d="M209.7 250.6 L197.3 142.9" stroke="#5e3f22" stroke-width="7.5"/>
+  <path d="M209.7 250.6 L197.3 142.9" stroke="#8a6034" stroke-width="5"/>
+  <path d="M190.3 143.7 L190.0 132.7 L202.0 131.3 L204.2 142.1" fill="none" stroke="#5e3f22" stroke-width="4.5"/>
+  <path d="M214.0 288.0 Q226.6 283.4 225.3 272.5 L219.7 246.2 L199.0 248.6 L199.5 275.5 Q200.7 286.4 214.0 288.0 Z" fill="#3b4049" stroke="#1d2128" stroke-width="1.6"/>
+  <path d="M207.3 280.9 L204.0 252.8" stroke="#6c7380" stroke-width="1.6" opacity="0.8"/>
+  <path d="M204.6 250.4 L204.9 240.0 L211.9 239.2 L214.6 249.2 Z" fill="#3b4049"/>
+</g>
+<path d="M22 292 C34 262 72 252 120 252 C168 252 196 262 206 292 Z" fill="url(#soil)" stroke="#3b2a1c" stroke-width="2"/>
+<g fill="#5a4128" opacity="0.9"><circle cx="70" cy="268" r="3"/><circle cx="108" cy="262" r="2.4"/><circle cx="150" cy="266" r="2.8"/><circle cx="182" cy="276" r="2.2"/></g>
+</svg>

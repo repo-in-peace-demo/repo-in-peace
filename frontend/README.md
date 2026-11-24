@@ -21,17 +21,23 @@ The Playwright tests are in `e2e/` (`e2e/README.md`). They import `test` from `e
 
 ## The flow
 
-- **Boot screen** (a bare address): a typed boot in a green terminal style (any key or click shows it all), then the demo graveyards and **Open a graveyard file…**. The active choice has a reverse-video bar with a `>`; Up, Down, Tab and the pointer move it, the focus goes with it, and Enter opens it. A file picked or dropped is read in the browser with the File API and checked like a demo file (a wrong schema version says so and stays on the boot screen); it is never uploaded, and it is not kept across a reload.
+- **Landing page** (the bare address, `ui/Landing.tsx`): the full logo, the title in Creepster, the tagline, **Enter the graveyard** and **Take the tour** (both to the boot screen; the guided tour is a later task), and a footer. A static night drawn in SVG, no 3D; the stars twinkle slowly, not at all under reduced motion. Narrow or touch screens add "Best on a desktop browser."
+- **Boot screen** (`?boot`): a typed boot in a green terminal style (any key or click shows it all), then the demo graveyards and **Open a graveyard file…**. The active choice has a reverse-video bar with a `>`; Up, Down, Tab and the pointer move it, the focus goes with it, and Enter opens it. A file picked or dropped is read in the browser with the File API and checked like a demo file (a wrong schema version says so and stays on the boot screen); it is never uploaded, and it is not kept across a reload.
 - **Digging screen**: the real counts while the file loads and the scene model is built; at least 400 ms, never more than 1 s of added wait.
 - **Scene**: the opening move, then the stats panel, legend, search box, list and detail panel. "← Graveyards" and the browser's Back return to the boot screen; leaving a scene frees its GPU resources.
 
 The demo list is `graveyards/index.json`, made from the files in `public/graveyards/` by a Vite plugin (`vite-plugins/graveyard-manifest.ts`): the dev server reads the folder on each request, and a build writes it once. A file that is not a valid version-2 graveyard is left out with a warning. Nobody edits a list by hand.
 
+## Brand
+
+`public/brand/` holds the logo (`logo.svg`: the tombstone with the whole inscription), the small mark (`mark.svg`: stone, shovel and RIP, drawn on the 16 px pixel grid), the favicons (16, 32), the Apple touch icon (180), the app icon (512, in `site.webmanifest`) and the 1200 × 630 social image used by the Open Graph and Twitter tags in `index.html`. All are written by `node scripts/make-brand.mjs` (PNGs rendered with Playwright's Chromium). The carved words are one constant there, `INSCRIPTION`: change it and run the script again for another inscription. The title font, Creepster (SIL Open Font License), is served from `public/fonts/creepster/` with its licence file, used only for the landing page's title and the social image.
+
 ## Page address
 
 | Parameter | Builds | What it does |
 | --- | --- | --- |
-| (none) | all | the boot screen |
+| (none) | all | the landing page |
+| `?boot` | all | the boot screen (Enter the graveyard, and "← Graveyards" from a scene, go here) |
 | `?graveyard=<name>` | all | skips the boot screen and loads `public/graveyards/<name>.graveyard.json`. Choosing a demo on the boot screen sets it, so the address can be shared. Names are 1 to 100 letters, digits, dots, underscores and hyphens; anything else is refused without a request, with a way back to the boot screen. |
 | `?synthetic=<n>` | development only | a made-up graveyard of n files (seed 1, at most 20,000) instead of a data file, for the performance check; turns the overlay on |
 | `?stats` | development only | the performance overlay: frames per second, the 95th-percentile frame time over the last 300 frames, draw calls and triangles |

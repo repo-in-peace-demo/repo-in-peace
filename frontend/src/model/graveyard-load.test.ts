@@ -104,9 +104,13 @@ describe('parseGraveyardName', () => {
 });
 
 describe('routeFromAddress', () => {
-  it('shows the boot screen for a bare address, and for an address with other parameters only', () => {
-    expect(routeFromAddress('')).toEqual({ kind: 'boot' });
-    expect(routeFromAddress('?stats')).toEqual({ kind: 'boot' });
+  it('shows the landing page for a bare address and one with other parameters only; ?boot shows the boot screen', () => {
+    expect(routeFromAddress('')).toEqual({ kind: 'landing' });
+    expect(routeFromAddress('?stats')).toEqual({ kind: 'landing' });
+    expect(routeFromAddress('?boot')).toEqual({ kind: 'boot' });
+    expect(routeFromAddress('?boot=1&stats')).toEqual({ kind: 'boot' });
+    // A graveyard link skips both.
+    expect(routeFromAddress('?boot&graveyard=demo.spatialql')).toEqual({ kind: 'demo', name: 'demo.spatialql' });
   });
 
   it('goes to a named demo, and refuses a bad name with the message (nothing to request)', () => {
@@ -117,19 +121,19 @@ describe('routeFromAddress', () => {
   });
 
   it('goes to a made-up graveyard only when the build passes a count, and a graveyard name wins over it', () => {
-    expect(routeFromAddress('?synthetic=2000', null)).toEqual({ kind: 'boot' }); // production: the count is never read
+    expect(routeFromAddress('?synthetic=2000', null)).toEqual({ kind: 'landing' }); // production: the count is never read
     expect(routeFromAddress('?synthetic=2000', 2000)).toEqual({ kind: 'made', files: 2000 });
     expect(routeFromAddress('?graveyard=demo.spatialql&synthetic=5', 5)).toEqual({ kind: 'demo', name: 'demo.spatialql' });
-    for (const bad of [0, -1, 2.5, Number.NaN]) expect(routeFromAddress('', bad)).toEqual({ kind: 'boot' });
+    for (const bad of [0, -1, 2.5, Number.NaN]) expect(routeFromAddress('', bad)).toEqual({ kind: 'landing' });
   });
 
-  it('for any address: a graveyard parameter decides alone, and without one it is boot or made', () => {
+  it('for any address: a graveyard parameter decides alone, and without one it is made, boot (?boot) or the landing page', () => {
     fc.assert(
-      fc.property(fc.option(fc.string({ maxLength: 40 }), { nil: undefined }), fc.option(fc.integer({ min: -5, max: 5000 }), { nil: null }), (name, made) => {
-        const search = name === undefined ? '?x=1' : `?graveyard=${encodeURIComponent(name)}`;
+      fc.property(fc.option(fc.string({ maxLength: 40 }), { nil: undefined }), fc.option(fc.integer({ min: -5, max: 5000 }), { nil: null }), fc.boolean(), (name, made, boot) => {
+        const search = (name === undefined ? '?x=1' : `?graveyard=${encodeURIComponent(name)}`) + (boot ? '&boot' : '');
         const route = routeFromAddress(search, made);
         if (name !== undefined) return route.kind === (GRAVEYARD_NAME_PATTERN.test(name) ? 'demo' : 'bad-name');
-        return route.kind === (made !== null && made >= 1 ? 'made' : 'boot');
+        return route.kind === (made !== null && made >= 1 ? 'made' : boot ? 'boot' : 'landing');
       }),
     );
   });

@@ -1,3 +1,5 @@
+<p align="center"><img src="frontend/public/brand/logo.svg" alt="Repo In Peace logo: a carved tombstone with a shovel leaning on it and a mound of earth at its foot" width="200"></p>
+
 # Repo In Peace
 
 Repo In Peace turns a JavaScript or TypeScript repository into a haunted 3D graveyard, so you can find and bury dead code. Folders are fenced plots, files are tombstones (taller for more lines), and every effect means one fact: moss for a file left untouched, a lean for an ancient one, cracks and a faint red glow for a file Knip reports unused, a lit candle for a hot one, and a translucent ghost for a deleted file. It is a nod to SGI's FSN, the early-1990s 3D file browser, made for Kiroween 2026 (Resurrection).
@@ -42,11 +44,12 @@ npm install
 npm run dev        # http://localhost:5173/
 ```
 
-1. **Boot screen.** A bare address opens a green terminal that types a short boot (any key or click skips it) and lists the demo graveyards with their file counts; the first is marked, so Enter opens it. **Open a graveyard file…** (or a file dropped on the screen) reads a `.graveyard.json` in your browser only. No file yet? See [Analyse your own repo](#analyse-your-own-repo).
-2. **Digging.** A short screen while the file loads and the scene is built, with the real counts ("exhuming 129 graves…").
-3. **Scene.** The camera rises from a low shot into the overview (any input ends the move). Hover a grave for a summary line, click it for the detail panel, browse every grave in the list, or search with `/` or Cmd+K. "← Graveyards" (or the browser's Back) returns to the boot screen.
+1. **Landing page.** The bare address shows the logo, the title and two buttons; **Enter the graveyard** (or **Take the tour**, which for now does the same) opens the boot screen at `?boot`, and Back returns to the landing page.
+2. **Boot screen.** A green terminal that types a short boot (any key or click skips it) and lists the demo graveyards with their file counts; the first is marked, so Enter opens it. **Open a graveyard file…** (or a file dropped on the screen) reads a `.graveyard.json` in your browser only. No file yet? See [Analyse your own repo](#analyse-your-own-repo).
+3. **Digging.** A short screen while the file loads and the scene is built, with the real counts ("exhuming 129 graves…").
+4. **Scene.** The camera rises from a low shot into the overview (any input ends the move). Hover a grave for a summary line, click it for the detail panel, browse every grave in the list, or search with `/` or Cmd+K. "← Graveyards" (or the browser's Back) returns to the boot screen.
 
-A direct link such as `?graveyard=demo.oikosledger` skips the boot screen and goes straight to digging, then the scene. A file opened from disk is not kept across a reload: a reload returns to the boot screen.
+A direct link such as `?graveyard=demo.oikosledger` skips the landing page and the boot screen and goes straight to digging, then the scene. A file opened from disk is not kept across a reload: a reload returns to the boot screen.
 
 ## Bury and Resurrect
 

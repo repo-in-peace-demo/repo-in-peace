@@ -24,16 +24,16 @@ const withDigHold = (page: Page) =>
   });
 const digging = (page: Page) => page.getByRole('main', { name: 'Opening the graveyard' });
 
-test('a bare address shows the boot screen; a key shows it all, and Enter opens the first demo, through the digging screen with its real counts', async ({ page }) => {
+test('?boot shows the boot screen (the bare address is the landing page, landing.spec.ts); a key shows it all, and Enter opens the first demo, through the digging screen with its real counts', async ({ page }) => {
   await withDigHold(page);
-  await page.goto('/');
+  await page.goto('/?boot');
   await expect(boot(page)).toContainText('RIP/OS');
   await expect(boot(page)).not.toContainText(/sgi|irix|fsn/i);
   await page.keyboard.press('KeyX'); // skips the typing, chooses nothing
   const first = page.getByRole('button', { name: /oikos_ledger — 129 files/ });
   await expect(first).toBeFocused({ timeout: 2000 });
   await expect(page.getByRole('button', { name: /spatialql — 120 files, 2 ghosts/ })).toBeVisible();
-  expect(new URL(page.url()).search).toBe('');
+  expect(new URL(page.url()).search).toBe('?boot');
   const chosen = Date.now();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\?graveyard=demo\.oikosledger$/);
@@ -48,7 +48,7 @@ test('a bare address shows the boot screen; a key shows it all, and Enter opens 
 test('any key or click skips the digging screen at once', async ({ page }) => {
   await withDigHold(page);
   for (const skip of ['key', 'click'] as const) {
-    await page.goto('/');
+    await page.goto('/?boot');
     await page.keyboard.press('KeyX');
     await page.getByRole('button', { name: /spatialql/ }).waitFor();
     const chosen = Date.now();
@@ -68,7 +68,7 @@ test('under reduced motion the digging lines are there at once, and the screen h
   await page.addInitScript(() => {
     window.__repoInPeaceNoOpening = true;
   });
-  await page.goto('/');
+  await page.goto('/?boot');
   await page.getByRole('button', { name: /oikos_ledger/ }).waitFor();
   const chosen = Date.now();
   await page.getByRole('button', { name: /oikos_ledger/ }).click();
@@ -83,14 +83,14 @@ test('under reduced motion the digging lines are there at once, and the screen h
 test('under reduced motion the boot text is there at once, with the choices', async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('/?boot');
   await expect(page.getByRole('button', { name: /oikos_ledger/ })).toBeVisible({ timeout: 1500 });
   await expect(page.getByRole('main', { name: 'Repo In Peace' })).toContainText('Choose a graveyard');
   await context.close();
 });
 
 test('a file from disk opens without changing the address; an old version is refused on the boot screen', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?boot');
   await skipTyping(page);
   const v1 = JSON.parse(read('demo.spatialql'));
   v1.meta.schemaVersion = 1;
@@ -102,11 +102,11 @@ test('a file from disk opens without changing the address; an old version is ref
 
   await page.locator('input[type=file]').setInputFiles({ name: 'mine.graveyard.json', mimeType: 'application/json', buffer: Buffer.from(read('demo.spatialql')) });
   await sceneUp(page);
-  expect(new URL(page.url()).search).toBe('');
+  expect(new URL(page.url()).search).toBe('?boot');
 });
 
 test('Back from a scene returns to the boot screen, and a ?graveyard= link skips it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?boot');
   await skipTyping(page);
   await page.getByRole('button', { name: /spatialql/ }).click();
   await sceneUp(page);
@@ -149,7 +149,7 @@ test('switching between the two demos five times frees each scene: the same GPU 
   const setPhase = (phase: string) => page.evaluate((p) => ((window as unknown as { __phase: string }).__phase = p), phase);
   const counts: Record<string, string[]> = { spatialql: [], oikos_ledger: [] };
 
-  await page.goto('/');
+  await page.goto('/?boot');
   for (let visit = 0; visit < 5; visit++) {
     for (const repo of ['spatialql', 'oikos_ledger'] as const) {
       await skipTyping(page);
@@ -172,7 +172,7 @@ test('switching between the two demos five times frees each scene: the same GPU 
 });
 
 test('the marker is on the first demo at first, moves with Up and Down and with the pointer, and is always where the focus is', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?boot');
   await skipTyping(page);
   const choices = page.locator('[data-choice]');
   await expect(choices).toHaveCount(3); // two demos and the file choice
@@ -200,7 +200,7 @@ test('the marker is on the first demo at first, moves with Up and Down and with 
 });
 
 test('under Open a graveyard file, a hint links to the README section on analysing your own repo', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?boot');
   await skipTyping(page);
   const link = page.getByRole('link', { name: 'Analyse your own repo' });
   await expect(link).toHaveAttribute('href', 'https://github.com/sl2902/repo-in-peace#analyse-your-own-repo');

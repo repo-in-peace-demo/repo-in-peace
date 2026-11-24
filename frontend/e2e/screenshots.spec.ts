@@ -256,7 +256,7 @@ test.describe('screenshots to judge by eye', () => {
       window.__repoInPeaceNoDigHold = false; // the digging screen's beat, to catch it
     });
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/');
+    await page.goto('/?boot');
     await page.keyboard.press('KeyX');
     await page.getByRole('button', { name: /oikos_ledger/ }).waitFor();
     await page.waitForTimeout(300);

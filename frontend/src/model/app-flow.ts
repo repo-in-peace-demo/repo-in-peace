@@ -6,7 +6,7 @@ import type { SceneModel } from './scene-model';
  * The app's screens and how it moves between them (interface spec, design "App flow"). Pure: `App.tsx` holds the state, does the
  * side effects (fetching, reading a file, building the model, changing the address) and feeds the results back as events.
  *
- *   boot ──choose──▶ digging ──loaded──▶ scene
+ *   landing ──enter──▶ boot ──choose──▶ digging ──loaded──▶ scene
  *     ▲                 │ failed
  *     └──── back ─── error
  *
@@ -37,12 +37,15 @@ export interface BootNotice {
 }
 
 export type FlowState =
+  | { screen: 'landing' }
   | { screen: 'boot'; notice: BootNotice | null }
   | { screen: 'digging'; source: Source; startedAt: number; counts: Counts | null }
   | { screen: 'scene'; source: Source; model: SceneModel }
   | { screen: 'error'; title: string; message: string; details: string[] };
 
 export type FlowEvent =
+  /** From the landing page to the boot screen. */
+  | { type: 'enter' }
   /** `counts`: known before loading when the boot screen's demo list has them. */
   | { type: 'choose'; source: Source; now: number; counts?: Counts }
   | { type: 'counts'; counts: Counts }
@@ -57,6 +60,8 @@ export const countsOf = (g: Graveyard): Counts => ({ repo: g.meta.name, files: g
 /** The first screen for a page address (`routeFromAddress`). */
 export function initialFlow(route: Route, now: number): FlowState {
   switch (route.kind) {
+    case 'landing':
+      return { screen: 'landing' };
     case 'boot':
       return { screen: 'boot', notice: null };
     case 'demo':
@@ -71,6 +76,8 @@ export function initialFlow(route: Route, now: number): FlowState {
 /** The next state. An event that does not fit the current screen (a late result after Back, say) changes nothing. */
 export function flow(state: FlowState, event: FlowEvent): FlowState {
   switch (event.type) {
+    case 'enter':
+      return state.screen === 'landing' ? { screen: 'boot', notice: null } : state;
     case 'choose':
       if (state.screen !== 'boot') return state;
       return {

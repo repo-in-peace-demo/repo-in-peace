@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t">
+<title id="t">Repo In Peace</title>
+<defs><linearGradient id="s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a3b0c8"/><stop offset="1" stop-color="#5b6886"/></linearGradient></defs>
+<path d="M6 59 V27 A24 24 0 0 1 54 27 V59 Z" fill="url(#s)" stroke="#2a3146" stroke-width="2.5" stroke-linejoin="round"/>
+<g fill="none" stroke="#232a3c" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter"><path d="M14 24 V44"/><path d="M12 26 H22 V34 H14"/><path d="M18 36 L22 44"/><path d="M30 24 V44"/><path d="M38 24 V44"/><path d="M36 26 H46 V34 H38"/></g>
+<path d="M53 61 L60 20" stroke="#5e3f22" stroke-width="4" stroke-linecap="round"/>
+<path d="M53 61 L60 20" stroke="#8a6034" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M49 63 L50 52 L58 53.5 L57 63 Z" fill="#3b4049" stroke="#1d2128" stroke-width="1"/>
+<path d="M2 63 Q30 56 50 63 Z" fill="#5a4128"/>
+</svg>

@@ -121,7 +121,7 @@ test('a refused request shows the server\'s message and Try again', async ({ pag
 
 test('a graveyard opened from a file keeps the buttons disabled, with the demo-only note', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/');
+  await page.goto('/?boot');
   await expect(page.getByRole('main', { name: 'Repo In Peace' })).toContainText('RIP/OS');
   await page.keyboard.press('KeyX');
   await page.locator('input[type=file]').setInputFiles({ name: 'mine.graveyard.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(oikos)) });
