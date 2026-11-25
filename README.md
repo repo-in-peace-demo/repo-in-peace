@@ -57,48 +57,98 @@ On the demo graveyards, **Bury** on an unused stone opens a real pull request th
 
 ## Analyse your own repo
 
-You need Node 20 or later and git. The analyser reads a **full** git clone of a JavaScript or TypeScript repository on your machine and writes one graveyard file; nothing is uploaded.
+Try Repo In Peace on a JavaScript or TypeScript repository of your own, on your machine. Part A shows it as a graveyard; Part B (optional) makes Bury and Resurrect open real pull requests on a repository you control. Nothing is uploaded anywhere, except the pull requests in Part B.
 
-**1. Get Repo In Peace and install the analyser**
+### Part A: see your repo as a graveyard
+
+**1. What you need:** Node 20.19 or later (or 22.12+), git, and a JavaScript or TypeScript repository.
+
+**2. Get Repo In Peace and install it**
 
 ```
 git clone https://github.com/sl2902/repo-in-peace.git
-cd repo-in-peace/analyser
-npm install
+cd repo-in-peace
+(cd analyser && npm install)
+(cd frontend && npm install)
 ```
 
-**2. Clone the repository you want to see, with its full history, and install its dependencies** (Knip needs them to tell which files are used)
+**3. Prepare your repo.** Clone it in full (not shallow: ages, ghosts and Resurrect all come from its whole history), and install its dependencies (Knip needs them to tell which files are used):
 
 ```
 git clone https://github.com/<owner>/<repo>.git ~/graveyards/<repo>
 (cd ~/graveyards/<repo> && npm install)
 ```
 
-Already have a shallow clone? `git -C ~/graveyards/<repo> fetch --unshallow`.
-
-**3. Run the analyser**
+**4. Run the analyser**, writing into the frontend's graveyard folder so the boot screen lists it by itself:
 
 ```
-npm run analyse -- ~/graveyards/<repo> --out ~/graveyards/<repo>.graveyard.json
+cd analyser
+npm run analyse -- ~/graveyards/<repo> --out ../frontend/public/graveyards/<repo>.graveyard.json
 ```
 
-The common flags:
+The file name, without `.graveyard.json`, is the graveyard's name (`<repo>` here). The flags you may need:
 
 | Flag | When |
 | --- | --- |
-| `--knip-dir app` | the JS/TS lives in a subfolder with its own `package.json` (repeat for several) |
-| `--knip-config knip.json` | the repo has no Knip config, and its defaults flag test files or scripts as unused |
-| `--stale-after 30 --ancient-after 90` | an active repo, where 90 and 360 days (the defaults) would call everything fresh |
-| `--analysed-at 2026-11-01T00:00:00Z` | the same file byte for byte on every run |
-| `--eulogies --eulogy-model qwen2.5:7b` | an epitaph for every grave, written by a model on your machine through [Ollama](https://ollama.com) |
+| `--knip-dir app` | the JS/TS lives in a subfolder with its own `package.json`; repeat it for several folders |
+| `--knip-config knip.json` | the repo has no Knip config, and Knip's defaults call test files or scripts unused |
+| `--stale-after 30 --ancient-after 90` | a young or busy repo: the defaults (90 and 360 days) would call everything fresh |
 
-All the options, and how to choose a model, are in [`analyser/README.md`](analyser/README.md).
+All the options are in [`analyser/README.md`](analyser/README.md).
 
-**4. Open it**
+**5. Eulogies (optional).** An epitaph for every grave, written by a model on your machine. Install [Ollama](https://ollama.com), then:
 
-On the [live site](https://repo-in-peace-pi.vercel.app), or locally (`cd ../frontend && npm install && npm run dev`, then <http://localhost:5173/>), choose **Open a graveyard file…** on the boot screen and pick `<repo>.graveyard.json`, or drop it on the screen. It is read in your browser and never uploaded; a reload returns to the boot screen.
+```
+ollama pull qwen2.5:7b
+npm run analyse -- ~/graveyards/<repo> --out ../frontend/public/graveyards/<repo>.graveyard.json --eulogies --eulogy-model qwen2.5:7b
+```
 
-To list it on the boot screen of your local copy instead, write it into `frontend/public/graveyards/`: `--out ../frontend/public/graveyards/<repo>.graveyard.json`. Bury and Resurrect work only on the demo graveyards.
+Only commit subjects and file contents are sent, and only to Ollama on this machine; names and e-mails are taken out first.
+
+**6. Open it**
+
+```
+cd ../frontend
+npm run dev
+```
+
+Go to <http://localhost:5173/>, choose **Enter the graveyard**, and pick your graveyard on the boot screen. Or save the file anywhere and use **Open a graveyard file…** on the boot screen (here or on the [live site](https://repo-in-peace-pi.vercel.app)): it is read in your browser and never uploaded, but Bury and Resurrect stay off for a file opened this way.
+
+### Part B (optional): Bury and Resurrect on your own repo
+
+> **This opens real pull requests on a GitHub repository you control.** Use a fork or a test copy, not your main project, until you're comfortable. Nothing is ever merged for you: every change is a pull request you review.
+
+**1. A token.** On GitHub, go to Settings → Developer settings → [Fine-grained tokens](https://github.com/settings/personal-access-tokens/new). Choose **Only select repositories** and pick that one repository. Under Repository permissions, set **Contents** and **Pull requests** to **Read and write**.
+
+**2. Local settings.** Create `frontend/.env.local` (it is git-ignored: `git check-ignore frontend/.env.local` should print the path):
+
+```
+GITHUB_TOKEN=github_pat_your_token_here
+RIP_DEMOS={"<repo>":{"repo":"<owner>/<repo>","base":"main"}}
+```
+
+The key is the graveyard's name from step A4, `repo` is the GitHub repository the pull requests go to, and `base` is its branch. With `RIP_DEMOS` set, only the graveyards it names get the buttons (the bundled demos are then off locally).
+
+**3. Restart the dev server** (`npm run dev`). On your graveyard, **Bury** (on an unused stone) and **Resurrect** (on a ghost) now open real pull requests.
+
+**4. What to expect.** Bury needs the file to still be on the base branch, and Resurrect needs its path to be free there; otherwise the app refuses with a message saying why. If your repository has moved on since you ran the analyser, run it again. Burying the same file twice gives back the same pull request.
+
+**5. Cleaning up.** From `frontend/`, close every Repo In Peace pull request on the repositories in `RIP_DEMOS` and delete their `rip/` branches (nothing else is touched):
+
+```
+npm run reset-demo-prs -- --dry-run     # lists what it would do
+npm run reset-demo-prs
+```
+
+When you're done, delete the token on GitHub and remove `frontend/.env.local`.
+
+### Troubleshooting
+
+- **"… is a shallow clone"**: run `git fetch --unshallow` in your clone, or clone it again without `--depth`.
+- **"No package.json found …"**: the JS/TS is in a subfolder; the message lists the folders that have one. Add `--knip-dir <folder>`.
+- **"Knip failed …"**: usually the repo's dependencies aren't installed. Run `npm install` in it (or in the `--knip-dir` folder) and try again.
+- **Ollama not running, or the model missing**: start Ollama (`ollama serve`), or `ollama pull <model>`; the analyser stops before anything else and says which.
+- **Bury and Resurrect are greyed out**: no `GITHUB_TOKEN`, or no `RIP_DEMOS` entry for this graveyard's name, or the dev server wasn't restarted, or the graveyard was opened with **Open a graveyard file…** rather than picked from the boot screen's list.
 
 ## Licence
 
