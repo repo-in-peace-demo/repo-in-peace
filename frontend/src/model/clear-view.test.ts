@@ -4,7 +4,8 @@ import { REAL_GRAVEYARDS, loadRealGraveyard } from '../../test/real-data';
 import { occludersOf } from '../../test/fly-view';
 import { sceneCameraLimits } from './camera-bounds';
 import { NAME_NEAR } from './engraving';
-import { blockersOf, clearFlyPose, faceOf, flyCandidates, sceneOccluders, type Face } from './clear-view';
+import { PLATE_W, STAKE_H, stakeSpot, type GraveOverride } from './pr-scene';
+import { blockersOf, clearFlyPose, faceOf, flyCandidates, plaqueFaceOf, sceneOccluders, type Face } from './clear-view';
 import { clampPose } from './fly-controls';
 import { buildSceneModel } from './scene-model';
 import { distance, vec3 } from './vec3';
@@ -91,5 +92,31 @@ describe('what is in the way', () => {
     expect(o.filter((x) => x.kind === 'stone')).toHaveLength(120);
     expect(o.filter((x) => x.kind === 'sign')).toHaveLength(m.signSources.length);
     expect(o.some((x) => x.id.startsWith('rail:')) && o.some((x) => x.id.startsWith('post:'))).toBe(true);
+  });
+});
+
+describe('the pull request plaque, in the way of nothing', () => {
+  const model = buildSceneModel(loadRealGraveyard('demo.spatialql'));
+  const ghost = model.ghosts.findIndex((g) => g.ghost.path === 'src/data/surface-placement.test.ts');
+  const risen: GraveOverride = { kind: 'risen', path: model.ghosts[ghost]!.ghost.path, index: ghost, number: 1, startedAt: 0 };
+
+  it('is a grid on the plaque board, just in front of it, at the stake', () => {
+    const face = plaqueFaceOf(risen, model);
+    const foot = stakeSpot(risen, model);
+    expect(face.path).toBe(risen.path);
+    for (const p of face.points) {
+      expect(Math.abs(p.x - foot.x)).toBeLessThanOrEqual(PLATE_W / 2);
+      expect(p.y).toBeLessThanOrEqual(STAKE_H);
+      expect(p.z).toBeGreaterThan(foot.z);
+    }
+  });
+
+  it('finds a stone that stands between the camera and the plaque, though not before the grave\'s own face', () => {
+    const foot = stakeSpot(risen, model);
+    // A camera low in front of the plaque, and the stone just in front of it in the row ahead.
+    const camera = vec3(foot.x, 1.2, foot.z + 12);
+    const blockers = blockersOf(camera, plaqueFaceOf(risen, model), sceneOccluders(model)).map((b) => b.id);
+    expect(blockers.length).toBeGreaterThan(0);
+    expect(blockers).not.toContain(risen.path);
   });
 });

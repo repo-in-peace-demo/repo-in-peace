@@ -3,6 +3,7 @@ import { FENCE_POST, FENCE_RAIL, fenceInstances } from './fences';
 import { clampPose, type CameraLimits } from './fly-controls';
 import { STONE_D, STONE_W } from './layout-constants';
 import { PICK_PADDING, rayBoxDistance } from './pick';
+import { PLATE_H, PLATE_W, STAKE_H, stakeSpot, type GraveOverride } from './pr-scene';
 import type { SceneModel } from './scene-model';
 import { plaqueBox } from './sign-fade';
 import type { OccluderBox } from './sign-occlusion';
@@ -86,6 +87,23 @@ export function faceOf(model: Pick<SceneModel, 'lookup' | 'stones' | 'ghosts'>, 
     }
   }
   return { path, points, centre: vec3((x0 + x1) / 2, (y0 + y1) / 2, z), radius: Math.hypot(x1 - x0, y1 - y0) / 2 };
+}
+
+/** The stake's post is this thick (scene/PrMarkers.tsx draws it so); its plaque sits just in front of it. */
+export const STAKE_POST_W = 0.07;
+
+/**
+ * The face of a pull request's plaque (the "PR #N" board on its stake, which faces +z): a grid of points just in front of it, for the
+ * same clear-view test as a stone's face. `path` is the grave's, so its own box never counts as in the way.
+ */
+export function plaqueFaceOf(o: GraveOverride, model: Pick<SceneModel, 'stones' | 'ghosts'>): Face {
+  const foot = stakeSpot(o, model);
+  const [x0, x1] = [foot.x - PLATE_W / 2, foot.x + PLATE_W / 2];
+  const [y0, y1] = [STAKE_H - PLATE_H, STAKE_H];
+  const z = foot.z + STAKE_POST_W / 2 + 0.06;
+  const points: Vec3[] = [];
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) points.push(vec3(x0 + (x1 - x0) * (0.06 + (0.88 * i) / 3), y0 + (y1 - y0) * (0.15 + 0.35 * j), z));
+  return { path: o.path, points, centre: vec3(foot.x, (y0 + y1) / 2, z), radius: Math.hypot(x1 - x0, y1 - y0) / 2 };
 }
 
 /** The boxes that stand between the camera and any point of the face (the grave's own box never counts). */
