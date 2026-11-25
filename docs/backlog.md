@@ -2,7 +2,6 @@
 
 Ideas kept out of the current tasks on purpose. Each needs its own small spec before it is built.
 
-- **npx entry point for the analyser**: `npx repo-in-peace analyse <clone>` without cloning this repository (a published package with a `bin`).
 - **GitHub Action that generates the graveyard file in CI**: run the analyser on each push to the default branch and publish the `.graveyard.json` as an artifact (or to Pages), so the graveyard stays current.
 - **Pull requests from your own account** (bury-and-resurrect, out of scope): sign in with GitHub to open Bury and Resurrect pull requests on your own repositories instead of the demo forks.
 - **After a merge**: updating the graveyard when a Bury or Resurrect pull request is merged (open pull requests are shown live on load; once merged, the grave shows the data file again until it is regenerated).
@@ -25,3 +24,4 @@ Taken from this list, or asked for alongside it, and built:
 - **The gravedigger during Bury** (`model/gravedigger.ts`, `scene/Gravedigger.tsx`): he digs while the request runs, pats the mound and plants the stake on success, or shakes his head on an error.
 - **The screaming ghost during Resurrect** (`riseFrame` and `ghostWait` in `model/pr-scene.ts`): the ghost shivers while the request runs, then screams, rises into the sky and fades, and the stone forms once it is halfway up.
 - **Shooting stars, bats and distant lightning, with a sky director** (`model/sky-director.ts`, `scene/SkyEvents.tsx`): one event in the sky at a time with the witch, 9 to 14 s of quiet between them, seeded; lightning dim, behind the clouds over the forest, at most 2 flashes and 30 s apart; none under reduced motion.
+- **npx entry point** (`analyser/`, published as `repo-in-peace` 0.1.0): `npx repo-in-peace <clone> --out <name>.graveyard.json` analyses a repo without cloning this one; open the file on the live site with Open a graveyard file.

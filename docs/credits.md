@@ -1,6 +1,6 @@
 # Credits
 
-The graveyard scene uses no third-party models, textures, fonts or sounds: every shape, texture and effect is made in code (procedural geometry and GLSL), and the text uses the browser's own monospace font, so there is nothing to credit. The sound (off until you turn it on) is made the same way: every cricket, owl, shovel, wail and rumble is generated with the Web Audio API from oscillators and noise (`frontend/src/sound/engine.ts`), with no audio file and no recording.
+The graveyard scene uses no third-party models, textures, fonts or sounds: every shape, texture and effect is made in code (procedural geometry and GLSL), and the text uses the browser's own fonts, except the landing page's title (Creepster, below). The sound (off until you turn it on) is made the same way: every cricket, owl, shovel, wail and rumble is generated with the Web Audio API from oscillators and noise (`frontend/src/sound/engine.ts`), with no audio file and no recording.
 
 ## The landing page and brand
 

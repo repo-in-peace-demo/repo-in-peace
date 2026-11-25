@@ -99,6 +99,10 @@ Each property is a fast-check test beside its module (`frontend/src/model/*.prop
 - **Tests that tested nothing.** The end-to-end property's random repositories hold only comments, so they have no imports; P4 got its own generator, with random imports in five forms written in random order.
 - **Wording met real labels.** The design's "Entry point: loaded by {label}" read as "loaded by Vite entry" with the labels the analyser actually writes, so the panel says "Entry point: Vite entry".
 
+## Built after the six specs
+
+Smaller requests, each with its own pure model and tests where it had logic: the witch, bats, shooting stars and distant lightning (one sky director); the gravedigger during Bury and the screaming ghost during Resurrect; the landing page, logo and favicons; sound, off by default and generated with the Web Audio API; open pull requests shown live on load (Req 10.4 revised), with the PR plaque kept in clear view; and the analyser as an npm package (`npx repo-in-peace`).
+
 ## Hooks (`.kiro/hooks/`, wired in `.kiro/agents/rip-dev.json`)
 
 Kiro CLI reads hooks from an agent's configuration, not from files of their own, so the four scripts live in `.kiro/hooks/` and the workspace agent `rip-dev` runs them (`kiro-cli chat --agent rip-dev`). Each is a small Node script that reads the hook event on stdin.
@@ -120,7 +124,7 @@ Kiro CLI reads hooks from an agent's configuration, not from files of their own,
 
 ## Property-based testing
 
-70 numbered correctness properties across the six specs (repo-analyser 7, graveyard-scene 21, interface 16, eulogies 12, bury-and-resurrect 8, importers 6), plus those of the later additions (the gravedigger, the screaming ghost, the sky director): 384 `fc.assert` calls in all. What they caught:
+70 numbered correctness properties across the six specs (repo-analyser 7, graveyard-scene 21, interface 16, eulogies 12, bury-and-resurrect 8, importers 6), plus those of the later additions (the gravedigger, the screaming ghost, the sky director, the sound schedule): 389 `fc.assert` calls in all. At the code freeze the suites hold 2,060 Vitest tests (frontend 1,256, analyser 742, shared 62) and 217 Playwright browser tests (23 of them screenshot tests, run only with `SCREENSHOTS=1`). What they caught:
 
 - **In the code:** the packer stretching 0.6% of large synthetic graveyards to 2.6 times as long as wide (below); a keyword rule taking "let it rest" for code; long file paths taken for secrets; markdown, emoji and quotes wrapping each other; a bat path dipping under the framing trees.
 - **In the tests:** the pull-request text test's own helper mis-reading a backslash inside a code span (it now scans as CommonMark does); a eulogy property older than the time-agnostic rule, failing on a random sentence "Aa ago!" (seed 375800081); and the end-to-end property's random repositories, which hold only comments, so the import graph's P4 needed its own generator.
