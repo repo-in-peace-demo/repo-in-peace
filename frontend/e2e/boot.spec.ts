@@ -57,8 +57,11 @@ test('any key or click skips the digging screen at once', async ({ page }) => {
     await page.waitForTimeout(300);
     if (skip === 'key') await page.keyboard.press('Space');
     else await page.mouse.click(640, 400);
-    await sceneUp(page);
+    // The skip decides when the digging screen leaves (the model is built by then); drawing the scene after it (shaders, the first
+    // frames) is not part of the beat and is slow under load, so the time is taken when the digging screen goes.
+    await expect(digging(page)).toHaveCount(0, { timeout: 5000 });
     expect(Date.now() - chosen, `a ${skip} skipped the rest of the beat`).toBeLessThan(1500);
+    await sceneUp(page);
   }
 });
 
