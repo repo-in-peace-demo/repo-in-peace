@@ -6,11 +6,11 @@ Repo In Peace turns a JavaScript or TypeScript repository into a haunted 3D grav
 
 ## For judges: how to test
 
-**1. Open it.** <LIVE_URL>. No login or setup. Use a desktop browser with WebGL (recent Chrome, Edge, Firefox or Safari). A mouse is easiest; on a trackpad, one-finger drag orbits and Shift + drag pans.
+**1. Open it.** https://repo-in-peace-pi.vercel.app. No login or setup. Use a desktop browser with WebGL (recent Chrome, Edge, Firefox or Safari). A mouse is easiest; on a trackpad, one-finger drag orbits and Shift + drag pans.
 
 **2. Pick a graveyard.** The boot screen lists the two demos: `spatialql` has ghosts (deleted files); `oikos_ledger` has the most variety. Direct links skip the boot screen:
-- <LIVE_URL>/?graveyard=demo.spatialql
-- <LIVE_URL>/?graveyard=demo.oikosledger
+- https://repo-in-peace-pi.vercel.app/?graveyard=demo.spatialql
+- https://repo-in-peace-pi.vercel.app/?graveyard=demo.oikosledger
 
 **3. Things to try (about 5 minutes).**
 - Watch the camera rise into the overview, then find clean, mossy, leaning, cracked (unused) and candlelit (busy) stones, and the floating ghosts. The **Legend** explains each.
@@ -67,7 +67,29 @@ With Node 20.19+ (or 22.12+), a **full** clone of your repo, and its dependencie
 npx repo-in-peace path/to/your-repo --out your-repo.graveyard.json
 ```
 
-Then open <LIVE_URL>, choose **Enter the graveyard**, and use **Open a graveyard file…** to pick `your-repo.graveyard.json`. It is read in your browser and never uploaded. Every flag below works the same (`npx repo-in-peace --help` lists them).
+Then open <https://repo-in-peace-pi.vercel.app>, choose **Enter the graveyard**, and use **Open a graveyard file…** to pick `your-repo.graveyard.json`. It is read in your browser and never uploaded.
+
+Usage (`npx repo-in-peace --help` prints it all):
+
+```
+npx repo-in-peace <repo-path> --out <name>.graveyard.json [options]
+
+  --knip-dir <folder>        the JS/TS is in a subfolder with its own package.json (repeat for several)
+  --knip-config <file>       a Knip config to use instead of the clone's own
+  --stale-after <days>       fresh below this many days since the last commit (default 90)
+  --ancient-after <days>     ancient after this many days (default 360)
+  --hot-commits <n>          hot with this many commits in the hot window (default 5)
+  --hot-window <days>        the hot window before the snapshot (default 30)
+  --eulogies --eulogy-model <name>
+                             an epitaph for every grave from a local Ollama model, for example qwen2.5:7b
+  --analysed-at <timestamp>  fix the analysis time, for byte-identical output across runs
+```
+
+For example, a young repository whose JS/TS lives in `app/`:
+
+```
+npx repo-in-peace ~/code/my-app --out my-app.graveyard.json --knip-dir app --stale-after 30 --ancient-after 90
+```
 
 The full route that follows (clone Repo In Peace and run it locally) is needed for Bury and Resurrect on your own repo (Part B).
 
