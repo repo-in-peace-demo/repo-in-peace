@@ -46,6 +46,15 @@ export function setSoundOn(on: boolean): void {
 
 export const toggleSoundOn = (): void => setSoundOn(toggleSound(state).on);
 
+/** The ghost's moan (sound/engine.ts): start, rise into the wail, or fade. Nothing when muted or before the engine is up. */
+export function moan(path: string, change: 'start' | 'rise' | 'fade'): void {
+  if (!engine) return;
+  if (change === 'start') {
+    if (state.on) engine.startMoan(path);
+  } else if (change === 'rise') engine.riseMoan(path);
+  else engine.fadeMoan(path);
+}
+
 /** Plays one of the scene's sounds, if sound is on and the engine is up; otherwise nothing at all. */
 export function playSound(event: SoundEvent, pan = 0): void {
   if (state.on && engine) engine.play(event, pan);

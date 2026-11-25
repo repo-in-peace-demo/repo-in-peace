@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { DIG_CYCLE_S, ENTER_S, phasesOf } from './gravedigger';
 import { FORM_AT_S, MOUTH_S, RISE_S, SOLID_S } from './pr-scene';
-import { OWL_MAX_S, OWL_MIN_S, OWL_NOTES, THRUST_AT, diggerSounds, dueBetween, initialSound, owlCalls, riseSounds, toggleSound } from './sound-schedule';
+import { OWL_MAX_S, OWL_MIN_S, OWL_NOTES, THRUST_AT, diggerSounds, dueBetween, initialSound, moanChanges, owlCalls, riseSounds, toggleSound } from './sound-schedule';
 
 describe('the mute state', () => {
   it('starts muted on every visit, and toggles', () => {
@@ -95,5 +95,31 @@ describe('dueBetween', () => {
       }),
     );
     expect(dueBetween(events, 0, 5000)).toEqual([]); // one frame after the tab was hidden for seconds: none of them
+  });
+});
+
+describe('the ghost\'s moan', () => {
+  const set = (...p: string[]) => new Set(p);
+  it('starts when a Resurrect request starts, rises into the wail when it opens, fades when it fails', () => {
+    expect(moanChanges(set(), set('g'), set())).toEqual([{ path: 'g', change: 'start' }]);
+    expect(moanChanges(set('g'), set('g'), set())).toEqual([]); // still waiting: keeps moaning
+    expect(moanChanges(set('g'), set(), set('g'))).toEqual([{ path: 'g', change: 'rise' }]);
+    expect(moanChanges(set('g'), set(), set())).toEqual([{ path: 'g', change: 'fade' }]);
+  });
+
+  it('P: after applying the changes, the ghosts moaning are exactly the ghosts waiting', () => {
+    const paths = fc.subarray(['a', 'b', 'c', 'd']).map((xs) => new Set(xs));
+    fc.assert(
+      fc.property(paths, paths, paths, (moaning, waiting, opened) => {
+        const next = new Set(moaning);
+        for (const c of moanChanges(moaning, waiting, opened)) {
+          if (c.change === 'start') next.add(c.path);
+          else next.delete(c.path);
+          if (c.change === 'rise') expect(opened.has(c.path)).toBe(true);
+          if (c.change === 'fade') expect(opened.has(c.path)).toBe(false);
+        }
+        expect([...next].sort()).toEqual([...waiting].sort());
+      }),
+    );
   });
 });

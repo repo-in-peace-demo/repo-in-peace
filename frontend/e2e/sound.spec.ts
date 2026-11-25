@@ -148,3 +148,29 @@ test('muted, or under reduced motion, the scene plays none of its sounds', async
   await page.waitForTimeout(2600);
   expect(await sounds(page)).toEqual([]);
 });
+
+test('a held Resurrect moans while it waits, then rises into the wail; a refused one fades its moan, with no wail', async ({ page }) => {
+  await scene(page, 'demo.spatialql');
+  await speaker(page).click();
+  await page.waitForTimeout(300);
+  await holdPost(page, 2000);
+  await page.evaluate(() => (window.__repoInPeaceSoundLog = []));
+  await confirm(page, 'ghost', spatialql.ghosts[0]!.path, 'Resurrect');
+  await expect.poll(() => sounds(page), { timeout: 2000 }).toEqual(['moan']); // as the shiver starts, and nothing else while waiting
+  await page.waitForTimeout(800);
+  expect(await sounds(page)).toEqual(['moan']);
+  await expect.poll(() => sounds(page), { timeout: 10_000 }).toEqual(['moan', 'moan-rise', 'wail', 'rumble', 'thunk']);
+
+  await page.unroute('**/api/pr');
+  await page.route('**/api/pr', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: 'This demo is full.' }) }).catch(() => {});
+  });
+  await page.evaluate(() => (window.__repoInPeaceSoundLog = []));
+  await confirm(page, 'ghost', spatialql.ghosts[1]!.path, 'Resurrect');
+  await expect(panel(page).locator('.detail-error')).toHaveText('This demo is full.', { timeout: 5000 });
+  await expect.poll(() => sounds(page)).toEqual(['moan', 'moan-fade']);
+  await page.waitForTimeout(1500);
+  expect(await sounds(page)).toEqual(['moan', 'moan-fade']);
+});

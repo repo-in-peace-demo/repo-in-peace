@@ -95,7 +95,7 @@ Off at the start of every visit; the speaker button (next to Reset view and ?, a
 
 - **Ambient:** crickets (four voices, each at its own pitch and loose rhythm) and an owl's "hoo-hoo… hoo" every 25 to 60 s, panned a little left or right (`owlCalls`).
 - **The gravedigger:** a crunchy thrust and a scatter of falling soil for every dig while the request runs, two dull thuds when he pats the mound, a wooden knock for the stake.
-- **Resurrection:** a wail rising in pitch and fading with the ghost, a low rumble as the stone forms, and a thunk as it stands (about 2 s).
+- **Resurrection:** while the request runs, a low, trembling moan (a soft hum near 150 Hz wavering at the shiver's pace, drifting a little, with a breathy edge), which glides up into the wail when the pull request opens, or fades out over a second if it fails; then a wail rising in pitch and fading with the ghost, a low rumble as the stone forms, and a thunk as it stands (about 2 s).
 
 The timing is pure and shared with the animations (`model/sound-schedule.ts`, played by `scene/SoundDriver.tsx`). Under reduced motion the scene's sounds are skipped with their animations.
 

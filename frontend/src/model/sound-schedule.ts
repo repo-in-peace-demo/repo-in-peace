@@ -103,3 +103,24 @@ export function riseSounds(startedAt: number): SoundEvent[] {
 /** The events due in (from, to]: what a frame plays. Events more than `stale` ms old are dropped (after the tab was hidden). */
 export const dueBetween = (events: readonly SoundEvent[], from: number, to: number, stale = 500): SoundEvent[] =>
   events.filter((e) => e.at > from && e.at <= to && to - e.at <= stale);
+
+// ---- The ghost's moan while its Resurrect request runs ----
+
+/** The moan swells in with the shiver (`ghostWait`'s ramp), fades over this long on a failure, and hands over to the wail this fast. */
+export const MOAN_IN_S = 0.3;
+export const MOAN_FADE_S = 1;
+export const MOAN_TO_WAIL_S = 0.25;
+
+export type MoanChange = { path: string; change: 'start' | 'rise' | 'fade' };
+
+/**
+ * What changes for the ghosts' moans between two frames. `moaning` is the ghosts moaning now; `waiting` the ghosts whose Resurrect
+ * request runs; `opened` the ghosts with a pull request. A ghost that starts waiting starts to moan; one that stops waiting rises into
+ * the wail if its pull request opened, and fades out otherwise (an error, or the page gave up).
+ */
+export function moanChanges(moaning: ReadonlySet<string>, waiting: ReadonlySet<string>, opened: ReadonlySet<string>): MoanChange[] {
+  const out: MoanChange[] = [];
+  for (const path of waiting) if (!moaning.has(path)) out.push({ path, change: 'start' });
+  for (const path of moaning) if (!waiting.has(path)) out.push({ path, change: opened.has(path) ? 'rise' : 'fade' });
+  return out;
+}

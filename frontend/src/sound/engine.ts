@@ -1,4 +1,4 @@
-import { OWL_NOTES, owlCalls, type OwlCall, type SoundEvent, type SoundKind } from '../model/sound-schedule';
+import { MOAN_FADE_S, MOAN_IN_S, MOAN_TO_WAIL_S, OWL_NOTES, owlCalls, type OwlCall, type SoundEvent, type SoundKind } from '../model/sound-schedule';
 
 /**
  * The sounds (sound request), every one made with the Web Audio API from oscillators and noise: no audio file, so nothing to
@@ -44,6 +44,7 @@ export class SoundEngine {
   private timer: number | undefined;
   private on = false;
   private suspendTimer: number | undefined;
+  private readonly moans = new Map<string, { gain: GainNode; oscs: OscillatorNode[]; sources: AudioScheduledSourceNode[]; drift: number }>();
 
   constructor() {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -115,6 +116,99 @@ export class SoundEngine {
       thunk: () => this.thunk(t, out),
     };
     play[event.kind]();
+  }
+
+  // ---- The ghost's moan, while its Resurrect request runs ----
+
+  /**
+   * A low, trembling moan: a soft hum (triangle and sine near 150 Hz) wavering in pitch at the shiver's pace and drifting slowly up and
+   * down, with a breathy edge of band-passed noise, swelling in with the shiver. Loops, a little different all the time, until
+   * `riseMoan` or `fadeMoan`.
+   */
+  startMoan(path: string, pan = 0): void {
+    if (!this.on || this.moans.has(path)) return;
+    if (import.meta.env.DEV) (window.__repoInPeaceSoundLog ??= []).push('moan');
+    const t = this.ctx.currentTime + 0.01;
+    const base = 138 + Math.random() * 24;
+    const out = this.filter('lowpass', 1300, 0.6, this.panner(pan, this.effects));
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.16, t + MOAN_IN_S + 0.2);
+    gain.connect(out);
+    // The waver: a slow swell of the loudness.
+    const swell = this.ctx.createGain();
+    swell.gain.value = 1;
+    swell.connect(gain);
+    const swellLfo = this.ctx.createOscillator();
+    swellLfo.frequency.value = 0.55 + Math.random() * 0.3;
+    const swellDepth = this.ctx.createGain();
+    swellDepth.gain.value = 0.35;
+    swellDepth.connect(swell.gain);
+    swellLfo.connect(swellDepth);
+    // The tremble: a fast, small wobble of the pitch, in time with the shiver.
+    const tremble = this.ctx.createOscillator();
+    tremble.frequency.value = 5.6 + Math.random() * 0.8;
+    const trembleDepth = this.ctx.createGain();
+    trembleDepth.gain.value = base * 0.025;
+    tremble.connect(trembleDepth);
+    const oscs = (['triangle', 'sine'] as const).map((type, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(base * (i === 0 ? 1 : 2.007), t);
+      trembleDepth.connect(osc.frequency);
+      osc.connect(this.gain(i === 0 ? 0.6 : 0.3, swell));
+      return osc;
+    });
+    // The breath: noise through a band-pass, quieter than the hum.
+    const breath = this.ctx.createBufferSource();
+    breath.buffer = this.noise;
+    breath.loop = true;
+    breath.connect(this.filter('bandpass', 700, 1.1, this.gain(0.09, swell)));
+    const sources: AudioScheduledSourceNode[] = [...oscs, swellLfo, tremble, breath];
+    for (const src of sources) src.start(t);
+    // A little different all the time: the pitch drifts to a new nearby note every second or so.
+    const drift = window.setInterval(() => {
+      const now = this.ctx.currentTime;
+      const to = base * (0.92 + Math.random() * 0.16);
+      oscs.forEach((osc, i) => osc.frequency.setTargetAtTime(to * (i === 0 ? 1 : 2.007), now, 0.4));
+    }, 1100 + Math.random() * 500);
+    this.moans.set(path, { gain, oscs, sources, drift });
+  }
+
+  /** The request opened: the moan glides up to where the wail starts and hands over to it. */
+  riseMoan(path: string): void {
+    const m = this.end(path, 'moan-rise');
+    if (!m) return;
+    const t = this.ctx.currentTime;
+    m.oscs.forEach((osc, i) => {
+      osc.frequency.cancelScheduledValues(t);
+      osc.frequency.setValueAtTime(osc.frequency.value, t);
+      osc.frequency.exponentialRampToValueAtTime(260 * (i === 0 ? 1 : 2.01), t + MOAN_TO_WAIL_S);
+    });
+    this.release(m, MOAN_TO_WAIL_S);
+  }
+
+  /** The request failed or was given up: the moan fades out as the shiver stops. */
+  fadeMoan(path: string): void {
+    const m = this.end(path, 'moan-fade');
+    if (m) this.release(m, MOAN_FADE_S);
+  }
+
+  private end(path: string, log: string) {
+    const m = this.moans.get(path);
+    if (!m) return undefined;
+    this.moans.delete(path);
+    window.clearInterval(m.drift);
+    if (import.meta.env.DEV) (window.__repoInPeaceSoundLog ??= []).push(log);
+    return m;
+  }
+
+  private release(m: { gain: GainNode; sources: AudioScheduledSourceNode[] }, seconds: number): void {
+    const t = this.ctx.currentTime;
+    m.gain.gain.cancelScheduledValues(t);
+    m.gain.gain.setValueAtTime(m.gain.gain.value, t);
+    m.gain.gain.linearRampToValueAtTime(0, t + seconds);
+    for (const src of m.sources) src.stop(t + seconds + 0.05);
   }
 
   // ---- Ambient ----
