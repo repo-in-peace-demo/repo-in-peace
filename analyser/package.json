@@ -1,14 +1,38 @@
 {
-  "name": "@repo-in-peace/analyser",
+  "name": "repo-in-peace",
   "version": "0.1.0",
-  "private": true,
-  "description": "Turns a local git clone of a JS/TS repo into a graveyard data file.",
-  "type": "module",
+  "description": "Turns a local git clone of a JavaScript or TypeScript repository into a graveyard data file for Repo In Peace, the haunted 3D graveyard of your code.",
+  "keywords": [
+    "dead-code",
+    "knip",
+    "git",
+    "visualization",
+    "graveyard",
+    "kiroween"
+  ],
+  "homepage": "https://repo-in-peace-pi.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sl2902/repo-in-peace.git",
+    "directory": "analyser"
+  },
   "license": "MIT",
+  "type": "module",
+  "bin": {
+    "repo-in-peace": "dist/repo-in-peace.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "analyse": "tsx src/cli.ts"
+    "analyse": "tsx src/cli.ts",
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "knip": "^5.0.0",
@@ -18,6 +42,7 @@
     "@types/node": "^22.0.0",
     "fast-check": "^3.22.0",
     "tsx": "^4.19.0",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "esbuild": "^0.28.2"
   }
 }

@@ -1,5 +1,11 @@
 # Repo In Peace analyser
 
+```
+npx repo-in-peace path/to/your-repo --out your-repo.graveyard.json
+```
+
+Run it from outside a **full** git clone (not shallow) of a JavaScript or TypeScript repository, with the repository's dependencies installed. Then open the file on <https://repo-in-peace-pi.vercel.app> with **Open a graveyard file…**: it is read in your browser and never uploaded. Needs Node 20.19+ or 22.12+ and git. `npx repo-in-peace --help` lists every option. From a clone of Repo In Peace, `npm run analyse -- <repo-path> ...` does the same.
+
 Reads a local git clone of a JavaScript/TypeScript repository and writes one **graveyard data file** (JSON): every current source file with its age, size, author, decay and unused status, every folder, and every deleted file (a "ghost") with the commit needed to restore it. The frontend loads this file; nothing here calls the GitHub API.
 
 The file's schema lives in [`../shared/graveyard-schema.ts`](../shared/graveyard-schema.ts) (version 2).
@@ -138,7 +144,7 @@ npm run analyse -- <path-to-clone> --out /tmp/repo.graveyard.json --eulogies --e
 | `--eulogy-model <name>` | The Ollama model. Needed with `--eulogies`. | none |
 | `--ollama-url <url>` | The Ollama server. Its host must be `localhost`, `127.0.0.1` or `[::1]`. | `http://localhost:11434` |
 | `--eulogy-concurrency <n>` | Requests at a time, 1 to 4. | 2 |
-| `--eulogy-cache <file>` | The cache of eulogies. Must be outside the clone. | `analyser/.cache/eulogies.json` |
+| `--eulogy-cache <file>` | The cache of eulogies. Must be outside the clone. | `analyser/.cache/eulogies.json`; with npx, `~/.cache/repo-in-peace/eulogies.json` |
 
 The last four work only with `--eulogies`; given without it, they are an error, so a typo never quietly skips the eulogies.
 

@@ -59,6 +59,18 @@ On the demo graveyards, **Bury** on an unused stone opens a real pull request th
 
 Try Repo In Peace on a JavaScript or TypeScript repository of your own, on your machine. Part A shows it as a graveyard; Part B (optional) makes Bury and Resurrect open real pull requests on a repository you control. Nothing is uploaded anywhere, except the pull requests in Part B.
 
+### Quickest way
+
+With Node 20.19+ (or 22.12+), a **full** clone of your repo, and its dependencies installed (`npm install` in it), run this from any folder outside the clone:
+
+```
+npx repo-in-peace path/to/your-repo --out your-repo.graveyard.json
+```
+
+Then open <LIVE_URL>, choose **Enter the graveyard**, and use **Open a graveyard file…** to pick `your-repo.graveyard.json`. It is read in your browser and never uploaded. Every flag below works the same (`npx repo-in-peace --help` lists them).
+
+The full route that follows (clone Repo In Peace and run it locally) is needed for Bury and Resurrect on your own repo (Part B).
+
 ### Part A: see your repo as a graveyard
 
 **1. What you need:** Node 20.19 or later (or 22.12+), git, and a JavaScript or TypeScript repository.

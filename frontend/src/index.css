@@ -1371,3 +1371,10 @@ body,
   outline: 3px solid #d9dee8;
   outline-offset: 3px;
 }
+
+/* The npx command in the boot screen's hint: selectable, never broken across lines. */
+.terminal-command {
+  font: inherit;
+  white-space: nowrap;
+  user-select: all;
+}

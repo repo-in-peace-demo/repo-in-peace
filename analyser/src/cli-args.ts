@@ -6,6 +6,8 @@
  *           [--eulogies --eulogy-model <name> [--ollama-url <url>] [--eulogy-concurrency <n>] [--eulogy-cache <file>]]
  *           [--eulogies-from <file>]
  */
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { Thresholds } from '../../shared/graveyard-schema';
@@ -40,7 +42,17 @@ export interface EulogyOptions {
 export const DEFAULT_OLLAMA_URL = 'http://localhost:11434';
 export const DEFAULT_EULOGY_CONCURRENCY = 2;
 /** In the analyser's own folder, whatever folder the command runs in (this file is analyser/src/cli-args.ts). */
-export const DEFAULT_EULOGY_CACHE = fileURLToPath(new URL('../.cache/eulogies.json', import.meta.url));
+/**
+ * Where the eulogy cache lives by default: in the analyser's own folder when run from a clone of Repo In Peace (analyser/.cache, as
+ * before), and in the user's cache folder when run from the npm package (npx), whose install folder is temporary.
+ */
+export function defaultEulogyCache(moduleUrl: string = import.meta.url, env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string {
+  const here = fileURLToPath(new URL('.', moduleUrl));
+  if (!/[\\/]dist[\\/]?$/.test(here)) return fileURLToPath(new URL('../.cache/eulogies.json', moduleUrl));
+  const base = env['XDG_CACHE_HOME'] || join(home, '.cache');
+  return join(base, 'repo-in-peace', 'eulogies.json');
+}
+export const DEFAULT_EULOGY_CACHE = defaultEulogyCache();
 /** The only hosts an Ollama URL may name: eulogies never leave this machine (Req 1.4). */
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
@@ -49,10 +61,13 @@ export type ParsedArgs =
   | { kind: 'help' }
   | { kind: 'usage-error'; message: string };
 
-export const USAGE = `Usage: analyse <repo-path> [options]
+export const USAGE = `Usage: npx repo-in-peace <repo-path> --out <name>.graveyard.json [options]
+       (from a clone of Repo In Peace: npm run analyse -- <repo-path> [options])
 
 Reads a local git clone of a JavaScript/TypeScript repository and writes one
-graveyard data file (JSON).
+graveyard data file (JSON). Open it on https://repo-in-peace-pi.vercel.app with
+"Open a graveyard file..." on the boot screen: it is read in your browser and
+never uploaded.
 
 Arguments:
   <repo-path>               Root of a full (not shallow) git clone, with its
@@ -89,7 +104,8 @@ Eulogies (a short epitaph for every grave, written by a model on this machine):
   --eulogy-concurrency <n>  Requests at a time, 1 to 4. Default ${DEFAULT_EULOGY_CONCURRENCY}.
   --eulogy-cache <file>     The cache of eulogies, so a second run asks the model
                             only about what changed. Default
-                            analyser/.cache/eulogies.json. Must be outside the clone.
+                            analyser/.cache/eulogies.json (with npx: ~/.cache/
+                            repo-in-peace/eulogies.json). Must be outside the clone.
   --eulogies-from <file>    Copy every grave's eulogy, by path, from an earlier
                             graveyard file of the same repository, with no model.
                             Graves it doesn't have get none, and are listed. Not

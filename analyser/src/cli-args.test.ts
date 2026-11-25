@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_EULOGY_CACHE, USAGE, normaliseAnalysedAt, ollamaUrlProblem, parseCliArgs } from './cli-args';
+import { DEFAULT_EULOGY_CACHE, USAGE, defaultEulogyCache, normaliseAnalysedAt, ollamaUrlProblem, parseCliArgs } from './cli-args';
 
 const NOW = '2030-01-01T00:00:00.000Z';
 const parse = (...argv: string[]) => parseCliArgs(argv, () => NOW);
@@ -205,6 +205,12 @@ describe('P8: the eulogy flags', () => {
       concurrency: 2,
       cachePath: DEFAULT_EULOGY_CACHE,
     });
+  });
+
+  it('puts the default cache in the user\'s cache folder when run from the npm package (dist/)', () => {
+    expect(defaultEulogyCache('file:///x/node_modules/repo-in-peace/dist/repo-in-peace.js', {}, '/home/ann')).toBe('/home/ann/.cache/repo-in-peace/eulogies.json');
+    expect(defaultEulogyCache('file:///x/node_modules/repo-in-peace/dist/repo-in-peace.js', { XDG_CACHE_HOME: '/c' }, '/home/ann')).toBe('/c/repo-in-peace/eulogies.json');
+    expect(defaultEulogyCache('file:///r/analyser/src/cli-args.ts', {}, '/home/ann')).toBe('/r/analyser/.cache/eulogies.json');
   });
 
   it('puts the default cache in analyser/.cache, whatever the current folder', () => {

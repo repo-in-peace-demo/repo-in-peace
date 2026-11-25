@@ -7,6 +7,8 @@ import { useTyping } from './useTyping';
 
 /** How to make a graveyard file of your own repository (the main README's section). */
 export const ANALYSE_YOUR_OWN_URL = 'https://github.com/sl2902/repo-in-peace#analyse-your-own-repo';
+/** The one command that makes a graveyard file of a repo (the analyser's npm package); run outside the clone, which is never written to. */
+export const NPX_COMMAND = 'npx repo-in-peace path/to/your-repo --out your-repo.graveyard.json';
 
 interface BootScreenProps {
   baseUrl: string;
@@ -173,7 +175,8 @@ export function BootScreen({ baseUrl, notice, onChooseDemo, onChooseFile }: Boot
           </label>
           <p className="terminal-dim terminal-hint">or drop a .graveyard.json anywhere here. It is read in this browser and never uploaded.</p>
           <p className="terminal-dim terminal-hint">
-            No file yet?{' '}
+            No file yet? Outside a full clone of your repo (with its dependencies installed), run{' '}
+            <code className="terminal-command">{NPX_COMMAND}</code>, then open the file here.{' '}
             <a href={ANALYSE_YOUR_OWN_URL} target="_blank" rel="noopener noreferrer">
               Analyse your own repo
             </a>

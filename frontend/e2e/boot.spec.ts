@@ -208,5 +208,5 @@ test('under Open a graveyard file, a hint links to the README section on analysi
   const link = page.getByRole('link', { name: 'Analyse your own repo' });
   await expect(link).toHaveAttribute('href', 'https://github.com/sl2902/repo-in-peace#analyse-your-own-repo');
   await expect(link).toHaveAttribute('target', '_blank');
-  await expect(boot(page)).toContainText('No file yet? Analyse your own repo.');
+  await expect(boot(page)).toContainText('No file yet? Outside a full clone of your repo (with its dependencies installed), run npx repo-in-peace path/to/your-repo --out your-repo.graveyard.json, then open the file here. Analyse your own repo.');
 });
